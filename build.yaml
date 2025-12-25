@@ -1,0 +1,31 @@
+targets:
+  $default:
+    builders:
+      freezed:
+        enabled: true
+        options:
+          # Use sealed classes for Freezed unions
+          use_sealed_classes: true
+
+      json_serializable:
+        enabled: true
+        options:
+          # Generate explicit toJson methods
+          explicit_to_json: true
+          # Use any map type
+          any_map: true
+          # Enable runtime checking
+          checked: true
+          # Use snake_case for field names
+          field_rename: snake
+          # Include if null
+          include_if_null: false
+
+      retrofit_generator:
+        enabled: true
+        options:
+          # Generate client implementation
+          generate_client: true
+
+      riverpod_generator:
+        enabled: true
