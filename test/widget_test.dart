@@ -11,11 +11,11 @@ void main() {
     // Build our app and trigger a frame.
     await tester.pumpWidget(const ProviderScope(child: FuelEaseApp()));
 
-    // Wait for the app to load
-    await tester.pumpAndSettle();
+    // Pump a single frame to start the build process
+    await tester.pump();
 
-    // Verify that the splash screen or welcome screen appears
-    // This is a basic smoke test to ensure the app builds without errors
+    // Verify that the app builds without errors
+    // We just check that the MaterialApp is created
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

@@ -75,8 +75,10 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
           ),
         );
 
-        // Navigate back
-        context.pop();
+        // Navigate back after dialog closes
+        if (mounted) {
+          context.pop();
+        }
       }
     } catch (e) {
       if (mounted) {

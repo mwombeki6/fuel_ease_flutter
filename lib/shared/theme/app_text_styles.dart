@@ -6,12 +6,8 @@ import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 class AppTextStyles {
   AppTextStyles._();
 
-  // Font family
-  static const String fontFamily = 'Inter';
-
   // Display styles (largest)
   static const TextStyle displayLarge = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 57,
     fontWeight: FontWeight.w700,
     height: 1.12,
@@ -20,7 +16,6 @@ class AppTextStyles {
   );
 
   static const TextStyle displayMedium = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 45,
     fontWeight: FontWeight.w700,
     height: 1.16,
@@ -28,7 +23,6 @@ class AppTextStyles {
   );
 
   static const TextStyle displaySmall = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 36,
     fontWeight: FontWeight.w600,
     height: 1.22,
@@ -37,7 +31,6 @@ class AppTextStyles {
 
   // Headline styles
   static const TextStyle headlineLarge = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 32,
     fontWeight: FontWeight.w600,
     height: 1.25,
@@ -45,7 +38,6 @@ class AppTextStyles {
   );
 
   static const TextStyle headlineMedium = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 28,
     fontWeight: FontWeight.w600,
     height: 1.29,
@@ -53,7 +45,6 @@ class AppTextStyles {
   );
 
   static const TextStyle headlineSmall = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 24,
     fontWeight: FontWeight.w600,
     height: 1.33,
@@ -62,7 +53,6 @@ class AppTextStyles {
 
   // Title styles
   static const TextStyle titleLarge = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 22,
     fontWeight: FontWeight.w600,
     height: 1.27,
@@ -70,7 +60,6 @@ class AppTextStyles {
   );
 
   static const TextStyle titleMedium = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.50,
@@ -79,7 +68,6 @@ class AppTextStyles {
   );
 
   static const TextStyle titleSmall = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.43,
@@ -89,7 +77,6 @@ class AppTextStyles {
 
   // Body styles
   static const TextStyle bodyLarge = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 16,
     fontWeight: FontWeight.w400,
     height: 1.50,
@@ -98,7 +85,6 @@ class AppTextStyles {
   );
 
   static const TextStyle bodyMedium = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w400,
     height: 1.43,
@@ -107,7 +93,6 @@ class AppTextStyles {
   );
 
   static const TextStyle bodySmall = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.33,
@@ -117,7 +102,6 @@ class AppTextStyles {
 
   // Label styles
   static const TextStyle labelLarge = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.43,
@@ -126,7 +110,6 @@ class AppTextStyles {
   );
 
   static const TextStyle labelMedium = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w600,
     height: 1.33,
@@ -135,7 +118,6 @@ class AppTextStyles {
   );
 
   static const TextStyle labelSmall = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 11,
     fontWeight: FontWeight.w600,
     height: 1.45,
@@ -145,7 +127,6 @@ class AppTextStyles {
 
   // Custom styles
   static const TextStyle buttonLarge = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 16,
     fontWeight: FontWeight.w600,
     height: 1.25,
@@ -154,7 +135,6 @@ class AppTextStyles {
   );
 
   static const TextStyle buttonMedium = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 14,
     fontWeight: FontWeight.w600,
     height: 1.43,
@@ -163,7 +143,6 @@ class AppTextStyles {
   );
 
   static const TextStyle caption = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 12,
     fontWeight: FontWeight.w400,
     height: 1.33,
@@ -172,7 +151,6 @@ class AppTextStyles {
   );
 
   static const TextStyle overline = TextStyle(
-    fontFamily: fontFamily,
     fontSize: 10,
     fontWeight: FontWeight.w600,
     height: 1.60,
