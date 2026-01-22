@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
+import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 /// Main navigation scaffold with bottom navigation bar
-class MainNavigation extends StatelessWidget {
+class MainNavigation extends ConsumerStatefulWidget {
   const MainNavigation({
     required this.child,
     super.key,
@@ -14,9 +17,48 @@ class MainNavigation extends StatelessWidget {
   final Widget child;
 
   @override
+  ConsumerState<MainNavigation> createState() => _MainNavigationState();
+}
+
+class _MainNavigationState extends ConsumerState<MainNavigation>
+    with WidgetsBindingObserver {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    ref.read(realtimeClientProvider).connect(channels: ['public']);
+    ref.listen<StationSelectionState>(
+      stationSelectionProvider,
+      (previous, next) {
+        if (previous?.stationId != next.stationId) {
+          ref.read(realtimeClientProvider).setStationSubscription(next.stationId);
+        }
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    ref.read(realtimeClientProvider).disconnect();
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(realtimeClientProvider).connect();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      ref.read(realtimeClientProvider).disconnect();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: child,
+      body: widget.child,
       bottomNavigationBar: const _BottomNavBar(),
     );
   }

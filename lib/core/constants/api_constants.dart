@@ -6,15 +6,22 @@ class ApiConstants {
   static const String baseUrl =
       'https://fuel-ease-api.mwombekilubere.workers.dev/api';
 
-  /// WebSocket URL for real-time events
+  /// WebSocket base URL for real-time events
   static String get webSocketUrl {
-    return baseUrl
+    final wsBase = baseUrl
         .replaceFirst('https://', 'wss://')
         .replaceFirst('http://', 'ws://');
+    return wsBase.endsWith('/api')
+        ? wsBase.substring(0, wsBase.length - 4)
+        : wsBase;
   }
 
-  /// WebSocket events endpoint
-  static String get webSocketEventsPath => '/ws/events';
+  /// WebSocket event stream endpoint (token required)
+  static String get webSocketConnectPath => '/ws/events';
+
+  /// Build realtime URL with auth token
+  static String realtimeUrl(String token) =>
+      '$webSocketUrl$webSocketConnectPath?token=$token';
 
   /// API request timeout duration
   static const Duration timeout = Duration(seconds: 15);

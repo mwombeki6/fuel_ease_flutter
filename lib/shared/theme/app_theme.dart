@@ -28,7 +28,7 @@ class AppTheme {
         onError: Colors.white,
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
-        surfaceContainerHighest: AppColors.surfaceVariant,
+        surfaceContainerHighest: AppColors.surfaceStrong,
         outline: AppColors.border,
         outlineVariant: AppColors.borderDark,
       ),
@@ -37,7 +37,7 @@ class AppTheme {
       scaffoldBackgroundColor: AppColors.background,
 
       // App bar theme
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
         scrolledUnderElevation: 1,
@@ -50,7 +50,8 @@ class AppTheme {
 
       // Card theme
       cardTheme: CardThemeData(
-        elevation: 0,
+        elevation: 1,
+        shadowColor: AppColors.shadow,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(
@@ -221,26 +222,26 @@ class AppTheme {
       ),
 
       // Divider theme
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: AppColors.border,
         space: 1,
         thickness: 1,
       ),
 
       // Icon theme
-      iconTheme: const IconThemeData(
+      iconTheme: IconThemeData(
         color: AppColors.textPrimary,
         size: 24,
       ),
 
       // Primary icon theme
-      primaryIconTheme: const IconThemeData(
+      primaryIconTheme: IconThemeData(
         color: AppColors.primary,
         size: 24,
       ),
 
       // Text theme
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         displayLarge: AppTextStyles.displayLarge,
         displayMedium: AppTextStyles.displayMedium,
         displaySmall: AppTextStyles.displaySmall,
@@ -259,14 +260,14 @@ class AppTheme {
       ),
 
       // List tile theme
-      listTileTheme: const ListTileThemeData(
+      listTileTheme: ListTileThemeData(
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         iconColor: AppColors.textSecondary,
         textColor: AppColors.textPrimary,
       ),
 
       // Progress indicator theme
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme: ProgressIndicatorThemeData(
         color: AppColors.primary,
         linearTrackColor: AppColors.surfaceVariant,
         circularTrackColor: AppColors.surfaceVariant,
@@ -312,7 +313,7 @@ class AppTheme {
       ),
 
       // Bottom navigation bar theme
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: AppColors.surface,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: AppColors.textSecondary,
@@ -322,8 +323,25 @@ class AppTheme {
         elevation: 8,
       ),
 
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.surface,
+        indicatorColor: AppColors.primary.withOpacity(0.12),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return AppTextStyles.labelSmall.copyWith(color: AppColors.primary);
+          }
+          return AppTextStyles.labelSmall.copyWith(color: AppColors.textSecondary);
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: AppColors.primary);
+          }
+          return const IconThemeData(color: AppColors.textSecondary);
+        }),
+      ),
+
       // Tab bar theme
-      tabBarTheme: const TabBarThemeData(
+      tabBarTheme: TabBarThemeData(
         labelColor: AppColors.primary,
         unselectedLabelColor: AppColors.textSecondary,
         labelStyle: AppTextStyles.labelLarge,

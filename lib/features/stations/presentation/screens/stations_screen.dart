@@ -1,0 +1,288 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:shimmer/shimmer.dart';
+
+import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
+import 'package:fuel_ease_flutter/core/routing/routes.dart';
+import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
+
+class StationsScreen extends ConsumerStatefulWidget {
+  const StationsScreen({super.key});
+
+  @override
+  ConsumerState<StationsScreen> createState() => _StationsScreenState();
+}
+
+class _StationsScreenState extends ConsumerState<StationsScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stationState = ref.watch(stationSelectionProvider);
+
+    final stations = stationState.stations.where((station) {
+      if (_query.isEmpty) return true;
+      final target =
+          '${station.name} ${station.city ?? ''} ${station.state ?? ''}'
+              .toLowerCase();
+      return target.contains(_query.toLowerCase());
+    }).toList();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Stations'),
+        elevation: 0,
+      ),
+      body: RefreshIndicator(
+        onRefresh: () => ref.read(stationSelectionProvider.notifier).refresh(),
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            if (stationState.isRefreshing) ...[
+              const LinearProgressIndicator(minHeight: 2),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: _searchController,
+              onChanged: (value) => setState(() => _query = value.trim()),
+              decoration: InputDecoration(
+                hintText: 'Search stations',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: Colors.white,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppColors.border),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (stationState.lastUpdated != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      stationState.fromCache ? Icons.cloud_off : Icons.cloud_done,
+                      size: 16,
+                      color: AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        stationState.fromCache
+                            ? 'Showing cached data'
+                            : 'Updated ${DateFormat('MMM d, HH:mm').format(stationState.lastUpdated!)}',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (stationState.error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: AppColors.error),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          stationState.error ?? 'Failed to load stations',
+                          style: AppTextStyles.bodySmall.copyWith(
+                            color: AppColors.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (stationState.isLoading)
+              const _StationsLoading()
+            else if (stations.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
+                child: Center(
+                  child: Text(
+                    'No stations found',
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              )
+            else
+              ...stations.map((station) {
+                final selected = station.id == stationState.stationId;
+                final subtitleParts = [
+                  if (station.city != null && station.city!.isNotEmpty)
+                    station.city!,
+                  if (station.state != null && station.state!.isNotEmpty)
+                    station.state!,
+                ];
+                final subtitle = subtitleParts.join(', ');
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.cardGradient,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: selected ? AppColors.primary : AppColors.border,
+                      width: selected ? 1.5 : 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadow,
+                        blurRadius: 12,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ListTile(
+                    leading: const Icon(Icons.local_gas_station),
+                    title: Text(
+                      station.name,
+                      style: AppTextStyles.titleSmall.copyWith(
+                        fontWeight:
+                            selected ? FontWeight.w700 : FontWeight.w600,
+                      ),
+                    ),
+                    subtitle: subtitle.isEmpty
+                        ? null
+                        : Text(
+                            subtitle,
+                            style: AppTextStyles.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (selected)
+                          const Icon(Icons.check_circle, color: AppColors.primary),
+                        IconButton(
+                          icon: const Icon(Icons.info_outline),
+                          color: AppColors.textSecondary,
+                          onPressed: () {
+                            ref
+                                .read(stationSelectionProvider.notifier)
+                                .setStation(station);
+                            context.push(Routes.stationDetails(station.id));
+                          },
+                        ),
+                      ],
+                    ),
+                    onTap: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final navigator = Navigator.of(context);
+                      await ref
+                          .read(stationSelectionProvider.notifier)
+                          .setStation(station);
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('Selected ${station.name}'),
+                            backgroundColor: AppColors.success,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                        navigator.pop();
+                      }
+                    },
+                  ),
+                );
+              }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StationsLoading extends StatelessWidget {
+  const _StationsLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: List.generate(
+          3,
+          (index) => Container(
+            height: 78,
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey.shade200,
+              highlightColor: Colors.grey.shade100,
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          height: 12,
+                          width: 160,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          height: 10,
+                          width: 120,
+                          color: Colors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

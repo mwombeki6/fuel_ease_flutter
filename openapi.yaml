@@ -1393,19 +1393,20 @@ paths:
                         $ref: '#/components/schemas/PriceRule'
 
   # WebSocket endpoint
-  /ws/connect:
+  /ws/events:
     get:
       tags:
         - WebSocket
-      summary: WebSocket connection
+      summary: Client real-time event stream
       description: |
         Establish a WebSocket connection for real-time events.
         Upgrade from HTTP to WebSocket protocol.
 
-        **Connection URL:** wss://fuel-ease-api.mwombekilubere.workers.dev/api/ws/connect
-
-        After connecting, send an authentication message with your JWT token.
-      operationId: connectWebSocket
+        **Connection URL:** wss://fuel-ease-api.mwombekilubere.workers.dev/ws/events?token=<jwt>
+      operationId: connectEventStream
+      servers:
+        - url: https://fuel-ease-api.mwombekilubere.workers.dev
+          description: WebSocket base (no /api prefix)
       responses:
         '101':
           description: Switching protocols to WebSocket

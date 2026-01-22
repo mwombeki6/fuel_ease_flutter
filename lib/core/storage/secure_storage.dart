@@ -14,6 +14,7 @@ class SecureStorage {
   static const String _userKey = 'user_data';
   static const String _expiresAtKey = 'token_expires_at';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _preferredStationIdKey = 'preferred_station_id';
 
   /// Save authentication token
   Future<void> saveToken(String token) async {
@@ -57,6 +58,21 @@ class SecureStorage {
   /// Get refresh token
   Future<String?> getRefreshToken() async {
     return await _storage.read(key: _refreshTokenKey);
+  }
+
+  /// Save preferred station ID
+  Future<void> savePreferredStationId(String stationId) async {
+    await _storage.write(key: _preferredStationIdKey, value: stationId);
+  }
+
+  /// Get preferred station ID
+  Future<String?> getPreferredStationId() async {
+    return await _storage.read(key: _preferredStationIdKey);
+  }
+
+  /// Clear preferred station ID
+  Future<void> clearPreferredStationId() async {
+    await _storage.delete(key: _preferredStationIdKey);
   }
 
   /// Check if token is expired

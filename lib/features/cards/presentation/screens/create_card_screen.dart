@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/cards/presentation/providers/cards_provider.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 /// Create card screen for creating new fuel cards
@@ -47,11 +48,23 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
     try {
       final units = double.parse(_unitsController.text);
       final pin = _pinController.text.trim();
+      final stationState = ref.read(stationSelectionProvider);
+      final stationId = stationState.stationId;
 
-      // TODO: Get station ID from user's preferred station or selection
-      const stationId = 'temp-station-id';
+      if (stationId == null || stationId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Select a station before creating a card.'),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
 
-      final response = await ref.read(cardsProvider.notifier).createCard(
+          final response = await ref.read(cardsProvider.notifier).createCard(
             stationId: stationId,
             units: units,
             pin: pin,

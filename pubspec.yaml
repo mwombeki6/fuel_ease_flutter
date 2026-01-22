@@ -36,6 +36,7 @@ dependencies:
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
   flutter_animate: ^4.5.0
+  google_fonts: ^6.2.1
 
   # QR Code
   qr_flutter: ^4.1.0
@@ -94,3 +95,4 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/fonts/

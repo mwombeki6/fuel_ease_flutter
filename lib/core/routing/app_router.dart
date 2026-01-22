@@ -16,6 +16,8 @@ import 'package:fuel_ease_flutter/features/wallet/presentation/screens/transacti
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/cards_screen.dart';
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/card_details_screen.dart';
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/create_card_screen.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/screens/stations_screen.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/screens/station_details_screen.dart';
 import 'package:fuel_ease_flutter/features/profile/presentation/screens/profile_screen.dart';
 import 'package:fuel_ease_flutter/core/navigation/main_navigation.dart';
 
@@ -132,6 +134,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) {
           final cardId = state.pathParameters['id']!;
           return CardDetailsScreen(cardId: cardId);
+        },
+      ),
+
+      // Stations list (outside shell)
+      GoRoute(
+        path: Routes.stations,
+        builder: (context, state) => const StationsScreen(),
+      ),
+      GoRoute(
+        path: '/stations/:id',
+        builder: (context, state) {
+          final stationId = state.pathParameters['id']!;
+          return StationDetailsScreen(stationId: stationId);
         },
       ),
     ],

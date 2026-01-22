@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 /// Wallet recharge screen for M-Pesa/AzamPay top-up
@@ -43,8 +44,21 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       final amountTzs = int.parse(_amountController.text.replaceAll(',', ''));
       final msisdn = _phoneController.text.trim();
 
-      // TODO: Get station ID from user's preferred station or current location
-      const stationId = 'temp-station-id';
+      final stationState = ref.read(stationSelectionProvider);
+      final stationId = stationState.stationId;
+
+      if (stationId == null || stationId.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Select a station before recharging.'),
+              backgroundColor: AppColors.warning,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+        return;
+      }
 
       await ref.read(walletProvider.notifier).recharge(
             amountTzs: amountTzs,
