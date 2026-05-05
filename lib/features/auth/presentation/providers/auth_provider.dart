@@ -1,6 +1,11 @@
+import 'dart:io';
+
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 
+import 'package:fuel_ease_flutter/core/api/api_error.dart';
+import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 import 'package:fuel_ease_flutter/features/auth/data/models/login_payload.dart';
 import 'package:fuel_ease_flutter/features/auth/data/models/register_payload.dart';
@@ -8,140 +13,134 @@ import 'package:fuel_ease_flutter/features/auth/data/repositories/auth_repositor
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_state.dart';
 import 'package:fuel_ease_flutter/shared/models/user.dart';
 
-/// StateNotifier for managing authentication state
 class AuthNotifier extends StateNotifier<AuthState> {
-  AuthNotifier(
-    this._authRepository,
-    this._secureStorage,
-  ) : super(const AuthState.initial()) {
+  AuthNotifier(this._authRepository, this._secureStorage, this._realtime)
+      : super(const AuthState.initial()) {
     _init();
   }
 
   final AuthRepository _authRepository;
   final SecureStorage _secureStorage;
+  final RealtimeClient _realtime;
   final Logger _logger = Logger();
 
-  /// Initialize auth state by checking for existing session
   Future<void> _init() async {
     state = const AuthState.loading();
-
     try {
-      // Check if we have a valid token
       final hasValidToken = await _secureStorage.hasValidToken();
-
       if (hasValidToken) {
-        // Try to get current user
         final user = await _authRepository.getCurrentUser();
-
-        // Validate that user is a customer (mobile app is customer-only)
         if (user.isCustomer) {
           state = AuthState.authenticated(user);
-          _logger.i('User authenticated: ${user.email}');
+          _realtime.connect();
         } else {
-          // User has wrong role for this app
           await logout();
-          state = const AuthState.error(
-            'This app is for customers only. Please use the web portal.',
-          );
+          state = const AuthState.error('This app is for customers only.');
         }
       } else {
         state = const AuthState.unauthenticated();
       }
     } catch (e) {
-      _logger.e('Auth initialization failed', error: e);
+      _logger.e('Auth init failed', error: e);
       await _secureStorage.clearAuth();
       state = const AuthState.unauthenticated();
     }
   }
 
-  /// Login with email and password
   Future<void> login(String email, String password) async {
     state = const AuthState.loading();
-
     try {
       final payload = LoginPayload(email: email, password: password);
       final response = await _authRepository.login(payload);
 
-      // Validate user role
       if (!response.user.isCustomer) {
-        state = const AuthState.error(
-          'This app is for customers only. Please use the web portal.',
-        );
+        state = const AuthState.error('This app is for customers only.');
         return;
       }
 
-      // Save session data
-      await _secureStorage.saveToken(response.token);
-      await _secureStorage.saveUser(response.user.toJson());
-      await _secureStorage.saveExpiresAt(response.expiresAt);
+      await _saveSession(response.user, response.tokens.accessToken,
+          response.tokens.refreshToken, response.tokens.expiresAt, response.sessionId);
 
       state = AuthState.authenticated(response.user);
-      _logger.i('Login successful: ${response.user.email}');
+      _registerFcmToken();
+      _realtime.connect();
     } catch (e) {
       _logger.e('Login failed', error: e);
-      state = AuthState.error(e.toString());
+      state = AuthState.error(e is ApiError ? e.message : e.toString());
     }
   }
 
-  /// Register new customer account
   Future<void> register(RegisterPayload payload) async {
     state = const AuthState.loading();
-
     try {
       final response = await _authRepository.register(payload);
 
-      // Save session data
-      await _secureStorage.saveToken(response.token);
-      await _secureStorage.saveUser(response.user.toJson());
-      await _secureStorage.saveExpiresAt(response.expiresAt);
+      await _saveSession(response.user, response.tokens.accessToken,
+          response.tokens.refreshToken, response.tokens.expiresAt, response.sessionId);
 
       state = AuthState.authenticated(response.user);
-      _logger.i('Registration successful: ${response.user.email}');
+      _registerFcmToken();
+      _realtime.connect();
     } catch (e) {
       _logger.e('Registration failed', error: e);
-      state = AuthState.error(e.toString());
+      state = AuthState.error(e is ApiError ? e.message : e.toString());
     }
   }
 
-  /// Logout current user
   Future<void> logout() async {
+    _realtime.disconnect();
+    final sessionId = await _secureStorage.read('session_id');
     await _secureStorage.clearAuth();
     state = const AuthState.unauthenticated();
-    _logger.i('User logged out');
+    if (sessionId != null) {
+      // Best-effort — don't block logout on network failure
+      () async {
+        try {
+          await _authRepository.logout(sessionId);
+        } catch (e) {
+          _logger.w('Server logout failed (ignored): $e');
+        }
+      }();
+    }
   }
 
-  /// Update user profile
   Future<void> updateProfile(Map<String, dynamic> updates) async {
     final currentState = state;
-
-    // Only update if currently authenticated
     if (currentState is! AuthAuthenticated) return;
-
     try {
       final updatedUser = await _authRepository.updateProfile(updates);
-
-      // Update user in storage and state
       await _secureStorage.saveUser(updatedUser.toJson());
       state = AuthState.authenticated(updatedUser);
-      _logger.i('Profile updated: ${updatedUser.email}');
     } catch (e) {
       _logger.e('Profile update failed', error: e);
-      // Keep current state, just log the error
     }
   }
 
-  /// Update push notification token
-  Future<void> updatePushToken(String token, String platform) async {
+  Future<void> registerPushToken(String token, String platform) async {
+    await _authRepository.registerPushToken(token, platform);
+  }
+
+  void _registerFcmToken() async {
     try {
-      await _authRepository.updatePushToken(token, platform);
-      _logger.i('Push token updated');
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null) return;
+      final platform = Platform.isIOS ? 'ios' : 'android';
+      await _authRepository.registerPushToken(token, platform);
     } catch (e) {
-      _logger.w('Push token update failed', error: e);
-      // Don't fail - push token update is non-critical
+      _logger.w('FCM token registration skipped: $e');
     }
   }
 
-  /// Clear error state
+  /// Save all session data. expiresAt is Unix seconds — multiply by 1000 for ms.
+  Future<void> _saveSession(User user, String accessToken, String refreshToken,
+      int expiresAtSeconds, String sessionId) async {
+    await _secureStorage.saveToken(accessToken);
+    await _secureStorage.saveRefreshToken(refreshToken);
+    await _secureStorage.saveExpiresAt(expiresAtSeconds * 1000);
+    await _secureStorage.saveUser(user.toJson());
+    await _secureStorage.save('session_id', sessionId);
+  }
+
   void clearError() {
     if (state is AuthError) {
       state = const AuthState.unauthenticated();
@@ -149,27 +148,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 }
 
-/// Provider for AuthNotifier
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final authRepository = ref.watch(authRepositoryProvider);
   final secureStorage = ref.watch(secureStorageProvider);
-  return AuthNotifier(authRepository, secureStorage);
+  final realtime = ref.watch(realtimeClientProvider);
+  return AuthNotifier(authRepository, secureStorage, realtime);
 });
 
-/// Convenience provider to check if user is authenticated
 final isAuthenticatedProvider = Provider<bool>((ref) {
   final authState = ref.watch(authProvider);
-  return authState.maybeWhen(
-    authenticated: (_) => true,
-    orElse: () => false,
-  );
+  return authState.maybeWhen(authenticated: (_) => true, orElse: () => false);
 });
 
-/// Convenience provider to get current user
 final currentUserProvider = Provider<User?>((ref) {
   final authState = ref.watch(authProvider);
-  return authState.maybeWhen(
-    authenticated: (user) => user,
-    orElse: () => null,
-  );
+  return authState.maybeWhen(authenticated: (user) => user, orElse: () => null);
 });

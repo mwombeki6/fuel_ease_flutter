@@ -1,48 +1,61 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+/// Wallet transaction model matching Go backend response schema.
+class WalletTransaction {
+  const WalletTransaction({
+    required this.id,
+    required this.walletId,
+    required this.type,
+    required this.amountTzs,
+    required this.balanceAfterTzs,
+    this.refId,
+    this.description,
+    this.createdAt,
+  });
 
-part 'wallet_transaction.freezed.dart';
-part 'wallet_transaction.g.dart';
-
-/// Wallet transaction model for ledger entries
-@freezed
-class WalletTransaction with _$WalletTransaction {
-  const factory WalletTransaction({
-    required String id,
-    required String walletId,
-    required String type,
-    required double units,
-    required double balanceAfter,
-    String? reference,
-    String? description,
-    DateTime? createdAt,
-  }) = _WalletTransaction;
+  final String id;
+  final String walletId;
+  final String type; // credit | debit
+  final int amountTzs;
+  final int balanceAfterTzs;
+  final String? refId;
+  final String? description;
+  final DateTime? createdAt;
 
   factory WalletTransaction.fromJson(Map<String, dynamic> json) =>
-      _$WalletTransactionFromJson(json);
+      WalletTransaction(
+        id: json['id'] as String,
+        walletId: json['wallet_id'] as String,
+        type: json['type'] as String,
+        amountTzs: (json['amount_tzs'] as num).toInt(),
+        balanceAfterTzs: (json['balance_after_tzs'] as num?)?.toInt() ?? 0,
+        refId: json['ref_id'] as String?,
+        description: json['description'] as String?,
+        createdAt: json['created_at'] != null
+            ? DateTime.parse(json['created_at'] as String)
+            : null,
+      );
 
-  const WalletTransaction._();
+  String? get reference => refId;
 
-  /// Check if transaction is a credit (adding funds)
-  bool get isCredit => type == 'credit' || type == 'recharge';
+  bool get isCredit => type == 'credit';
+  bool get isDebit => type == 'debit';
 
-  /// Check if transaction is a debit (using funds)
-  bool get isDebit => type == 'debit' || type == 'purchase';
-
-  /// Get formatted transaction type
   String get formattedType {
     switch (type) {
       case 'credit':
-      case 'recharge':
         return 'Top-up';
       case 'debit':
-      case 'purchase':
         return 'Fuel Purchase';
       case 'refund':
         return 'Refund';
-      case 'adjustment':
-        return 'Adjustment';
       default:
         return type.toUpperCase();
     }
   }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is WalletTransaction && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

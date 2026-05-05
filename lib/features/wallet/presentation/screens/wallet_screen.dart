@@ -78,49 +78,6 @@ class WalletScreen extends ConsumerWidget {
           ),
         ),
 
-        // Active sessions section (if any)
-        if (summary.activeSessions != null &&
-            summary.activeSessions!.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.warning.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.local_gas_station,
-                          size: 16,
-                          color: AppColors.warning,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${summary.activeSessions!.length} Active Session${summary.activeSessions!.length > 1 ? 's' : ''}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.warning,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-
         // Recent transactions header
         SliverToBoxAdapter(
           child: Padding(

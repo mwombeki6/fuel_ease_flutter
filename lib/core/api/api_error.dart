@@ -33,16 +33,12 @@ class ApiError extends Equatable implements Exception {
         final data = exception.response?.data;
 
         if (data is Map<String, dynamic>) {
-          message = data['message'] as String? ?? 'An error occurred';
-
-          if (data['errors'] != null) {
-            final errorsData = data['errors'] as Map<String, dynamic>;
-            errors = errorsData.map(
-              (key, value) => MapEntry(
-                key,
-                (value as List).cast<String>(),
-              ),
-            );
+          // Go backend: {"error": {"code": N, "message": "..."}}
+          final errObj = data['error'];
+          if (errObj is Map<String, dynamic>) {
+            message = errObj['message'] as String? ?? 'An error occurred';
+          } else {
+            message = data['message'] as String? ?? 'An error occurred';
           }
         } else {
           message = 'An error occurred';

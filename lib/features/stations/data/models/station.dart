@@ -29,15 +29,17 @@ class Station {
     return Station(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      city: json['city'] as String?,
-      state: json['state'] as String?,
+      // Go uses 'district'/'region'; fall back to old keys for compatibility
+      city: json['district'] as String? ?? json['city'] as String?,
+      state: json['region'] as String? ?? json['state'] as String?,
       status: json['status'] as String?,
       address: json['address'] as String?,
       country: json['country'] as String?,
       contactNumber: json['contactNumber'] as String?,
       operatingHours: json['operatingHours'] as String?,
-      latitude: (json['latitude'] as num?)?.toDouble(),
-      longitude: (json['longitude'] as num?)?.toDouble(),
+      // Go uses 'lat'/'lng'; fall back to 'latitude'/'longitude'
+      latitude: (json['lat'] as num? ?? json['latitude'] as num?)?.toDouble(),
+      longitude: (json['lng'] as num? ?? json['longitude'] as num?)?.toDouble(),
     );
   }
 

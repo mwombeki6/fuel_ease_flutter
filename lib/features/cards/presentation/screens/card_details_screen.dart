@@ -37,7 +37,6 @@ class CardDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref, dynamic card) {
-    final numberFormat = NumberFormat('#,##0.00');
     final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
 
     return SingleChildScrollView(
@@ -121,25 +120,25 @@ class CardDetailsScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 8),
 
-                // PIN display
+                // Expiry
                 Text(
-                  'PIN: ${card.maskedPin}',
+                  'Expires ${card.expiresAt.month.toString().padLeft(2, '0')}/${card.expiresAt.year}',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                     fontSize: 14,
                     letterSpacing: 1,
-                    fontFamily: 'monospace',
                   ),
                 ),
                 const SizedBox(height: 20),
 
-                // Units
+                // CVV (shown once on creation, hidden afterwards)
                 Text(
-                  '${numberFormat.format(card.units)} Liters',
+                  card.cvv != null ? 'CVV: ${card.cvv}' : 'CVV: ***',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 32,
+                    fontSize: 22,
                     fontWeight: FontWeight.w700,
+                    fontFamily: 'monospace',
                   ),
                 ),
               ],
@@ -250,12 +249,7 @@ class CardDetailsScreen extends ConsumerWidget {
   }
 
   void _copyCardDetails(BuildContext context, dynamic card) {
-    final details = '''
-Card Number: ${card.cardNumber}
-PIN: ${card.pin ?? '****'}
-Units: ${card.units} L
-${card.stationName != null ? 'Station: ${card.stationName}' : ''}
-''';
+    final details = 'Card: ${card.maskedCardNumber}\nExpires: ${card.expiresAt}';
 
     Clipboard.setData(ClipboardData(text: details));
 

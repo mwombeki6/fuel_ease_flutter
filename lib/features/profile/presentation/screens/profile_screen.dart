@@ -104,7 +104,7 @@ class ProfileScreen extends ConsumerWidget {
                     _SettingsTile(
                       icon: Icons.phone_outlined,
                       title: 'Phone Number',
-                      subtitle: user.phoneNumber ?? 'Not set',
+                      subtitle: user.phone ?? 'Not set',
                       onTap: () {
                         // TODO: Navigate to edit phone
                       },

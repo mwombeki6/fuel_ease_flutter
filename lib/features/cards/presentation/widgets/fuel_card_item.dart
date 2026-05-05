@@ -81,12 +81,12 @@ class FuelCardItem extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Fuel units
+                // Last 4 digits
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Fuel Units',
+                      'Card',
                       style: TextStyle(
                         color: Colors.white.withOpacity(0.7),
                         fontSize: 11,
@@ -95,17 +95,19 @@ class FuelCardItem extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${NumberFormat('#,##0.00').format(card.units)} L',
+                      card.maskedCardNumber,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
+                        fontFamily: 'monospace',
+                        letterSpacing: 2,
                       ),
                     ),
                   ],
                 ),
                 // Expiry or station
-                if (card.expiresAt != null && card.isActive)
+                if (card.isActive)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
@@ -119,7 +121,7 @@ class FuelCardItem extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        _formatExpiryDate(card.expiresAt!),
+                        _formatExpiryDate(card.expiresAt),
                         style: TextStyle(
                           color: card.isExpiringSoon
                               ? Colors.orange.shade200

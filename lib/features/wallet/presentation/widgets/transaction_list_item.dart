@@ -17,7 +17,7 @@ class TransactionListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final numberFormat = NumberFormat('#,##0.00');
+    final numberFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
 
     return InkWell(
@@ -112,7 +112,7 @@ class TransactionListItem extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${transaction.isCredit ? '+' : '-'}${numberFormat.format(transaction.units)} L',
+                  '${transaction.isCredit ? '+' : '-'}${numberFormat.format(transaction.amountTzs)} TZS',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.w700,
@@ -123,7 +123,7 @@ class TransactionListItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${numberFormat.format(transaction.balanceAfter)} L',
+                  '${numberFormat.format(transaction.balanceAfterTzs)} TZS',
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.textSecondary,

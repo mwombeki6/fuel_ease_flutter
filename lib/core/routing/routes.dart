@@ -27,6 +27,8 @@ class Routes {
   static String dispensingRequestDetails(String id) => '/fuel/requests/$id';
   static String dispensingToken(String token) => '/fuel/token/$token';
   static const String scanQR = '/fuel/scan';
+  static String liveDispense(String requestId) => '/fuel/live/$requestId';
+  static String dispenseComplete(String requestId) => '/fuel/complete/$requestId';
 
   // Stations routes
   static const String stations = '/stations';
@@ -35,6 +37,7 @@ class Routes {
   // Cards routes
   static const String createCard = '/cards/create';
   static String cardDetails(String id) => '/cards/$id';
+  static String cardPending(String id) => '/cards/pending/$id';
 
   // Settings routes
   static const String settings = '/settings';

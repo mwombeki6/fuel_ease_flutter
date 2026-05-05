@@ -17,6 +17,7 @@ class RealtimeStatusNotifier extends StateNotifier<RealtimeStatus> {
   @override
   void dispose() {
     _subscription?.cancel();
+    _subscription = null;
     super.dispose();
   }
 }

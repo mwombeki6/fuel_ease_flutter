@@ -6,9 +6,18 @@ import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_prov
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 
 // Import screens
+import 'package:fuel_ease_flutter/features/cards/presentation/screens/card_pending_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/data/models/create_dispense_response.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/providers/live_dispense_provider.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/create_dispense_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_complete_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_history_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/live_dispense_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/pin_qr_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/splash_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/login_screen.dart';
+import 'package:fuel_ease_flutter/features/auth/presentation/screens/register_screen.dart';
 import 'package:fuel_ease_flutter/features/dashboard/presentation/screens/home_screen.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/screens/wallet_screen.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/screens/recharge_screen.dart';
@@ -80,9 +89,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.register,
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text('Register Screen - Coming Soon')),
-        ),
+        builder: (context, state) => const RegisterScreen(),
       ),
 
       // Main app routes with bottom navigation
@@ -99,9 +106,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: Routes.fuel,
-            builder: (context, state) => const Scaffold(
-              body: Center(child: Text('Fuel Screen - Coming Soon')),
-            ),
+            builder: (context, state) => const CreateDispenseScreen(),
           ),
           GoRoute(
             path: Routes.cards,
@@ -130,10 +135,68 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const CreateCardScreen(),
       ),
       GoRoute(
+        path: '/cards/pending/:id',
+        builder: (context, state) {
+          final cardId = state.pathParameters['id']!;
+          return CardPendingScreen(cardId: cardId);
+        },
+      ),
+      GoRoute(
         path: '/cards/:id',
         builder: (context, state) {
           final cardId = state.pathParameters['id']!;
           return CardDetailsScreen(cardId: cardId);
+        },
+      ),
+
+      // Dispense routes (outside shell to avoid bottom nav)
+      GoRoute(
+        path: Routes.createDispensingRequest,
+        builder: (context, state) => const CreateDispenseScreen(),
+      ),
+      GoRoute(
+        path: Routes.dispensingRequests,
+        builder: (context, state) => const DispenseHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/fuel/requests/:id',
+        builder: (context, state) {
+          // Detail view — reuse history screen for now (read-only)
+          return const DispenseHistoryScreen();
+        },
+      ),
+      GoRoute(
+        path: '/fuel/token/:token',
+        builder: (context, state) {
+          final response = state.extra as CreateDispenseResponse?;
+          if (response == null) {
+            return const Scaffold(
+              body: Center(child: Text('Invalid dispense token')),
+            );
+          }
+          return PinQrScreen(
+            requestId: response.request.id,
+            pin: response.pin,
+            qrPayload: response.qrPayload,
+            stationId: response.request.stationId,
+            requestedLiters: response.request.requestedLiters,
+            pricePerLiterTzs: response.request.pricePerLiterTzs,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: '/fuel/live/:requestId',
+        builder: (context, state) {
+          final params = state.extra as LiveDispenseParams;
+          return LiveDispenseScreen(params: params);
+        },
+      ),
+      GoRoute(
+        path: '/fuel/complete/:requestId',
+        builder: (context, state) {
+          final requestId = state.pathParameters['requestId']!;
+          return DispenseCompleteScreen(requestId: requestId);
         },
       ),
 

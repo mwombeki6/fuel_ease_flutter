@@ -14,6 +14,7 @@ class SecureStorage {
   static const String _userKey = 'user_data';
   static const String _expiresAtKey = 'token_expires_at';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _sessionIdKey = 'session_id';
   static const String _preferredStationIdKey = 'preferred_station_id';
 
   /// Save authentication token
@@ -98,13 +99,14 @@ class SecureStorage {
     await _storage.deleteAll();
   }
 
-  /// Clear only auth-related data
+  /// Clear only auth-related data (tokens, user, and session — everything needed for re-auth)
   Future<void> clearAuth() async {
     await Future.wait([
       _storage.delete(key: _tokenKey),
       _storage.delete(key: _userKey),
       _storage.delete(key: _expiresAtKey),
       _storage.delete(key: _refreshTokenKey),
+      _storage.delete(key: _sessionIdKey),
     ]);
   }
 

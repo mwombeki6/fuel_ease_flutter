@@ -3,8 +3,9 @@ class ApiConstants {
   ApiConstants._();
 
   /// Base URL for the FuelEase API
-  static const String baseUrl =
-      'https://fuel-ease-api.mwombekilubere.workers.dev/api';
+  // Local network IP — works for both emulator and physical device on same Wi-Fi.
+  // Change to production URL before release.
+  static const String baseUrl = 'http://192.168.100.96:8080/api/v1';
 
   /// WebSocket base URL for real-time events
   static String get webSocketUrl {
@@ -16,12 +17,15 @@ class ApiConstants {
         : wsBase;
   }
 
-  /// WebSocket event stream endpoint (token required)
+  /// One-time ticket endpoint — POST with Bearer auth to receive a short-lived ticket.
+  static const String wsTicketPath = '/ws/ticket';
+
+  /// WebSocket event stream endpoint — connect with `?ticket=<uuid>`.
   static String get webSocketConnectPath => '/ws/events';
 
-  /// Build realtime URL with auth token
-  static String realtimeUrl(String token) =>
-      '$webSocketUrl$webSocketConnectPath?token=$token';
+  /// Build realtime URL with a one-time ticket UUID (not a raw JWT).
+  static String realtimeUrl(String ticket) =>
+      '$webSocketUrl$webSocketConnectPath?ticket=$ticket';
 
   /// API request timeout duration
   static const Duration timeout = Duration(seconds: 15);

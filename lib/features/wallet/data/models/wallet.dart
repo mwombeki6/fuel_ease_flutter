@@ -1,36 +1,45 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+/// Wallet model matching Go backend response schema.
+class Wallet {
+  const Wallet({
+    required this.id,
+    required this.balanceTzs,
+    required this.status,
+    required this.updatedAt,
+  });
 
-part 'wallet.freezed.dart';
-part 'wallet.g.dart';
+  final String id;
+  final int balanceTzs; // balance in Tanzanian Shillings
+  final String status; // active | suspended
+  final DateTime updatedAt;
 
-/// Wallet model representing customer wallet
-@freezed
-class Wallet with _$Wallet {
-  const factory Wallet({
-    required String id,
-    required String customerId,
-    required double balanceUnits,
-    required double reservedUnits,
-    required String status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-  }) = _Wallet;
+  factory Wallet.fromJson(Map<String, dynamic> json) => Wallet(
+        id: json['id'] as String,
+        balanceTzs: (json['balance_tzs'] as num).toInt(),
+        status: json['status'] as String,
+        updatedAt: DateTime.parse(json['updated_at'] as String),
+      );
 
-  factory Wallet.fromJson(Map<String, dynamic> json) => _$WalletFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'balance_tzs': balanceTzs,
+        'status': status,
+        'updated_at': updatedAt.toIso8601String(),
+      };
 
-  const Wallet._();
+  // ── Compatibility getters for existing UI widgets ──
 
-  /// Get available balance (balance - reserved)
-  double get availableBalance => balanceUnits - reservedUnits;
+  double get balanceUnits => balanceTzs.toDouble();
+  double get reservedUnits => 0.0;
+  double get availableBalance => balanceTzs.toDouble();
 
-  /// Check if wallet is active
   bool get isActive => status == 'active';
-
-  /// Check if wallet is suspended
   bool get isSuspended => status == 'suspended';
+  bool hasSufficientBalance(int required) => balanceTzs >= required;
 
-  /// Check if wallet has sufficient balance
-  bool hasSufficientBalance(double requiredUnits) {
-    return availableBalance >= requiredUnits;
-  }
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is Wallet && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }

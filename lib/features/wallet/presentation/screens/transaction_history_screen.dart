@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_transaction.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
@@ -375,7 +376,8 @@ class _TransactionDetailSheet extends StatelessWidget {
           // Details
           _DetailRow(
             label: 'Amount',
-            value: '${transaction.isCredit ? '+' : '-'}${transaction.units} L',
+            value:
+                '${transaction.isCredit ? '+' : '-'}${NumberFormat('#,##0').format(transaction.amountTzs)} TZS',
             valueColor:
                 transaction.isCredit ? AppColors.success : AppColors.error,
             isHighlighted: true,
@@ -383,7 +385,7 @@ class _TransactionDetailSheet extends StatelessWidget {
           const SizedBox(height: 12),
           _DetailRow(
             label: 'Balance After',
-            value: '${transaction.balanceAfter} L',
+            value: '${NumberFormat('#,##0').format(transaction.balanceAfterTzs)} TZS',
           ),
           if (transaction.reference != null) ...[
             const SizedBox(height: 12),

@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
-import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 /// Wallet recharge screen for M-Pesa/AzamPay top-up
@@ -20,7 +19,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   final _amountController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  String _selectedProvider = 'mpesa';
+  String _selectedProvider = 'Mpesa';
   bool _isLoading = false;
 
   // Predefined amount options in TZS
@@ -44,26 +43,9 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
       final amountTzs = int.parse(_amountController.text.replaceAll(',', ''));
       final msisdn = _phoneController.text.trim();
 
-      final stationState = ref.read(stationSelectionProvider);
-      final stationId = stationState.stationId;
-
-      if (stationId == null || stationId.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Select a station before recharging.'),
-              backgroundColor: AppColors.warning,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-        return;
-      }
-
       await ref.read(walletProvider.notifier).recharge(
             amountTzs: amountTzs,
             msisdn: msisdn,
-            stationId: stationId,
             provider: _selectedProvider,
           );
 
@@ -374,28 +356,24 @@ class _PaymentProviderSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: _ProviderOption(
-            provider: 'mpesa',
-            label: 'M-Pesa',
-            icon: Icons.phone_android,
-            isSelected: selectedProvider == 'mpesa',
-            onTap: () => onProviderChanged('mpesa'),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _ProviderOption(
-            provider: 'azampay',
-            label: 'AzamPay',
-            icon: Icons.account_balance_wallet,
-            isSelected: selectedProvider == 'azampay',
-            onTap: () => onProviderChanged('azampay'),
-          ),
-        ),
-      ],
+    const providers = [
+      ('Mpesa', 'M-Pesa', Icons.phone_android),
+      ('Tigopesa', 'Tigo Pesa', Icons.phone_android),
+      ('Airtel', 'Airtel', Icons.phone_android),
+      ('Halopesa', 'HaloPesa', Icons.account_balance_wallet),
+    ];
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: providers.map((p) {
+        return _ProviderOption(
+          provider: p.$1,
+          label: p.$2,
+          icon: p.$3,
+          isSelected: selectedProvider == p.$1,
+          onTap: () => onProviderChanged(p.$1),
+        );
+      }).toList(),
     );
   }
 }

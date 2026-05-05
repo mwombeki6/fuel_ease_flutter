@@ -17,7 +17,6 @@ class WalletBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final numberFormat = NumberFormat('#,##0.00');
 
     return Container(
       width: double.infinity,
@@ -76,7 +75,7 @@ class WalletBalanceCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${numberFormat.format(wallet.availableBalance)} L',
+                '${NumberFormat('#,##0').format(wallet.balanceTzs)} TZS',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 36,
@@ -86,31 +85,10 @@ class WalletBalanceCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Available Fuel Units',
+                'Available Balance',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 13,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          // Balance breakdown
-          Row(
-            children: [
-              Expanded(
-                child: _BalanceItem(
-                  label: 'Total',
-                  value: numberFormat.format(wallet.balanceUnits),
-                  unit: 'L',
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _BalanceItem(
-                  label: 'Reserved',
-                  value: numberFormat.format(wallet.reservedUnits),
-                  unit: 'L',
                 ),
               ),
             ],
@@ -134,59 +112,6 @@ class WalletBalanceCard extends StatelessWidget {
           ],
         ],
       ),
-    );
-  }
-}
-
-class _BalanceItem extends StatelessWidget {
-  const _BalanceItem({
-    required this.label,
-    required this.value,
-    required this.unit,
-  });
-
-  final String label;
-  final String value;
-  final String unit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.white60,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 2),
-              child: Text(
-                unit,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
     );
   }
 }

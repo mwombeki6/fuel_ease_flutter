@@ -1,104 +1,111 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+/// Fuel card model matching Go backend response schema.
+class FuelCard {
+  const FuelCard({
+    required this.id,
+    required this.companyId,
+    required this.last4,
+    required this.expiresAt,
+    required this.status,
+    required this.createdAt,
+    this.cvv,
+  });
 
-part 'fuel_card.freezed.dart';
-part 'fuel_card.g.dart';
+  final String id;
+  final String companyId;
+  final String last4;
+  final DateTime expiresAt;
+  final String status; // pending | active | blocked | expired
+  final DateTime createdAt;
+  final String? cvv; // only present on the creation response, shown once
 
-/// Fuel card model for digital fuel vouchers
-@freezed
-class FuelCard with _$FuelCard {
-  const factory FuelCard({
-    required String id,
-    required String customerId,
-    required String stationId,
-    required double units,
-    required String status,
-    required String cardNumber,
-    String? pin,
-    String? stationName,
-    String? recipientName,
-    String? recipientPhone,
-    String? usedBy,
-    DateTime? createdAt,
+  factory FuelCard.fromJson(Map<String, dynamic> json) => FuelCard(
+        id: json['id'] as String,
+        companyId: json['company_id'] as String,
+        last4: json['last4'] as String,
+        expiresAt: DateTime.parse(json['expires_at'] as String),
+        status: json['status'] as String,
+        createdAt: DateTime.parse(json['created_at'] as String),
+        cvv: json['cvv'] as String?,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'company_id': companyId,
+        'last4': last4,
+        'expires_at': expiresAt.toIso8601String(),
+        'status': status,
+        'created_at': createdAt.toIso8601String(),
+      };
+
+  FuelCard copyWith({
+    String? id,
+    String? companyId,
+    String? last4,
     DateTime? expiresAt,
-    DateTime? usedAt,
-    Map<String, dynamic>? metadata,
-  }) = _FuelCard;
+    String? status,
+    DateTime? createdAt,
+    String? cvv,
+  }) =>
+      FuelCard(
+        id: id ?? this.id,
+        companyId: companyId ?? this.companyId,
+        last4: last4 ?? this.last4,
+        expiresAt: expiresAt ?? this.expiresAt,
+        status: status ?? this.status,
+        createdAt: createdAt ?? this.createdAt,
+        cvv: cvv ?? this.cvv,
+      );
 
-  factory FuelCard.fromJson(Map<String, dynamic> json) =>
-      _$FuelCardFromJson(json);
+  // ── Compatibility getters for existing UI widgets ──
 
-  const FuelCard._();
+  String get maskedCardNumber => '****$last4';
+  String get cardNumber => maskedCardNumber; // alias used by card_details_screen
+  String get maskedPin => '****';
+  double get units => 0.0; // card doesn't carry units in the Go model
+  String? get stationName => null;
+  String? get recipientName => null;
+  String? get recipientPhone => null;
+  DateTime? get usedAt => null;
+  String? get usedBy => null;
 
-  /// Check if card is active and usable
   bool get isActive => status == 'active';
-
-  /// Check if card has been used
-  bool get isUsed => status == 'used';
-
-  /// Check if card is expired
+  bool get isUsed => false;
+  bool get isCancelled => status == 'suspended';
   bool get isExpired {
     if (status == 'expired') return true;
-    if (expiresAt == null) return false;
-    return DateTime.now().isAfter(expiresAt!);
+    return DateTime.now().isAfter(expiresAt);
   }
 
-  /// Check if card is cancelled
-  bool get isCancelled => status == 'cancelled';
-
-  /// Get card status color
-  String get statusColor {
-    switch (status) {
-      case 'active':
-        return 'success';
-      case 'used':
-        return 'info';
-      case 'expired':
-        return 'error';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'secondary';
-    }
-  }
-
-  /// Get formatted status text
   String get formattedStatus {
     switch (status) {
       case 'active':
         return 'Active';
-      case 'used':
-        return 'Used';
+      case 'pending':
+        return 'Pending';
+      case 'blocked':
+        return 'Blocked';
       case 'expired':
         return 'Expired';
-      case 'cancelled':
-        return 'Cancelled';
       default:
         return status.toUpperCase();
     }
   }
 
-  /// Get remaining days until expiry
   int? get daysUntilExpiry {
-    if (expiresAt == null) return null;
     final now = DateTime.now();
-    if (now.isAfter(expiresAt!)) return 0;
-    return expiresAt!.difference(now).inDays;
+    if (now.isAfter(expiresAt)) return 0;
+    return expiresAt.difference(now).inDays;
   }
 
-  /// Check if card is about to expire (within 7 days)
   bool get isExpiringSoon {
     final days = daysUntilExpiry;
     return days != null && days > 0 && days <= 7;
   }
 
-  /// Get masked card number for display (e.g., "****1234")
-  String get maskedCardNumber {
-    if (cardNumber.length <= 4) return cardNumber;
-    return '****${cardNumber.substring(cardNumber.length - 4)}';
-  }
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) || other is FuelCard && id == other.id;
 
-  /// Get masked PIN for display (e.g., "****")
-  String get maskedPin {
-    return '****';
-  }
+  @override
+  int get hashCode => id.hashCode;
 }

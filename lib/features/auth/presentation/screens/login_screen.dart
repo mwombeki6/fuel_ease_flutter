@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_state.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
@@ -189,11 +191,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       style: TextStyle(color: AppColors.textSecondary),
                     ),
                     TextButton(
-                      onPressed: isLoading
-                          ? null
-                          : () {
-                              // Navigate to register
-                            },
+                      onPressed: isLoading ? null : () => context.push(Routes.register),
                       child: const Text('Sign Up'),
                     ),
                   ],

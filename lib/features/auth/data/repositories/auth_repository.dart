@@ -8,125 +8,94 @@ import 'package:fuel_ease_flutter/features/auth/data/models/login_payload.dart';
 import 'package:fuel_ease_flutter/features/auth/data/models/register_payload.dart';
 import 'package:fuel_ease_flutter/shared/models/user.dart';
 
-/// Repository for authentication operations
+/// Repository for authentication operations against the Go backend.
 class AuthRepository {
   AuthRepository(this._apiClient);
 
   final ApiClient _apiClient;
 
-  /// Login with email and password
   Future<AuthResponse> login(LoginPayload payload) async {
     try {
       final response = await _apiClient.post(
-        '/users/login',
+        '/auth/login',
         data: payload.toJson(),
       );
-
-      if (response.data['status'] == 'success') {
-        return AuthResponse.fromJson(response.data['data']);
-      } else {
-        throw ApiError(
-          message: response.data['message'] ?? 'Login failed',
-          statusCode: response.statusCode,
-        );
-      }
+      _assertSuccess(response);
+      return AuthResponse.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
-      if (e.error is ApiError) {
-        rethrow;
-      }
       throw ApiError.fromDioException(e);
     }
   }
 
-  /// Register new customer account
   Future<AuthResponse> register(RegisterPayload payload) async {
     try {
       final response = await _apiClient.post(
-        '/users/register',
-        data: payload.toJson(),
+        '/auth/register',
+        // Manually build JSON: freezed generates camelCase, Go expects snake_case
+        data: {
+          'email': payload.email,
+          'password': payload.password,
+          'first_name': payload.firstName,
+          'last_name': payload.lastName,
+          if (payload.phoneNumber.isNotEmpty) 'phone': payload.phoneNumber,
+        },
       );
-
-      if (response.data['status'] == 'success') {
-        return AuthResponse.fromJson(response.data['data']);
-      } else {
-        throw ApiError(
-          message: response.data['message'] ?? 'Registration failed',
-          statusCode: response.statusCode,
-        );
-      }
+      _assertSuccess(response);
+      return AuthResponse.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
-      if (e.error is ApiError) {
-        rethrow;
-      }
       throw ApiError.fromDioException(e);
     }
   }
 
-  /// Get current authenticated user
   Future<User> getCurrentUser() async {
     try {
       final response = await _apiClient.get('/users/me');
-
-      if (response.data['status'] == 'success') {
-        return User.fromJson(response.data['data']);
-      } else {
-        throw ApiError(
-          message: response.data['message'] ?? 'Failed to get user',
-          statusCode: response.statusCode,
-        );
-      }
+      _assertSuccess(response);
+      return User.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
-      if (e.error is ApiError) {
-        rethrow;
-      }
       throw ApiError.fromDioException(e);
     }
   }
 
-  /// Update user profile
   Future<User> updateProfile(Map<String, dynamic> updates) async {
     try {
-      final response = await _apiClient.patch(
-        '/users/me',
-        data: updates,
-      );
-
-      if (response.data['status'] == 'success') {
-        return User.fromJson(response.data['data']);
-      } else {
-        throw ApiError(
-          message: response.data['message'] ?? 'Failed to update profile',
-          statusCode: response.statusCode,
-        );
-      }
+      final response = await _apiClient.put('/users/me', data: updates);
+      _assertSuccess(response);
+      return User.fromJson(response.data['data'] as Map<String, dynamic>);
     } on DioException catch (e) {
-      if (e.error is ApiError) {
-        rethrow;
-      }
       throw ApiError.fromDioException(e);
     }
   }
 
-  /// Update push notification token
-  Future<void> updatePushToken(String token, String platform) async {
+  Future<void> logout(String sessionId) async {
+    try {
+      await _apiClient.post('/auth/logout', data: {'session_id': sessionId});
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
+  }
+
+  Future<void> registerPushToken(String token, String platform) async {
     try {
       await _apiClient.post(
         '/users/me/push-token',
-        data: {
-          'token': token,
-          'platform': platform,
-        },
+        data: {'token': token, 'platform': platform},
       );
-    } on DioException catch (e) {
-      // Don't throw - push token update failure shouldn't block login
-      if (e.error is ApiError) {
-        return;
-      }
+    } on DioException catch (_) {
+      // Non-critical — push token failure must not block the user
+    }
+  }
+
+  void _assertSuccess(Response response) {
+    final code = response.statusCode ?? 0;
+    if (code >= 300) {
+      final data = response.data as Map<String, dynamic>?;
+      final msg = (data?['error'] as Map?)?['message'] as String? ?? 'Request failed';
+      throw ApiError(message: msg, statusCode: code);
     }
   }
 }
 
-/// Provider for AuthRepository
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   final apiClient = ref.watch(apiClientProvider);
   return AuthRepository(apiClient);

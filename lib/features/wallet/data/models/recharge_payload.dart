@@ -1,32 +1,43 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
+/// Top-up (recharge) request payload matching the Go backend.
+class TopUpPayload {
+  const TopUpPayload({
+    required this.amountTzs,
+    required this.msisdn,
+    required this.provider,
+  });
 
-part 'recharge_payload.freezed.dart';
-part 'recharge_payload.g.dart';
+  final int amountTzs;
+  final String msisdn;
+  final String provider; // 'Mpesa' | 'Tigopesa' | 'Airtel' | 'Halopesa'
 
-/// Wallet recharge request payload
-@freezed
-class RechargePayload with _$RechargePayload {
-  const factory RechargePayload({
-    required int amountTzs,
-    required String msisdn,
-    required String stationId,
-    String? provider, // 'mpesa' or 'azampay'
-  }) = _RechargePayload;
-
-  factory RechargePayload.fromJson(Map<String, dynamic> json) =>
-      _$RechargePayloadFromJson(json);
+  Map<String, dynamic> toJson() => {
+        'amount_tzs': amountTzs,
+        'msisdn': msisdn,
+        'provider': provider,
+      };
 }
 
-/// Wallet recharge response
-@freezed
-class RechargeResponse with _$RechargeResponse {
-  const factory RechargeResponse({
-    required String transactionId,
-    required String status,
-    String? message,
-    String? reference,
-  }) = _RechargeResponse;
+/// Alias kept for backward compatibility with existing provider code.
+typedef RechargePayload = TopUpPayload;
 
-  factory RechargeResponse.fromJson(Map<String, dynamic> json) =>
-      _$RechargeResponseFromJson(json);
+/// Response after initiating a wallet top-up.
+class TopUpResponse {
+  const TopUpResponse({
+    required this.topupId,
+    required this.status,
+    this.message,
+  });
+
+  final String topupId;
+  final String status; // pending
+  final String? message;
+
+  factory TopUpResponse.fromJson(Map<String, dynamic> json) => TopUpResponse(
+        topupId: json['topup_id'] as String? ?? json['id'] as String,
+        status: json['status'] as String,
+        message: json['message'] as String?,
+      );
 }
+
+/// Alias kept for backward compatibility.
+typedef RechargeResponse = TopUpResponse;

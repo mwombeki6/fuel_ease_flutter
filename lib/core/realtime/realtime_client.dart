@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:fuel_ease_flutter/core/api/api_client.dart';
 import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
 import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 
 class RealtimeClient {
-  RealtimeClient(this._storage);
+  RealtimeClient(this._storage, this._api);
 
   final SecureStorage _storage;
+  final ApiClient _api;
   WebSocket? _socket;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();
   final _statusController = StreamController<RealtimeStatus>.broadcast();
@@ -38,6 +41,7 @@ class RealtimeClient {
       ),
     );
 
+    // Quick pre-check: no point hitting the network if we're not logged in.
     final token = await _storage.getToken();
     if (token == null) {
       _connecting = false;
@@ -49,7 +53,37 @@ class RealtimeClient {
 
     _subscriptions.addAll(channels);
 
-    final url = ApiConstants.realtimeUrl(Uri.encodeComponent(token));
+    // Exchange the Bearer token for a single-use, 30s-TTL ticket so the raw
+    // JWT is never written to server access logs as a query parameter.
+    String ticket;
+    try {
+      final resp = await _api.post<Map<String, dynamic>>(
+        ApiConstants.wsTicketPath,
+      );
+      final body = resp.data as Map<String, dynamic>;
+      ticket = ((body['data'] as Map<String, dynamic>)['ticket']) as String;
+    } catch (e) {
+      _connecting = false;
+      // 401/403 means the token is revoked or the session is gone.
+      // Stop reconnecting — a new login is required.
+      if (e is DioException) {
+        final status = e.response?.statusCode;
+        if (status == 401 || status == 403) {
+          _autoReconnect = false;
+          _emitStatus(
+            _status.copyWith(state: RealtimeConnectionState.disconnected),
+          );
+          return;
+        }
+      }
+      _emitStatus(
+        _status.copyWith(state: RealtimeConnectionState.reconnecting),
+      );
+      _scheduleReconnect();
+      return;
+    }
+
+    final url = ApiConstants.realtimeUrl(ticket);
 
     try {
       final socket = await WebSocket.connect(url);
@@ -94,22 +128,18 @@ class RealtimeClient {
     if (channel.isEmpty) return;
     if (_subscriptions.contains(channel)) return;
     _subscriptions.add(channel);
-    _send({
-      'type': 'subscribe',
-      'channel': channel,
-    });
+    _send({'action': 'subscribe', 'channel': channel});
   }
 
   void unsubscribe(String channel) {
     if (channel.isEmpty) return;
     if (!_subscriptions.contains(channel)) return;
     _subscriptions.remove(channel);
-    _send({
-      'type': 'unsubscribe',
-      'channel': channel,
-    });
+    _send({'action': 'unsubscribe', 'channel': channel});
   }
 
+  // Deprecated: server auto-subscribes mobile clients to user:<userID> on connect.
+  // Call sites can safely remove this — no-op if stationId is null.
   void setStationSubscription(String? stationId) {
     final existing = _subscriptions.where((c) => c.startsWith('station:')).toList();
     for (final channel in existing) {
@@ -122,10 +152,7 @@ class RealtimeClient {
   void _resubscribeAll() {
     if (_socket == null) return;
     for (final channel in _subscriptions) {
-      _send({
-        'type': 'subscribe',
-        'channel': channel,
-      });
+      _send({'action': 'subscribe', 'channel': channel});
     }
   }
 
@@ -185,7 +212,8 @@ class RealtimeClient {
 
 final realtimeClientProvider = Provider<RealtimeClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
-  return RealtimeClient(storage);
+  final api = ref.watch(apiClientProvider);
+  return RealtimeClient(storage, api);
 });
 
 enum RealtimeConnectionState {

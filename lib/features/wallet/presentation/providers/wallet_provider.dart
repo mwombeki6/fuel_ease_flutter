@@ -6,63 +6,54 @@ import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_summary.dar
 import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_transaction.dart';
 import 'package:fuel_ease_flutter/features/wallet/data/repositories/wallet_repository.dart';
 
-/// AsyncNotifier for managing wallet state (replaces TanStack Query)
 class WalletNotifier extends AsyncNotifier<WalletSummary> {
   final Logger _logger = Logger();
 
   @override
-  Future<WalletSummary> build() async {
-    // Auto-fetch on mount
-    return _fetchWallet();
-  }
+  Future<WalletSummary> build() async => _fetchWallet();
 
   Future<WalletSummary> _fetchWallet() async {
-    final repository = ref.read(walletRepositoryProvider);
-    return await repository.getWalletSummary();
+    return ref.read(walletRepositoryProvider).getWalletSummary();
   }
 
-  /// Refresh wallet data
   Future<void> refresh() async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _fetchWallet());
+    state = await AsyncValue.guard(_fetchWallet);
   }
 
-  /// Recharge wallet
+  /// Initiate a mobile-money top-up (AzamPay STK push).
+  Future<void> topUp({
+    required int amountTzs,
+    required String msisdn,
+    required String provider,
+  }) async {
+    final payload = TopUpPayload(
+      amountTzs: amountTzs,
+      msisdn: msisdn,
+      provider: provider,
+    );
+    await ref.read(walletRepositoryProvider).topUpWallet(payload);
+    _logger.i('Top-up initiated: $amountTzs TZS via $provider');
+    // Wallet balance won't update until the webhook callback confirms payment
+  }
+
+  // Backward-compat alias used by existing recharge screen
   Future<void> recharge({
     required int amountTzs,
     required String msisdn,
-    required String stationId,
+    String? stationId,
     String? provider,
-  }) async {
-    try {
-      final repository = ref.read(walletRepositoryProvider);
-      final payload = RechargePayload(
+  }) =>
+      topUp(
         amountTzs: amountTzs,
         msisdn: msisdn,
-        stationId: stationId,
-        provider: provider,
+        provider: provider ?? 'Mpesa',
       );
-
-      await repository.rechargeWallet(payload);
-
-      // Refresh wallet after successful recharge
-      await refresh();
-
-      _logger.i('Wallet recharged successfully: $amountTzs TZS');
-    } catch (e) {
-      _logger.e('Wallet recharge failed', error: e);
-      rethrow;
-    }
-  }
 }
 
-/// Provider for wallet data
 final walletProvider =
-    AsyncNotifierProvider<WalletNotifier, WalletSummary>(() {
-  return WalletNotifier();
-});
+    AsyncNotifierProvider<WalletNotifier, WalletSummary>(WalletNotifier.new);
 
-/// Convenience provider for available balance
 final availableBalanceProvider = Provider<double?>((ref) {
   final walletState = ref.watch(walletProvider);
   return walletState.whenOrNull(
@@ -70,7 +61,6 @@ final availableBalanceProvider = Provider<double?>((ref) {
   );
 });
 
-/// Convenience provider for wallet status
 final walletStatusProvider = Provider<String?>((ref) {
   final walletState = ref.watch(walletProvider);
   return walletState.whenOrNull(
@@ -78,22 +68,17 @@ final walletStatusProvider = Provider<String?>((ref) {
   );
 });
 
-/// Provider for fetching wallet transactions with pagination
 final walletTransactionsProvider = FutureProvider.autoDispose
-    .family<List<WalletTransaction>, WalletTransactionsParams>((ref, params) async {
-  final repository = ref.read(walletRepositoryProvider);
-  return await repository.getTransactions(
-    limit: params.limit,
-    offset: params.offset,
-  );
+    .family<List<WalletTransaction>, WalletTransactionsParams>(
+        (ref, params) async {
+  return ref.read(walletRepositoryProvider).getTransactions(
+        limit: params.limit,
+        offset: params.offset,
+      );
 });
 
-/// Parameters for wallet transactions provider
 class WalletTransactionsParams {
-  const WalletTransactionsParams({
-    required this.limit,
-    required this.offset,
-  });
+  const WalletTransactionsParams({required this.limit, required this.offset});
 
   final int limit;
   final int offset;
@@ -102,7 +87,6 @@ class WalletTransactionsParams {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is WalletTransactionsParams &&
-          runtimeType == other.runtimeType &&
           limit == other.limit &&
           offset == other.offset;
 

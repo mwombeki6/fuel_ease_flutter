@@ -1,60 +1,87 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fuel_ease_flutter/core/api/api_client.dart';
-import 'package:fuel_ease_flutter/features/cards/data/models/fuel_card.dart';
+import 'package:fuel_ease_flutter/core/api/api_error.dart';
 import 'package:fuel_ease_flutter/features/cards/data/models/create_card_payload.dart';
+import 'package:fuel_ease_flutter/features/cards/data/models/fuel_card.dart';
 
-/// Repository for fuel cards operations
+/// Repository for fuel card operations against the Go backend.
 class CardsRepository {
   CardsRepository(this._apiClient);
 
   final ApiClient _apiClient;
 
-  /// Get all fuel cards for current user
   Future<List<FuelCard>> getCards() async {
-    final response = await _apiClient.get('/fuel-cards/me');
-    final List<dynamic> data = response.data['cards'] ?? [];
-    return data.map((json) => FuelCard.fromJson(json)).toList();
+    try {
+      final response = await _apiClient.get('/cards');
+      _assertSuccess(response);
+      final list = response.data['data'] as List? ?? [];
+      return list
+          .map((j) => FuelCard.fromJson(j as Map<String, dynamic>))
+          .toList();
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
   }
 
-  /// Get card by ID
   Future<FuelCard> getCardById(String cardId) async {
-    final response = await _apiClient.get('/fuel-cards/$cardId');
-    return FuelCard.fromJson(response.data['card']);
+    try {
+      final response = await _apiClient.get('/cards/$cardId');
+      _assertSuccess(response);
+      return FuelCard.fromJson(response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
   }
 
-  /// Create a new fuel card
   Future<CreateCardResponse> createCard(CreateCardPayload payload) async {
-    final response = await _apiClient.post(
-      '/fuel-cards',
-      data: payload.toJson(),
-    );
-    return CreateCardResponse.fromJson(response.data);
+    try {
+      final response = await _apiClient.post('/cards', data: payload.toJson());
+      _assertSuccess(response);
+      return CreateCardResponse.fromJson(
+          response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
   }
 
-  /// Cancel a fuel card
   Future<void> cancelCard(String cardId) async {
-    await _apiClient.delete('/fuel-cards/$cardId');
+    try {
+      final response = await _apiClient.put(
+        '/cards/$cardId/status',
+        data: {'status': 'suspended'},
+      );
+      _assertSuccess(response);
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
   }
 
-  /// Use/redeem a fuel card
-  Future<FuelCard> useCard(UseCardPayload payload) async {
-    final response = await _apiClient.post(
-      '/fuel-cards/use',
-      data: payload.toJson(),
-    );
-    return FuelCard.fromJson(response.data['card']);
+  /// Returns all fuel companies (public endpoint, no auth required).
+  Future<List<Map<String, dynamic>>> getCompanies() async {
+    try {
+      final response = await _apiClient.get('/companies');
+      _assertSuccess(response);
+      final list = response.data['data'] as List? ?? [];
+      return list.cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
   }
 
-  /// Share card details (get shareable link/QR)
-  Future<Map<String, dynamic>> shareCard(String cardId) async {
-    final response = await _apiClient.get('/fuel-cards/$cardId/share');
-    return response.data;
+  void _assertSuccess(Response response) {
+    final code = response.statusCode ?? 0;
+    if (code >= 300) {
+      final data = response.data as Map<String, dynamic>?;
+      final msg =
+          (data?['error'] as Map?)?['message'] as String? ?? 'Request failed';
+      throw ApiError(message: msg, statusCode: code);
+    }
   }
 }
 
-/// Provider for cards repository
 final cardsRepositoryProvider = Provider<CardsRepository>((ref) {
-  final apiClient = ref.read(apiClientProvider);
+  final apiClient = ref.watch(apiClientProvider);
   return CardsRepository(apiClient);
 });

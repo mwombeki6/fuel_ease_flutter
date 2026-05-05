@@ -37,8 +37,9 @@ class RealtimePumpStatusNotifier extends StateNotifier<PumpRealtimeState> {
   final RealtimeClient _client;
   StreamSubscription<Map<String, dynamic>>? _subscription;
 
-  void _handleEvent(Map<String, dynamic> event) {
-    final type = event['type']?.toString();
+  void _handleEvent(Map<String, dynamic> raw) {
+    // Server sends WebMessage envelope: {"channel":"...","event":"...","data":{...}}
+    final type = raw['event']?.toString();
     if (type == null) return;
 
     const allowedTypes = {
@@ -46,19 +47,22 @@ class RealtimePumpStatusNotifier extends StateNotifier<PumpRealtimeState> {
       'dispensing_progress',
       'telemetry',
       'device_command_update',
+      'dispense_complete',
+      'error',
     };
     if (!allowedTypes.contains(type)) return;
 
-    final pumpId = event['pumpId']?.toString();
-    if (pumpId == null || pumpId.isEmpty) return;
-
-    final stationId = event['stationId']?.toString();
-    final data = event['data'] is Map
-        ? Map<String, dynamic>.from(event['data'] as Map)
+    final data = raw['data'] is Map
+        ? Map<String, dynamic>.from(raw['data'] as Map)
         : <String, dynamic>{};
 
+    final pumpId = data['pump_id']?.toString();
+    if (pumpId == null || pumpId.isEmpty) return;
+
+    final stationId = data['station_id']?.toString();
+
     final status = _resolveStatus(type, data);
-    final receivedAt = _parseTimestamp(event['timestamp']?.toString()) ??
+    final receivedAt = _parseTimestamp(data['timestamp']?.toString()) ??
         DateTime.now();
 
     final updated = Map<String, PumpRealtimeStatus>.from(state.byPump);

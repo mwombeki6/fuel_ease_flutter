@@ -1,34 +1,39 @@
-import 'package:freezed_annotation/freezed_annotation.dart';
-
 import 'package:fuel_ease_flutter/shared/models/user.dart';
 
-part 'auth_response.freezed.dart';
-part 'auth_response.g.dart';
+/// Token pair from Go backend auth response.
+class TokenPair {
+  const TokenPair({
+    required this.accessToken,
+    required this.refreshToken,
+    required this.expiresAt,
+  });
 
-/// Authentication response from login/register endpoints
-@freezed
-class AuthResponse with _$AuthResponse {
-  const factory AuthResponse({
-    required User user,
-    required String token,
-    required int expiresAt,
-  }) = _AuthResponse;
+  final String accessToken;
+  final String refreshToken;
+  final int expiresAt; // Unix seconds
 
-  factory AuthResponse.fromJson(Map<String, dynamic> json) =>
-      _$AuthResponseFromJson(json);
+  factory TokenPair.fromJson(Map<String, dynamic> json) => TokenPair(
+        accessToken: json['access_token'] as String,
+        refreshToken: json['refresh_token'] as String,
+        expiresAt: (json['expires_at'] as num).toInt(),
+      );
+}
 
-  const AuthResponse._();
+/// Authentication response from login/register endpoints.
+class AuthResponse {
+  const AuthResponse({
+    required this.user,
+    required this.tokens,
+    required this.sessionId,
+  });
 
-  /// Check if token is expired
-  bool get isExpired {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    return now > expiresAt;
-  }
+  final User user;
+  final TokenPair tokens;
+  final String sessionId;
 
-  /// Get remaining time until expiry
-  Duration get timeUntilExpiry {
-    final now = DateTime.now().millisecondsSinceEpoch;
-    final remaining = expiresAt - now;
-    return Duration(milliseconds: remaining > 0 ? remaining : 0);
-  }
+  factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
+        user: User.fromJson(json['user'] as Map<String, dynamic>),
+        tokens: TokenPair.fromJson(json['tokens'] as Map<String, dynamic>),
+        sessionId: json['session_id'] as String,
+      );
 }

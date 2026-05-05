@@ -60,7 +60,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final walletState = ref.watch(walletProvider);
     final availableBalance = ref.watch(availableBalanceProvider);
     final activeCardsCount = ref.watch(activeCardsCountProvider);
-    final totalCardsValue = ref.watch(totalCardsValueProvider);
     final stationState = ref.watch(stationSelectionProvider);
     final realtimeState = ref.watch(realtimeDebugProvider);
     final realtimeStatus = ref.watch(realtimeStatusProvider);
@@ -264,8 +263,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           child: QuickStatCard(
                             title: 'Wallet Balance',
                             value: availableBalance != null
-                                ? '${NumberFormat('#,##0').format(availableBalance)} L'
-                                : '0 L',
+                                ? '${NumberFormat('#,##0').format(availableBalance.toInt())} TZS'
+                                : '0 TZS',
                             icon: Icons.account_balance_wallet,
                             color: AppColors.primary,
                             onTap: () => context.go(Routes.wallet),
@@ -283,9 +282,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             icon: Icons.credit_card,
                             color: AppColors.accent,
                             onTap: () => context.go(Routes.cards),
-                            subtitle: totalCardsValue > 0
-                                ? '${NumberFormat('#,##0').format(totalCardsValue)} L'
-                                : null,
                           ),
                         ),
                       ],
@@ -348,6 +344,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: QuickActionButton(
+                        label: 'Dispense Fuel',
+                        icon: Icons.local_gas_station,
+                        color: AppColors.success,
+                        onTap: () =>
+                            context.push(Routes.createDispensingRequest),
+                      ),
                     ),
                   ],
                 ),
