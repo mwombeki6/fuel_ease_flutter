@@ -59,8 +59,8 @@ class StationDetailsScreen extends ConsumerWidget {
                   name: station.name,
                   status: station.status ?? 'UNKNOWN',
                   address: station.address,
-                  city: station.city,
-                  state: station.state,
+                  district: station.district,
+                  region: station.region,
                   contactNumber: station.contactNumber,
                   operatingHours: station.operatingHours,
                 ),
@@ -114,8 +114,8 @@ class _StationHeader extends StatelessWidget {
     required this.name,
     required this.status,
     this.address,
-    this.city,
-    this.state,
+    this.district,
+    this.region,
     this.contactNumber,
     this.operatingHours,
   });
@@ -123,8 +123,8 @@ class _StationHeader extends StatelessWidget {
   final String name;
   final String status;
   final String? address;
-  final String? city;
-  final String? state;
+  final String? district;
+  final String? region;
   final String? contactNumber;
   final String? operatingHours;
 
@@ -177,7 +177,7 @@ class _StationHeader extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          if (address != null || city != null || state != null)
+          if (address != null || district != null || region != null)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -185,7 +185,7 @@ class _StationHeader extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _joinAddress(address, city, state),
+                    _joinAddress(address, district, region),
                     style: AppTextStyles.bodySmall.copyWith(
                       color: AppColors.textSecondary,
                     ),
@@ -230,11 +230,11 @@ class _StationHeader extends StatelessWidget {
     );
   }
 
-  String _joinAddress(String? address, String? city, String? state) {
+  String _joinAddress(String? address, String? district, String? region) {
     final parts = <String>[];
     if (address != null && address.isNotEmpty) parts.add(address);
-    if (city != null && city.isNotEmpty) parts.add(city);
-    if (state != null && state.isNotEmpty) parts.add(state);
+    if (district != null && district.isNotEmpty) parts.add(district);
+    if (region != null && region.isNotEmpty) parts.add(region);
     return parts.join(', ');
   }
 

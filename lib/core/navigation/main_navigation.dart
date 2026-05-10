@@ -28,14 +28,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     ref.read(realtimeClientProvider).connect(channels: ['public']);
-    ref.listen<StationSelectionState>(
-      stationSelectionProvider,
-      (previous, next) {
-        if (previous?.stationId != next.stationId) {
-          ref.read(realtimeClientProvider).setStationSubscription(next.stationId);
-        }
-      },
-    );
   }
 
   @override
@@ -57,6 +49,17 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
 
   @override
   Widget build(BuildContext context) {
+    // ref.listen is only valid inside build — subscribes to station changes
+    // and updates the realtime subscription whenever the selected station changes.
+    ref.listen<StationSelectionState>(
+      stationSelectionProvider,
+      (previous, next) {
+        if (previous?.stationId != next.stationId) {
+          ref.read(realtimeClientProvider).setStationSubscription(next.stationId);
+        }
+      },
+    );
+
     return Scaffold(
       body: widget.child,
       bottomNavigationBar: const _BottomNavBar(),

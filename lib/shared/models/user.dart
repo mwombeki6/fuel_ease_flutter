@@ -8,6 +8,7 @@ class User {
     required this.lastName,
     this.phone,
     this.status,
+    this.companyName,
     this.createdAt,
   });
 
@@ -18,6 +19,7 @@ class User {
   final String lastName;
   final String? phone;
   final String? status;
+  final String? companyName;
   final DateTime? createdAt;
 
   factory User.fromJson(Map<String, dynamic> json) => User(
@@ -28,6 +30,7 @@ class User {
         lastName: json['last_name'] as String,
         phone: json['phone'] as String?,
         status: json['status'] as String?,
+        companyName: json['company_name'] as String?,
         createdAt: json['created_at'] != null
             ? DateTime.parse(json['created_at'] as String)
             : null,
@@ -41,6 +44,7 @@ class User {
         'last_name': lastName,
         if (phone != null) 'phone': phone,
         if (status != null) 'status': status,
+        if (companyName != null) 'company_name': companyName,
         if (createdAt != null) 'created_at': createdAt!.toIso8601String(),
       };
 
@@ -52,6 +56,7 @@ class User {
     String? lastName,
     String? phone,
     String? status,
+    String? companyName,
     DateTime? createdAt,
   }) =>
       User(
@@ -62,6 +67,7 @@ class User {
         lastName: lastName ?? this.lastName,
         phone: phone ?? this.phone,
         status: status ?? this.status,
+        companyName: companyName ?? this.companyName,
         createdAt: createdAt ?? this.createdAt,
       );
 

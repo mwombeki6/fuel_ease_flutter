@@ -32,6 +32,7 @@ class Routes {
 
   // Stations routes
   static const String stations = '/stations';
+  static const String stationMap = '/stations/map';
   static String stationDetails(String id) => '/stations/$id';
 
   // Cards routes
@@ -42,4 +43,5 @@ class Routes {
   // Settings routes
   static const String settings = '/settings';
   static const String editProfile = '/settings/profile';
+  static const String changePassword = '/settings/change-password';
 }

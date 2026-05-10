@@ -2,8 +2,8 @@ class Station {
   Station({
     required this.id,
     required this.name,
-    this.city,
-    this.state,
+    this.district,
+    this.region,
     this.status,
     this.address,
     this.country,
@@ -15,8 +15,8 @@ class Station {
 
   final String id;
   final String name;
-  final String? city;
-  final String? state;
+  final String? district;
+  final String? region;
   final String? status;
   final String? address;
   final String? country;
@@ -29,15 +29,13 @@ class Station {
     return Station(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
-      // Go uses 'district'/'region'; fall back to old keys for compatibility
-      city: json['district'] as String? ?? json['city'] as String?,
-      state: json['region'] as String? ?? json['state'] as String?,
+      district: json['district'] as String?,
+      region: json['region'] as String?,
       status: json['status'] as String?,
       address: json['address'] as String?,
       country: json['country'] as String?,
       contactNumber: json['contactNumber'] as String?,
       operatingHours: json['operatingHours'] as String?,
-      // Go uses 'lat'/'lng'; fall back to 'latitude'/'longitude'
       latitude: (json['lat'] as num? ?? json['latitude'] as num?)?.toDouble(),
       longitude: (json['lng'] as num? ?? json['longitude'] as num?)?.toDouble(),
     );
@@ -47,8 +45,8 @@ class Station {
     return {
       'id': id,
       'name': name,
-      'city': city,
-      'state': state,
+      'district': district,
+      'region': region,
       'status': status,
       'address': address,
       'country': country,

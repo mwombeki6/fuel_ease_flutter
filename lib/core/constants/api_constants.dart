@@ -5,7 +5,7 @@ class ApiConstants {
   /// Base URL for the FuelEase API
   // Local network IP — works for both emulator and physical device on same Wi-Fi.
   // Change to production URL before release.
-  static const String baseUrl = 'http://192.168.100.96:8080/api/v1';
+  static const String baseUrl = 'http://192.168.100.97:8080/api/v1';
 
   /// WebSocket base URL for real-time events
   static String get webSocketUrl {

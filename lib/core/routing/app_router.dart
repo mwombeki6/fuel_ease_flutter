@@ -27,6 +27,9 @@ import 'package:fuel_ease_flutter/features/cards/presentation/screens/card_detai
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/create_card_screen.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/screens/stations_screen.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/screens/station_details_screen.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/screens/station_map_screen.dart';
+import 'package:fuel_ease_flutter/features/profile/presentation/screens/change_password_screen.dart';
+import 'package:fuel_ease_flutter/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:fuel_ease_flutter/features/profile/presentation/screens/profile_screen.dart';
 import 'package:fuel_ease_flutter/core/navigation/main_navigation.dart';
 
@@ -53,9 +56,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
 
-      // Show splash while loading auth state
+      // While loading, park on splash
       if (isLoading && state.matchedLocation != Routes.splash) {
         return Routes.splash;
+      }
+
+      // Loading finished but still on splash — decide based on auth
+      if (!isLoading && state.matchedLocation == Routes.splash) {
+        return isAuthenticated ? Routes.home : Routes.welcome;
       }
 
       // If not authenticated and not going to auth, redirect to welcome
@@ -200,10 +208,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Settings routes
+      GoRoute(
+        path: Routes.editProfile,
+        builder: (context, state) => const EditProfileScreen(),
+      ),
+      GoRoute(
+        path: Routes.changePassword,
+        builder: (context, state) => const ChangePasswordScreen(),
+      ),
+
       // Stations list (outside shell)
       GoRoute(
         path: Routes.stations,
         builder: (context, state) => const StationsScreen(),
+      ),
+      // Station map — must be registered before /stations/:id to avoid conflict
+      GoRoute(
+        path: Routes.stationMap,
+        builder: (context, state) => const StationMapScreen(),
       ),
       GoRoute(
         path: '/stations/:id',

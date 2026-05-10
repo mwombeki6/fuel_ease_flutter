@@ -29,16 +29,18 @@ class DispenseRequest {
         id: json['id'] as String,
         cardId: json['card_id'] as String,
         stationId: json['station_id'] as String,
-        requestedLiters: (json['requested_liters'] as num?)?.toDouble() ?? 0.0,
+        requestedLiters: double.tryParse(json['requested_liters']?.toString() ?? '0') ?? 0.0,
         pricePerLiterTzs: (json['price_per_liter_tzs'] as num?)?.toInt() ?? 0,
         status: json['status'] as String,
         createdAt: DateTime.parse(json['created_at'] as String),
         pumpId: json['pump_id'] as String?,
-        actualLiters: (json['actual_liters'] as num?)?.toDouble(),
+        actualLiters: json['actual_liters'] != null
+            ? double.tryParse(json['actual_liters'].toString())
+            : null,
         completedAt: json['completed_at'] != null
             ? DateTime.tryParse(json['completed_at'] as String)
             : null,
-        holdId: json['hold_id'] as String?,
+        holdId: json['wallet_hold_id'] as String?,
       );
 
   bool get isPending => status == 'pending';

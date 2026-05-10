@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
+import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_list_item.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/wallet_balance_card.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
@@ -118,10 +119,7 @@ class WalletScreen extends ConsumerWidget {
                 final transaction = recentTransactions[index];
                 return TransactionListItem(
                   transaction: transaction,
-                  onTap: () {
-                    // TODO: Navigate to transaction detail
-                    // context.push(Routes.transactionDetail, extra: transaction);
-                  },
+                  onTap: () => showTransactionDetail(context, transaction),
                 );
               },
               childCount: recentTransactions.length,

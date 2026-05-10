@@ -33,7 +33,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
     final stations = stationState.stations.where((station) {
       if (_query.isEmpty) return true;
       final target =
-          '${station.name} ${station.city ?? ''} ${station.state ?? ''}'
+          '${station.name} ${station.district ?? ''} ${station.region ?? ''}'
               .toLowerCase();
       return target.contains(_query.toLowerCase());
     }).toList();
@@ -43,6 +43,13 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
       appBar: AppBar(
         title: const Text('Stations'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.map_outlined),
+            tooltip: 'Map view',
+            onPressed: () => context.push(Routes.stationMap),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => ref.read(stationSelectionProvider.notifier).refresh(),
@@ -140,10 +147,10 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
               ...stations.map((station) {
                 final selected = station.id == stationState.stationId;
                 final subtitleParts = [
-                  if (station.city != null && station.city!.isNotEmpty)
-                    station.city!,
-                  if (station.state != null && station.state!.isNotEmpty)
-                    station.state!,
+                  if (station.district != null && station.district!.isNotEmpty)
+                    station.district!,
+                  if (station.region != null && station.region!.isNotEmpty)
+                    station.region!,
                 ];
                 final subtitle = subtitleParts.join(', ');
 

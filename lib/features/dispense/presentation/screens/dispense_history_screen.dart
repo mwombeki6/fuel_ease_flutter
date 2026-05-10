@@ -1,10 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/dispense/data/models/dispense_request.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/providers/dispense_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
+
+final _litersFormat = NumberFormat('#,##0.##');
+final _currencyFormat = NumberFormat('#,###');
+final _dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
 
 class DispenseHistoryScreen extends ConsumerWidget {
   const DispenseHistoryScreen({super.key});
@@ -21,8 +27,8 @@ class DispenseHistoryScreen extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () =>
-                ref.read(dispenseProvider.notifier).refresh(),
+            tooltip: 'Refresh',
+            onPressed: () => ref.read(dispenseProvider.notifier).refresh(),
           ),
         ],
       ),
@@ -33,15 +39,19 @@ class DispenseHistoryScreen extends ConsumerWidget {
           onRetry: () => ref.read(dispenseProvider.notifier).refresh(),
         ),
         data: (requests) {
-          if (requests.isEmpty) {
-            return const _EmptyView();
-          }
-          return ListView.separated(
-            padding: const EdgeInsets.all(16),
-            itemCount: requests.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 8),
-            itemBuilder: (context, index) =>
-                _DispenseRequestItem(request: requests[index]),
+          if (requests.isEmpty) return const _EmptyView();
+          return RefreshIndicator(
+            onRefresh: () => ref.read(dispenseProvider.notifier).refresh(),
+            child: ListView.separated(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: requests.length,
+              separatorBuilder: (ctx, idx) => const SizedBox(height: 8),
+              itemBuilder: (context, index) => _DispenseRequestItem(
+                request: requests[index],
+                onTap: () => _showDetail(context, requests[index]),
+              ),
+            ),
           );
         },
       ),
@@ -49,114 +59,378 @@ class DispenseHistoryScreen extends ConsumerWidget {
   }
 }
 
+void _showDetail(BuildContext context, DispenseRequest req) {
+  showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: AppColors.surface,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+    ),
+    builder: (ctx) => _DetailSheet(request: req),
+  );
+}
+
+// ─── List item ──────────────────────────────────────────────────────────────
+
 class _DispenseRequestItem extends StatelessWidget {
-  const _DispenseRequestItem({required this.request});
+  const _DispenseRequestItem({
+    required this.request,
+    required this.onTap,
+  });
+
   final DispenseRequest request;
+  final VoidCallback onTap;
+
+  Color _statusColor() {
+    switch (request.status) {
+      case 'completed':
+        return AppColors.success;
+      case 'active':
+      case 'approved':
+        return AppColors.info;
+      case 'cancelled':
+        return AppColors.error;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
+    final color = _statusColor();
 
-    Color statusColor;
-    switch (request.status) {
-      case 'completed':
-        statusColor = AppColors.success;
-        break;
-      case 'active':
-      case 'approved':
-        statusColor = AppColors.info;
-        break;
-      case 'cancelled':
-        statusColor = AppColors.error;
-        break;
-      default:
-        statusColor = AppColors.textSecondary;
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: statusColor.withOpacity(0.12),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.local_gas_station,
-              color: statusColor,
-              size: 20,
-            ),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.local_gas_station, color: color, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '${request.requestedLiters} L',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${_litersFormat.format(request.requestedLiters)} L',
+                          style: AppTextStyles.titleSmall,
+                        ),
+                        _StatusBadge(status: request.status, color: color),
+                      ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        request.formattedStatus,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: statusColor,
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_currencyFormat.format(request.estimatedCostTzs)} TZS',
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _dateFormat.format(request.createdAt),
+                      style: AppTextStyles.bodySmall
+                          .copyWith(color: AppColors.textSecondary),
+                    ),
+                    if (request.isCompleted && request.actualLiters != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Dispensed: ${_litersFormat.format(request.actualLiters!)} L',
+                        style: AppTextStyles.bodySmall.copyWith(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  '${NumberFormat('#,###').format(request.estimatedCostTzs)} TZS',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                  ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.chevron_right,
+                  color: AppColors.textSecondary, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({required this.status, required this.color});
+  final String status;
+  final Color color;
+
+  String get _label {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'approved':
+        return 'Approved';
+      case 'active':
+        return 'Active';
+      case 'completed':
+        return 'Completed';
+      case 'cancelled':
+        return 'Cancelled';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        _label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: color,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Detail sheet ────────────────────────────────────────────────────────────
+
+class _DetailSheet extends StatelessWidget {
+  const _DetailSheet({required this.request});
+  final DispenseRequest request;
+
+  Color get _statusColor {
+    switch (request.status) {
+      case 'completed':
+        return AppColors.success;
+      case 'active':
+      case 'approved':
+        return AppColors.info;
+      case 'cancelled':
+        return AppColors.error;
+      default:
+        return AppColors.textSecondary;
+    }
+  }
+
+  IconData get _statusIcon {
+    switch (request.status) {
+      case 'completed':
+        return Icons.check_circle_outline;
+      case 'active':
+        return Icons.local_gas_station;
+      case 'approved':
+        return Icons.thumb_up_outlined;
+      case 'cancelled':
+        return Icons.cancel_outlined;
+      default:
+        return Icons.hourglass_empty_outlined;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final liters = request.actualLiters ?? request.requestedLiters;
+    final cost = (liters * request.pricePerLiterTzs).ceil();
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.4,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (ctx, scrollCtrl) => SingleChildScrollView(
+        controller: scrollCtrl,
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag handle
+            Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  dateFormat.format(request.createdAt),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.textSecondary,
+              ),
+            ),
+
+            // Status hero
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: _statusColor.withOpacity(0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child:
+                        Icon(_statusIcon, color: _statusColor, size: 32),
                   ),
-                ),
-                if (request.isCompleted && request.actualLiters != null) ...[
+                  const SizedBox(height: 12),
+                  Text(request.formattedStatus,
+                      style: AppTextStyles.titleMedium
+                          .copyWith(color: _statusColor)),
                   const SizedBox(height: 4),
                   Text(
-                    'Actual: ${request.actualLiters} L',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    '${_litersFormat.format(request.actualLiters ?? request.requestedLiters)} L',
+                    style: AppTextStyles.headlineMedium,
+                  ),
+                  Text(
+                    '${_currencyFormat.format(cost)} TZS',
+                    style: AppTextStyles.bodyMedium
+                        .copyWith(color: AppColors.textSecondary),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Details card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                children: [
+                  _Row(
+                    label: 'Requested',
+                    value:
+                        '${_litersFormat.format(request.requestedLiters)} L',
+                  ),
+                  if (request.actualLiters != null)
+                    _Row(
+                      label: 'Dispensed',
+                      value:
+                          '${_litersFormat.format(request.actualLiters!)} L',
+                      valueColor: AppColors.success,
+                    ),
+                  _Row(
+                    label: 'Price/L',
+                    value:
+                        '${_currencyFormat.format(request.pricePerLiterTzs)} TZS',
+                  ),
+                  _Row(
+                    label: 'Requested on',
+                    value: _dateFormat.format(request.createdAt),
+                  ),
+                  if (request.completedAt != null)
+                    _Row(
+                      label: 'Completed',
+                      value: _dateFormat.format(request.completedAt!),
+                    ),
+                  _Row(
+                    label: 'Status',
+                    value: request.formattedStatus,
+                    valueColor: _statusColor,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Request ID row with copy button
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Request ID',
+                          style: AppTextStyles.labelSmall
+                              .copyWith(color: AppColors.textSecondary)),
+                      const SizedBox(height: 2),
+                      Text(
+                        request.id,
+                        style: AppTextStyles.bodySmall.copyWith(
+                          fontFamily: 'monospace',
+                          color: AppColors.textPrimary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon:
+                      const Icon(Icons.copy_outlined, size: 18),
+                  color: AppColors.textSecondary,
+                  tooltip: 'Copy ID',
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: request.id));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Request ID copied'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Row extends StatelessWidget {
+  const _Row({required this.label, required this.value, this.valueColor});
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(label,
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary)),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: AppTextStyles.bodySmall.copyWith(
+                fontWeight: FontWeight.w600,
+                color: valueColor ?? AppColors.textPrimary,
+              ),
             ),
           ),
         ],
@@ -164,6 +438,8 @@ class _DispenseRequestItem extends StatelessWidget {
     );
   }
 }
+
+// ─── Empty / error states ────────────────────────────────────────────────────
 
 class _EmptyView extends StatelessWidget {
   const _EmptyView();
@@ -176,27 +452,16 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.local_gas_station_outlined,
-              size: 64,
-              color: AppColors.textSecondary,
-            ),
+            Icon(Icons.local_gas_station_outlined,
+                size: 64, color: AppColors.textSecondary.withOpacity(0.4)),
             const SizedBox(height: 16),
-            const Text(
-              'No dispense requests yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            Text('No dispense requests yet',
+                style: AppTextStyles.titleSmall),
             const SizedBox(height: 8),
             Text(
               'Your fuel dispense history will appear here.',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
+              style: AppTextStyles.bodySmall
+                  .copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
           ],
@@ -219,13 +484,13 @@ class _ErrorView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            const Icon(Icons.error_outline,
+                size: 48, color: AppColors.error),
             const SizedBox(height: 16),
-            Text(
-              error,
-              style: TextStyle(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
+            Text(error,
+                style: AppTextStyles.bodySmall
+                    .copyWith(color: AppColors.textSecondary),
+                textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: onRetry,

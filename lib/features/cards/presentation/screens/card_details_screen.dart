@@ -240,10 +240,86 @@ class CardDetailsScreen extends ConsumerWidget {
   }
 
   void _shareCard(BuildContext context, dynamic card) {
-    // TODO: Implement share functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Share functionality coming soon'),
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const Text(
+              'Share Card Details',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Choose how to share your card information',
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            _ShareOption(
+              icon: Icons.copy_outlined,
+              label: 'Copy Card Number',
+              onTap: () {
+                Clipboard.setData(
+                  ClipboardData(text: card.maskedCardNumber as String),
+                );
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 12),
+                        Text('Card number copied'),
+                      ],
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              },
+            ),
+            _ShareOption(
+              icon: Icons.text_snippet_outlined,
+              label: 'Copy Full Details',
+              onTap: () {
+                final text =
+                    'Card: ${card.maskedCardNumber}\nExpires: ${card.expiresAt}';
+                Clipboard.setData(ClipboardData(text: text));
+                Navigator.of(ctx).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.white),
+                        SizedBox(width: 12),
+                        Text('Card details copied'),
+                      ],
+                    ),
+                    backgroundColor: AppColors.success,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
       ),
     );
   }
@@ -448,6 +524,58 @@ class _InfoRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ShareOption extends StatelessWidget {
+  const _ShareOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 20),
+            ),
+            const SizedBox(width: 14),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const Spacer(),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+          ],
+        ),
       ),
     );
   }

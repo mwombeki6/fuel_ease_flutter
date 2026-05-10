@@ -14,6 +14,7 @@ import 'package:fuel_ease_flutter/features/dashboard/presentation/widgets/quick_
 import 'package:fuel_ease_flutter/core/realtime/realtime_debug_provider.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_status_provider.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
+import 'package:fuel_ease_flutter/features/analytics/presentation/providers/analytics_provider.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
@@ -32,6 +33,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ref.listen<RealtimeStatus>(realtimeStatusProvider, (previous, next) {
       if (!mounted) return;
       if (!_hasSeenConnected &&
@@ -52,10 +57,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       }
     });
-  }
-
-  @override
-  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final walletState = ref.watch(walletProvider);
     final availableBalance = ref.watch(availableBalanceProvider);
@@ -64,6 +65,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final realtimeState = ref.watch(realtimeDebugProvider);
     final realtimeStatus = ref.watch(realtimeStatusProvider);
     final realtimeClient = ref.read(realtimeClientProvider);
+    final analyticsAsync = ref.watch(customerAnalyticsProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -285,6 +287,43 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 12),
+                    analyticsAsync.when(
+                      loading: () => const SizedBox.shrink(),
+                      error: (err, st) => const SizedBox.shrink(),
+                      data: (analytics) => Row(
+                        children: [
+                          Expanded(
+                            child: QuickStatCard(
+                              title: 'Dispenses',
+                              value: analytics.transactionCount.toString(),
+                              icon: Icons.local_gas_station,
+                              color: AppColors.info,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: QuickStatCard(
+                              title: 'Total Liters',
+                              value: NumberFormat('#,##0.0')
+                                  .format(analytics.totalLiters),
+                              icon: Icons.water_drop_outlined,
+                              color: AppColors.success,
+                              subtitle: 'Lifetime',
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: QuickStatCard(
+                              title: 'Total Spent',
+                              value: '${NumberFormat('#,##0').format(analytics.totalSpentTzs.toInt())} TZS',
+                              icon: Icons.payments_outlined,
+                              color: AppColors.warning,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

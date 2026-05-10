@@ -1,13 +1,58 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_transaction.dart';
-import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
+import 'package:fuel_ease_flutter/features/wallet/data/repositories/wallet_repository.dart';
+import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_list_item.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
 
-/// Transaction history screen with pagination and filtering
+const _pageSize = 30;
+
+// Paginated notifier: accumulates transactions as pages are loaded.
+class _TransactionListNotifier extends StateNotifier<AsyncValue<List<WalletTransaction>>> {
+  _TransactionListNotifier(this._repo) : super(const AsyncValue.loading()) {
+    _load();
+  }
+
+  final WalletRepository _repo;
+  int _offset = 0;
+  bool _hasMore = true;
+  bool _loading = false;
+
+  Future<void> _load() async {
+    if (_loading || !_hasMore) return;
+    _loading = true;
+    try {
+      final page = await _repo.getTransactions(limit: _pageSize, offset: _offset);
+      final current = state.valueOrNull ?? [];
+      state = AsyncValue.data([...current, ...page]);
+      _offset += page.length;
+      _hasMore = page.length == _pageSize;
+    } catch (e, st) {
+      if (_offset == 0) state = AsyncValue.error(e, st);
+    } finally {
+      _loading = false;
+    }
+  }
+
+  Future<void> loadMore() => _load();
+
+  Future<void> refresh() async {
+    _offset = 0;
+    _hasMore = true;
+    state = const AsyncValue.loading();
+    await _load();
+  }
+}
+
+final _transactionListProvider = StateNotifierProvider.autoDispose<
+    _TransactionListNotifier, AsyncValue<List<WalletTransaction>>>((ref) {
+  return _TransactionListNotifier(ref.read(walletRepositoryProvider));
+});
+
+/// Transaction history screen with filter chips and infinite scroll.
 class TransactionHistoryScreen extends ConsumerStatefulWidget {
   const TransactionHistoryScreen({super.key});
 
@@ -18,8 +63,8 @@ class TransactionHistoryScreen extends ConsumerStatefulWidget {
 
 class _TransactionHistoryScreenState
     extends ConsumerState<TransactionHistoryScreen> {
-  final ScrollController _scrollController = ScrollController();
-  String _selectedFilter = 'all'; // all, credit, debit
+  final _scrollController = ScrollController();
+  String _filter = 'all';
 
   @override
   void initState() {
@@ -34,36 +79,35 @@ class _TransactionHistoryScreenState
   }
 
   void _onScroll() {
-    // TODO: Implement infinite scroll pagination when reaching bottom
     if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
-      // Load more transactions
+        _scrollController.position.maxScrollExtent - 300) {
+      ref.read(_transactionListProvider.notifier).loadMore();
     }
   }
 
-  List<WalletTransaction> _filterTransactions(
-      List<WalletTransaction> transactions) {
-    if (_selectedFilter == 'all') {
-      return transactions;
-    } else if (_selectedFilter == 'credit') {
-      return transactions.where((t) => t.isCredit).toList();
-    } else {
-      return transactions.where((t) => !t.isCredit).toList();
-    }
+  List<WalletTransaction> _filtered(List<WalletTransaction> all) {
+    if (_filter == 'credit') return all.where((t) => t.isCredit).toList();
+    if (_filter == 'debit') return all.where((t) => t.isDebit).toList();
+    return all;
   }
 
   @override
   Widget build(BuildContext context) {
-    // Fetch transactions with default pagination (limit: 50, offset: 0)
-    final transactionsAsync = ref.watch(walletTransactionsProvider(
-      const WalletTransactionsParams(limit: 50, offset: 0),
-    ));
+    final asyncTx = ref.watch(_transactionListProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Transaction History'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+            onPressed: () =>
+                ref.read(_transactionListProvider.notifier).refresh(),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -73,199 +117,87 @@ class _TransactionHistoryScreenState
             color: AppColors.surface,
             child: Row(
               children: [
-                _FilterChip(
+                _Chip(
                   label: 'All',
-                  isSelected: _selectedFilter == 'all',
-                  onTap: () => setState(() => _selectedFilter = 'all'),
+                  selected: _filter == 'all',
+                  onTap: () => setState(() => _filter = 'all'),
                 ),
                 const SizedBox(width: 8),
-                _FilterChip(
+                _Chip(
                   label: 'Top-ups',
-                  isSelected: _selectedFilter == 'credit',
-                  onTap: () => setState(() => _selectedFilter = 'credit'),
-                  icon: Icons.arrow_downward,
+                  selected: _filter == 'credit',
+                  icon: Icons.arrow_downward_rounded,
                   iconColor: AppColors.success,
+                  onTap: () => setState(() => _filter = 'credit'),
                 ),
                 const SizedBox(width: 8),
-                _FilterChip(
+                _Chip(
                   label: 'Purchases',
-                  isSelected: _selectedFilter == 'debit',
-                  onTap: () => setState(() => _selectedFilter = 'debit'),
-                  icon: Icons.arrow_upward,
+                  selected: _filter == 'debit',
+                  icon: Icons.arrow_upward_rounded,
                   iconColor: AppColors.error,
+                  onTap: () => setState(() => _filter = 'debit'),
                 ),
               ],
             ),
           ),
 
-          // Transactions list
           Expanded(
-            child: transactionsAsync.when(
-              data: (transactions) {
-                final filteredTransactions = _filterTransactions(transactions);
-
-                if (filteredTransactions.isEmpty) {
-                  return _buildEmptyState();
-                }
-
+            child: asyncTx.when(
+              data: (all) {
+                final items = _filtered(all);
+                if (items.isEmpty) return _Empty(filter: _filter);
                 return RefreshIndicator(
-                  onRefresh: () async {
-                    // Refresh transactions
-                    ref.invalidate(walletTransactionsProvider(
-                      const WalletTransactionsParams(limit: 50, offset: 0),
-                    ));
-                  },
+                  onRefresh: () =>
+                      ref.read(_transactionListProvider.notifier).refresh(),
                   child: ListView.separated(
                     controller: _scrollController,
                     physics: const AlwaysScrollableScrollPhysics(),
                     padding: const EdgeInsets.only(top: 8, bottom: 80),
-                    itemCount: filteredTransactions.length,
-                    separatorBuilder: (context, index) => Divider(
+                    itemCount: items.length + 1,
+                    separatorBuilder: (context2, idx2) => Divider(
                       height: 1,
                       color: AppColors.border,
                       indent: 72,
                     ),
                     itemBuilder: (context, index) {
-                      final transaction = filteredTransactions[index];
+                      if (index == items.length) {
+                        return const _LoadingFooter();
+                      }
                       return TransactionListItem(
-                        transaction: transaction,
-                        onTap: () {
-                          _showTransactionDetail(context, transaction);
-                        },
+                        transaction: items[index],
+                        onTap: () =>
+                            showTransactionDetail(context, items[index]),
                       );
                     },
                   ),
                 );
               },
-              loading: () => const Center(
-                child: CircularProgressIndicator(),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, _) => _Error(
+                message: err.toString(),
+                onRetry: () =>
+                    ref.read(_transactionListProvider.notifier).refresh(),
               ),
-              error: (error, stack) => _buildErrorState(error),
             ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildEmptyState() {
-    String message;
-    if (_selectedFilter == 'credit') {
-      message = 'No top-up transactions yet';
-    } else if (_selectedFilter == 'debit') {
-      message = 'No purchase transactions yet';
-    } else {
-      message = 'No transactions yet';
-    }
-
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.receipt_long_outlined,
-              size: 64,
-              color: AppColors.textSecondary.withOpacity(0.5),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _selectedFilter == 'all'
-                  ? 'Your transaction history will appear here'
-                  : 'Change filter to view other transactions',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textTertiary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildErrorState(Object error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to load transactions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              error.toString(),
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                ref.invalidate(walletTransactionsProvider(
-                  const WalletTransactionsParams(limit: 50, offset: 0),
-                ));
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try Again'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showTransactionDetail(
-      BuildContext context, WalletTransaction transaction) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) => _TransactionDetailSheet(transaction: transaction),
-    );
-  }
 }
 
-/// Filter chip widget
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
+class _Chip extends StatelessWidget {
+  const _Chip({
     required this.label,
-    required this.isSelected,
+    required this.selected,
     required this.onTap,
     this.icon,
     this.iconColor,
   });
 
   final String label;
-  final bool isSelected;
+  final bool selected;
   final VoidCallback onTap;
   final IconData? icon;
   final Color? iconColor;
@@ -275,12 +207,11 @@ class _FilterChip extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary
-              : AppColors.surfaceVariant,
+          color: selected ? AppColors.primary : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -289,17 +220,16 @@ class _FilterChip extends StatelessWidget {
             if (icon != null) ...[
               Icon(
                 icon,
-                size: 16,
-                color: isSelected ? Colors.white : iconColor,
+                size: 15,
+                color: selected ? Colors.white : iconColor,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 5),
             ],
             Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
+              style: AppTextStyles.labelSmall.copyWith(
+                color: selected ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
               ),
             ),
           ],
@@ -309,187 +239,94 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
-/// Transaction detail bottom sheet
-class _TransactionDetailSheet extends StatelessWidget {
-  const _TransactionDetailSheet({required this.transaction});
-
-  final WalletTransaction transaction;
+class _LoadingFooter extends StatelessWidget {
+  const _LoadingFooter();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: transaction.isCredit
-                      ? AppColors.success.withOpacity(0.1)
-                      : AppColors.error.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  transaction.isCredit
-                      ? Icons.arrow_downward
-                      : Icons.arrow_upward,
-                  color:
-                      transaction.isCredit ? AppColors.success : AppColors.error,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      transaction.formattedType,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    if (transaction.createdAt != null)
-                      Text(
-                        _formatDateTime(transaction.createdAt!),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
-
-          // Details
-          _DetailRow(
-            label: 'Amount',
-            value:
-                '${transaction.isCredit ? '+' : '-'}${NumberFormat('#,##0').format(transaction.amountTzs)} TZS',
-            valueColor:
-                transaction.isCredit ? AppColors.success : AppColors.error,
-            isHighlighted: true,
-          ),
-          const SizedBox(height: 12),
-          _DetailRow(
-            label: 'Balance After',
-            value: '${NumberFormat('#,##0').format(transaction.balanceAfterTzs)} TZS',
-          ),
-          if (transaction.reference != null) ...[
-            const SizedBox(height: 12),
-            _DetailRow(
-              label: 'Reference',
-              value: transaction.reference!,
-              valueStyle: const TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 13,
-              ),
-            ),
-          ],
-          if (transaction.description != null) ...[
-            const SizedBox(height: 12),
-            _DetailRow(
-              label: 'Description',
-              value: transaction.description!,
-            ),
-          ],
-          const SizedBox(height: 12),
-          _DetailRow(
-            label: 'Transaction ID',
-            value: transaction.id,
-            valueStyle: const TextStyle(
-              fontFamily: 'monospace',
-              fontSize: 11,
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Close button
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ),
-        ],
-      ),
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 16),
+      child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
     );
-  }
-
-  String _formatDateTime(DateTime dateTime) {
-    final now = DateTime.now();
-    final difference = now.difference(dateTime);
-
-    if (difference.inDays == 0) {
-      return 'Today at ${_formatTime(dateTime)}';
-    } else if (difference.inDays == 1) {
-      return 'Yesterday at ${_formatTime(dateTime)}';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${dateTime.day}/${dateTime.month}/${dateTime.year} at ${_formatTime(dateTime)}';
-    }
-  }
-
-  String _formatTime(DateTime dateTime) {
-    final hour = dateTime.hour.toString().padLeft(2, '0');
-    final minute = dateTime.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
   }
 }
 
-/// Detail row widget for transaction details
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({
-    required this.label,
-    required this.value,
-    this.valueColor,
-    this.valueStyle,
-    this.isHighlighted = false,
-  });
+class _Empty extends StatelessWidget {
+  const _Empty({required this.filter});
 
-  final String label;
-  final String value;
-  final Color? valueColor;
-  final TextStyle? valueStyle;
-  final bool isHighlighted;
+  final String filter;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isHighlighted ? 15 : 14,
-            color: AppColors.textSecondary,
-            fontWeight: isHighlighted ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        Text(
-          value,
-          style: valueStyle ??
-              TextStyle(
-                fontSize: isHighlighted ? 16 : 14,
-                fontWeight: isHighlighted ? FontWeight.w700 : FontWeight.w600,
-                color: valueColor ?? AppColors.textPrimary,
+    final msg = filter == 'credit'
+        ? 'No top-up transactions yet'
+        : filter == 'debit'
+            ? 'No purchase transactions yet'
+            : 'No transactions yet';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.receipt_long_outlined,
+              size: 64,
+              color: AppColors.textSecondary.withOpacity(0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(msg, style: AppTextStyles.titleSmall),
+            const SizedBox(height: 8),
+            Text(
+              filter == 'all'
+                  ? 'Your transaction history will appear here'
+                  : 'Change filter to view other transactions',
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
               ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _Error extends StatelessWidget {
+  const _Error({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 56, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text('Failed to load transactions', style: AppTextStyles.titleSmall),
+            const SizedBox(height: 8),
+            Text(
+              message,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try Again'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
