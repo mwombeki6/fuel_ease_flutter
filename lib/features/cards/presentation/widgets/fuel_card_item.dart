@@ -25,11 +25,11 @@ class FuelCardItem extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          gradient: _getCardGradient(),
+          color: _getCardColor(),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: _getStatusColor().withOpacity(0.3),
+              color: _getCardColor().withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -46,7 +46,7 @@ class FuelCardItem extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Icon(
@@ -88,7 +88,7 @@ class FuelCardItem extends StatelessWidget {
                     Text(
                       'Card',
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: Colors.white.withValues(alpha: 0.7),
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
                       ),
@@ -114,7 +114,7 @@ class FuelCardItem extends StatelessWidget {
                       Text(
                         'Expires',
                         style: TextStyle(
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white.withValues(alpha: 0.7),
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
                         ),
@@ -140,7 +140,7 @@ class FuelCardItem extends StatelessWidget {
                         Text(
                           'Station',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                           ),
@@ -167,36 +167,10 @@ class FuelCardItem extends StatelessWidget {
     );
   }
 
-  LinearGradient _getCardGradient() {
-    if (card.isActive) {
-      return const LinearGradient(
-        colors: [AppColors.primary, AppColors.primaryDark],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-    } else if (card.isUsed) {
-      return LinearGradient(
-        colors: [Colors.grey.shade600, Colors.grey.shade700],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-    } else {
-      return LinearGradient(
-        colors: [Colors.grey.shade400, Colors.grey.shade500],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      );
-    }
-  }
-
-  Color _getStatusColor() {
-    if (card.isActive) {
-      return AppColors.primary;
-    } else if (card.isUsed) {
-      return AppColors.info;
-    } else {
-      return AppColors.error;
-    }
+  Color _getCardColor() {
+    if (card.isActive) return AppColors.primary;
+    if (card.isUsed) return const Color(0xFF475569);
+    return const Color(0xFF64748B);
   }
 
   String _formatExpiryDate(DateTime date) {
@@ -231,8 +205,8 @@ class _StatusBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: isActive
-            ? Colors.white.withOpacity(0.25)
-            : Colors.black.withOpacity(0.2),
+            ? Colors.white.withValues(alpha: 0.25)
+            : Colors.black.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(

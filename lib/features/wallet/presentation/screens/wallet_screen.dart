@@ -8,6 +8,7 @@ import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transacti
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_list_item.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/wallet_balance_card.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
 
 /// Wallet overview screen showing balance and recent transactions
 class WalletScreen extends ConsumerWidget {
@@ -17,17 +18,17 @@ class WalletScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final walletState = ref.watch(walletProvider);
 
+    ref.listen(walletProvider, (_, next) {
+      next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
+    });
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('My Wallet'),
-        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.history),
-            onPressed: () {
-              context.push(Routes.walletTransactions);
-            },
+            icon: const Icon(Icons.history_rounded),
+            onPressed: () => context.push(Routes.walletTransactions),
             tooltip: 'Transaction History',
           ),
         ],
@@ -45,12 +46,9 @@ class WalletScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          context.push(Routes.walletRecharge);
-        },
-        icon: const Icon(Icons.add),
+        onPressed: () => context.push(Routes.walletRecharge),
+        icon: const Icon(Icons.add_rounded),
         label: const Text('Top Up'),
-        backgroundColor: AppColors.primary,
       ),
     );
   }

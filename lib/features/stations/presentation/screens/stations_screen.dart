@@ -39,7 +39,6 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
     }).toList();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Stations'),
         elevation: 0,
@@ -63,19 +62,9 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
             TextField(
               controller: _searchController,
               onChanged: (value) => setState(() => _query = value.trim()),
-              decoration: InputDecoration(
-                hintText: 'Search stations',
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: AppColors.border),
-                ),
+              decoration: const InputDecoration(
+                hintText: 'Search stations…',
+                prefixIcon: Icon(Icons.search_rounded),
               ),
             ),
             const SizedBox(height: 16),
@@ -154,48 +143,51 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                 ];
                 final subtitle = subtitleParts.join(', ');
 
+                final cs = Theme.of(context).colorScheme;
                 return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
+                  margin: const EdgeInsets.only(bottom: 10),
                   decoration: BoxDecoration(
-                    gradient: AppColors.cardGradient,
+                    color: cs.surface,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: selected ? AppColors.primary : AppColors.border,
-                      width: selected ? 1.5 : 1,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
+                    border: Border(
+                      left: BorderSide(
+                        color: selected ? cs.primary : Colors.transparent,
+                        width: 3,
                       ),
-                    ],
+                      top: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
+                      right: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
+                      bottom: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
+                    ),
                   ),
                   child: ListTile(
-                    leading: const Icon(Icons.local_gas_station),
+                    leading: Icon(
+                      Icons.local_gas_station_rounded,
+                      color: selected ? cs.primary : cs.onSurface.withValues(alpha: 0.4),
+                    ),
                     title: Text(
                       station.name,
-                      style: AppTextStyles.titleSmall.copyWith(
-                        fontWeight:
-                            selected ? FontWeight.w700 : FontWeight.w600,
-                      ),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight:
+                                selected ? FontWeight.w700 : FontWeight.w600,
+                            color: cs.onSurface,
+                          ),
                     ),
                     subtitle: subtitle.isEmpty
                         ? null
                         : Text(
                             subtitle,
-                            style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: cs.onSurface.withValues(alpha: 0.5),
+                                ),
                           ),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (selected)
-                          const Icon(Icons.check_circle, color: AppColors.primary),
+                          Icon(Icons.check_circle_rounded, color: cs.primary),
                         IconButton(
                           icon: const Icon(Icons.info_outline),
-                          color: AppColors.textSecondary,
+                          color: cs.onSurface.withValues(alpha: 0.4),
                           onPressed: () {
                             ref
                                 .read(stationSelectionProvider.notifier)
@@ -227,6 +219,11 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
               }),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.go(Routes.map),
+        icon: const Icon(Icons.map_rounded),
+        label: const Text('Open Map'),
       ),
     );
   }

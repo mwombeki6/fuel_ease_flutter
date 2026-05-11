@@ -166,7 +166,6 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
     final isCancelled = _latestRequest?.isCancelled ?? false;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Fuel Token'),
         elevation: 0,
@@ -303,7 +302,7 @@ class _PinDisplay extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
           decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(

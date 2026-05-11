@@ -49,13 +49,7 @@ class CardDetailsScreen extends ConsumerWidget {
             height: 220,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              gradient: card.isActive
-                  ? AppColors.primaryGradient
-                  : LinearGradient(
-                      colors: [Colors.grey.shade600, Colors.grey.shade700],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+              color: card.isActive ? AppColors.primary : Colors.grey.shade700,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(

@@ -56,8 +56,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
 
-      // While loading, park on splash
-      if (isLoading && state.matchedLocation != Routes.splash) {
+      // Only redirect to splash during initial app load — auth screens (login/register)
+      // manage their own loading spinners and must not be displaced mid-submission.
+      if (isLoading && !isGoingToAuth && state.matchedLocation != Routes.splash) {
         return Routes.splash;
       }
 
@@ -109,22 +110,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
-            path: Routes.wallet,
-            builder: (context, state) => const WalletScreen(),
-          ),
-          GoRoute(
-            path: Routes.fuel,
-            builder: (context, state) => const CreateDispenseScreen(),
+            path: Routes.map,
+            builder: (context, state) => const StationMapScreen(),
           ),
           GoRoute(
             path: Routes.cards,
             builder: (context, state) => const CardsScreen(),
           ),
           GoRoute(
+            path: Routes.wallet,
+            builder: (context, state) => const WalletScreen(),
+          ),
+          GoRoute(
             path: Routes.profile,
             builder: (context, state) => const ProfileScreen(),
           ),
         ],
+      ),
+
+      // Fuel (direct access, outside shell)
+      GoRoute(
+        path: Routes.fuel,
+        builder: (context, state) => const CreateDispenseScreen(),
       ),
 
       // Wallet sub-routes (outside shell to avoid bottom nav)
@@ -160,7 +167,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Dispense routes (outside shell to avoid bottom nav)
       GoRoute(
         path: Routes.createDispensingRequest,
-        builder: (context, state) => const CreateDispenseScreen(),
+        builder: (context, state) => CreateDispenseScreen(
+          preselectedStationId: state.extra as String?,
+        ),
       ),
       GoRoute(
         path: Routes.dispensingRequests,

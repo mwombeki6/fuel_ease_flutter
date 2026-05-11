@@ -2,10 +2,12 @@
 class ApiConstants {
   ApiConstants._();
 
-  /// Base URL for the FuelEase API
-  // Local network IP — works for both emulator and physical device on same Wi-Fi.
-  // Change to production URL before release.
-  static const String baseUrl = 'http://192.168.100.97:8080/api/v1';
+  /// Base URL for the FuelEase API.
+  /// Override at build time: flutter build apk --dart-define=API_BASE_URL=https://your.api.com/api/v1
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://192.168.100.96:8080/api/v1',
+  );
 
   /// WebSocket base URL for real-time events
   static String get webSocketUrl {

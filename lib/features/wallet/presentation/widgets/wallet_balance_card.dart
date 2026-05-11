@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/features/wallet/data/models/wallet.dart';
-import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
-/// Wallet balance display card
 class WalletBalanceCard extends StatelessWidget {
   const WalletBalanceCard({
     required this.wallet,
@@ -17,96 +15,87 @@ class WalletBalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final statusColor = wallet.isActive ? Colors.white : Colors.red.shade200;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        color: cs.primary,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withOpacity(0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Wallet Balance',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
-                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: wallet.isActive
-                      ? Colors.white.withOpacity(0.2)
-                      : Colors.red.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(12),
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : Colors.red.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   wallet.status.toUpperCase(),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Available Balance
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${NumberFormat('#,##0').format(wallet.balanceTzs)} TZS',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Available Balance',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                ),
-              ),
-            ],
+          const SizedBox(height: 12),
+          Text(
+            '${NumberFormat('#,##0').format(wallet.balanceTzs)} TZS',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 32,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.5,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Available Balance',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.65),
+              fontSize: 12,
+            ),
           ),
           if (onRecharge != null) ...[
-            const SizedBox(height: 24),
-            // Recharge button
+            const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: onRecharge,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white, width: 1.5),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.5), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
-                icon: const Icon(Icons.add_circle_outline, size: 20),
-                label: const Text('Top Up Wallet'),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: const Text(
+                  'Top Up Wallet',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ],

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
-
 /// App typography styles
 class AppTextStyles {
   AppTextStyles._();
@@ -19,7 +17,7 @@ class AppTextStyles {
       fontWeight: weight,
       height: height,
       letterSpacing: letterSpacing,
-      color: color ?? AppColors.textPrimary,
+      color: color,
     );
   }
 
@@ -103,7 +101,6 @@ class AppTextStyles {
         weight: FontWeight.w400,
         height: 1.33,
         letterSpacing: 0.3,
-        color: AppColors.textSecondary,
       );
 
   // Label styles
@@ -134,7 +131,6 @@ class AppTextStyles {
         weight: FontWeight.w600,
         height: 1.25,
         letterSpacing: 0.4,
-        color: Colors.white,
       );
 
   static TextStyle get buttonMedium => _style(
@@ -142,7 +138,6 @@ class AppTextStyles {
         weight: FontWeight.w600,
         height: 1.43,
         letterSpacing: 0.3,
-        color: Colors.white,
       );
 
   static TextStyle get caption => _style(
@@ -150,7 +145,6 @@ class AppTextStyles {
         weight: FontWeight.w400,
         height: 1.33,
         letterSpacing: 0.3,
-        color: AppColors.textSecondary,
       );
 
   static TextStyle get overline => _style(
@@ -158,6 +152,5 @@ class AppTextStyles {
         weight: FontWeight.w600,
         height: 1.6,
         letterSpacing: 1.2,
-        color: AppColors.textSecondary,
       );
 }

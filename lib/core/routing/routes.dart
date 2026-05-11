@@ -11,13 +11,15 @@ class Routes {
 
   // Main app routes (bottom navigation)
   static const String home = '/home';
-  static const String fuel = '/fuel';
+  static const String map = '/map';
   static const String cards = '/cards';
-  static const String analytics = '/analytics';
+  static const String wallet = '/wallet';
   static const String profile = '/profile';
 
-  // Wallet routes
-  static const String wallet = '/wallet';
+  // Legacy / kept for sub-route access
+  static const String fuel = '/fuel';
+
+  // Wallet sub-routes
   static const String walletRecharge = '/wallet/recharge';
   static const String walletTransactions = '/wallet/transactions';
 

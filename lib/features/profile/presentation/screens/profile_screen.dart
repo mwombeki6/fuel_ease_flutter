@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
+import 'package:fuel_ease_flutter/main.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -14,59 +16,49 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
+    final cs = Theme.of(context).colorScheme;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: authState.maybeWhen(
         authenticated: (user) => CustomScrollView(
           slivers: [
             SliverAppBar(
-              expandedHeight: 210,
-              floating: false,
               pinned: true,
-              backgroundColor: AppColors.primary,
+              expandedHeight: 180,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+                  color: cs.surface,
                   child: SafeArea(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 40),
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 3),
-                          ),
-                          child: CircleAvatar(
-                            radius: 42,
-                            backgroundColor: Colors.white,
-                            child: Text(
-                              user.firstName[0].toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
+                        const SizedBox(height: 20),
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: cs.primary,
+                          child: Text(
+                            user.firstName[0].toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Text(
                           user.fullName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSurface,
+                              ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           user.email,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
-                            fontSize: 13,
-                          ),
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: cs.onSurface.withValues(alpha: 0.5),
+                              ),
                         ),
                       ],
                     ),
@@ -110,12 +102,7 @@ class ProfileScreen extends ConsumerWidget {
                   subtitle: 'English',
                   onTap: () => _showLanguageSheet(context),
                 ),
-                _Tile(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'Theme',
-                  subtitle: 'Light mode',
-                  onTap: () => _showThemeSheet(context),
-                ),
+                _ThemeTile(onTap: () => _showThemeSheet(context, ref)),
               ],
             ),
 
@@ -148,14 +135,20 @@ class ProfileScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-                child: OutlinedButton.icon(
+                child: TextButton.icon(
                   onPressed: () => _handleLogout(context, ref),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Log Out'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: BorderSide(color: AppColors.error),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  icon: const Icon(Icons.logout_rounded,
+                      size: 18, color: AppColors.error),
+                  label: const Text(
+                    'Log Out',
+                    style: TextStyle(
+                      color: AppColors.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    minimumSize: const Size.fromHeight(48),
                   ),
                 ),
               ),
@@ -195,20 +188,26 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   void _showAboutDialog(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     showAboutDialog(
       context: context,
       applicationName: 'FuelEase',
       applicationVersion: '1.0.0',
       applicationIcon: Container(
-        padding: const EdgeInsets.all(8),
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
-          color: AppColors.primary.withOpacity(0.1),
+          color: cs.primary,
           borderRadius: BorderRadius.circular(12),
         ),
-        child: const Icon(
-          Icons.local_gas_station,
-          color: AppColors.primary,
-          size: 32,
+        alignment: Alignment.center,
+        child: const Text(
+          'F',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
       children: [
@@ -218,6 +217,30 @@ class ProfileScreen extends ConsumerWidget {
           'fuel usage.',
         ),
       ],
+    );
+  }
+}
+
+// ── Theme tile with live subtitle ─────────────────────────────────────────
+
+class _ThemeTile extends ConsumerWidget {
+  const _ThemeTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mode = ref.watch(themeModeProvider);
+    final subtitle = switch (mode) {
+      ThemeMode.light => 'Light mode',
+      ThemeMode.dark => 'Dark mode',
+      ThemeMode.system => 'System default',
+    };
+    return _Tile(
+      icon: Icons.dark_mode_outlined,
+      title: 'Theme',
+      subtitle: subtitle,
+      onTap: onTap,
     );
   }
 }
@@ -246,14 +269,16 @@ void _showLanguageSheet(BuildContext context) {
   );
 }
 
-void _showThemeSheet(BuildContext context) {
+void _showThemeSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
-    backgroundColor: AppColors.surface,
-    builder: (ctx) => const _ThemeSheet(),
+    builder: (ctx) => ProviderScope(
+      parent: ProviderScope.containerOf(context),
+      child: const _ThemeSheet(),
+    ),
   );
 }
 
@@ -416,18 +441,18 @@ class _LanguageSheetState extends State<_LanguageSheet> {
   }
 }
 
-class _ThemeSheet extends StatefulWidget {
+class _ThemeSheet extends ConsumerWidget {
   const _ThemeSheet();
 
-  @override
-  State<_ThemeSheet> createState() => _ThemeSheetState();
-}
+  static const _options = [
+    ('System default', ThemeMode.system),
+    ('Light', ThemeMode.light),
+    ('Dark', ThemeMode.dark),
+  ];
 
-class _ThemeSheetState extends State<_ThemeSheet> {
-  String _selected = 'Light';
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final current = ref.watch(themeModeProvider);
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -436,32 +461,32 @@ class _ThemeSheetState extends State<_ThemeSheet> {
         children: [
           _SheetHandle(),
           Text('Theme', style: AppTextStyles.titleMedium),
-          const SizedBox(height: 16),
-          ...['Light', 'Dark', 'System default'].map(
-            (theme) => RadioListTile<String>(
-              value: theme,
-              groupValue: _selected,
-              onChanged: (v) => setState(() => _selected = v!),
-              title: Text(theme, style: AppTextStyles.bodyMedium),
-              activeColor: AppColors.primary,
-              contentPadding: EdgeInsets.zero,
+          const SizedBox(height: 6),
+          Text(
+            'Choose your preferred appearance',
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textSecondary,
             ),
           ),
-          const SizedBox(height: 8),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Apply',
-                  style: TextStyle(fontWeight: FontWeight.w600)),
+          const SizedBox(height: 16),
+          ..._options.map(
+            ((String label, ThemeMode mode) opt) => RadioListTile<ThemeMode>(
+              value: opt.$2,
+              groupValue: current,
+              onChanged: (v) async {
+                if (v == null) return;
+                ref.read(themeModeProvider.notifier).state = v;
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.setString('fe_theme', switch (v) {
+                  ThemeMode.light => 'light',
+                  ThemeMode.dark => 'dark',
+                  ThemeMode.system => 'system',
+                });
+                if (context.mounted) Navigator.of(context).pop();
+              },
+              title: Text(opt.$1, style: AppTextStyles.bodyMedium),
+              activeColor: AppColors.primary,
+              contentPadding: EdgeInsets.zero,
             ),
           ),
           const SizedBox(height: 8),
@@ -496,7 +521,7 @@ class _HelpSheet extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primarySoft,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(Icons.help_outline,
@@ -528,33 +553,38 @@ class _HelpSheet extends StatelessWidget {
               a: 'Contact your organisation\'s administrator or reach FuelEase support at support@fuelease.co.tz.',
             ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: AppColors.primaryGradient,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Still need help?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
+            Builder(
+              builder: (context) {
+                final cs = Theme.of(context).colorScheme;
+                return Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: cs.primary,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Email us at support@fuelease.co.tz\nor call +255 800 FUEL (3835)',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 13,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Still need help?',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Email us at support@fuelease.co.tz\nor call +255 800 FUEL (3835)',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
             const SizedBox(height: 24),
           ],
@@ -656,6 +686,7 @@ class _Section extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return SliverToBoxAdapter(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -663,12 +694,12 @@ class _Section extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.only(bottom: 8, left: 2),
               child: Text(
-                title,
-                style: AppTextStyles.labelMedium.copyWith(
-                  color: AppColors.textSecondary,
-                  letterSpacing: 0.5,
+                title.toUpperCase(),
+                style: AppTextStyles.labelSmall.copyWith(
+                  color: cs.onSurface.withValues(alpha: 0.4),
+                  letterSpacing: 0.8,
                 ),
               ),
             ),
@@ -696,44 +727,52 @@ class _Tile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: cs.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.4)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: cs.primaryContainer,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
+              child: Icon(icon, color: cs.primary, size: 18),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w600)),
+                  Text(
+                    title,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: cs.onSurface,
+                        ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                        ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+            Icon(Icons.chevron_right_rounded,
+                color: cs.onSurface.withValues(alpha: 0.3), size: 18),
           ],
         ),
       ),

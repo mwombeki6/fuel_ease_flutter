@@ -7,19 +7,13 @@ import 'package:intl/intl.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
-import 'package:fuel_ease_flutter/features/cards/presentation/providers/cards_provider.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_list_item.dart';
-import 'package:fuel_ease_flutter/features/dashboard/presentation/widgets/quick_stat_card.dart';
-import 'package:fuel_ease_flutter/features/dashboard/presentation/widgets/quick_action_button.dart';
-import 'package:fuel_ease_flutter/core/realtime/realtime_debug_provider.dart';
-import 'package:fuel_ease_flutter/core/realtime/realtime_status_provider.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
-import 'package:fuel_ease_flutter/features/analytics/presentation/providers/analytics_provider.dart';
-import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
+import 'package:fuel_ease_flutter/core/realtime/realtime_status_provider.dart';
+import 'package:fuel_ease_flutter/features/cards/presentation/providers/cards_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
-import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
+import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
 
-/// Home dashboard screen
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -31,16 +25,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _hasSeenConnected = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    ref.listen(walletProvider, (_, next) {
+      next.whenOrNull(
+        error: (e, _) => AppSnackbar.fromError(context, e),
+      );
+    });
+
     ref.listen<RealtimeStatus>(realtimeStatusProvider, (previous, next) {
       if (!mounted) return;
-      if (!_hasSeenConnected &&
-          next.state == RealtimeConnectionState.connected) {
+      if (!_hasSeenConnected && next.state == RealtimeConnectionState.connected) {
         _hasSeenConnected = true;
         return;
       }
@@ -50,568 +44,417 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           next.state == RealtimeConnectionState.connected) {
         HapticFeedback.mediumImpact();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Realtime reconnected'),
-            behavior: SnackBarBehavior.floating,
-          ),
+          const SnackBar(content: Text('Reconnected to live feed')),
         );
       }
     });
+
     final authState = ref.watch(authProvider);
     final walletState = ref.watch(walletProvider);
     final availableBalance = ref.watch(availableBalanceProvider);
-    final activeCardsCount = ref.watch(activeCardsCountProvider);
-    final stationState = ref.watch(stationSelectionProvider);
-    final realtimeState = ref.watch(realtimeDebugProvider);
     final realtimeStatus = ref.watch(realtimeStatusProvider);
-    final realtimeClient = ref.read(realtimeClientProvider);
-    final analyticsAsync = ref.watch(customerAnalyticsProvider);
+    final cs = Theme.of(context).colorScheme;
+
+    final firstName = authState.maybeWhen(
+      authenticated: (user) => user.firstName,
+      orElse: () => '',
+    );
 
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: RefreshIndicator(
         onRefresh: () async {
           await Future.wait([
             ref.read(walletProvider.notifier).refresh(),
             ref.read(cardsProvider.notifier).refresh(),
-            ref.read(stationSelectionProvider.notifier).refresh(),
           ]);
         },
         child: CustomScrollView(
           slivers: [
-            // App bar with greeting
+            // Header
             SliverAppBar(
-              expandedHeight: 120,
-              floating: false,
               pinned: true,
-              backgroundColor: AppColors.primary,
+              floating: false,
+              expandedHeight: 0,
+              backgroundColor: cs.surface,
+              surfaceTintColor: Colors.transparent,
+              titleSpacing: 20,
+              title: Row(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: cs.primary,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      'F',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'FuelEase',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: cs.onSurface,
+                        ),
+                  ),
+                ],
+              ),
               actions: [
+                // Connection status dot
                 Padding(
-                  padding: const EdgeInsets.only(right: 12, top: 8),
-                  child: _RealtimeStatusChip(status: realtimeStatus),
+                  padding: const EdgeInsets.only(right: 4),
+                  child: _StatusDot(status: realtimeStatus),
+                ),
+                // Notification icon placeholder
+                IconButton(
+                  icon: Icon(Icons.notifications_outlined, color: cs.onSurface),
+                  onPressed: () {},
+                ),
+                // Avatar
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: _Avatar(firstName: firstName),
                 ),
               ],
-              flexibleSpace: FlexibleSpaceBar(
-                title: authState.maybeWhen(
-                  authenticated: (user) => Text(
-                    'Hello, ${user.firstName}!',
-                    style: AppTextStyles.titleLarge.copyWith(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  orElse: () => const Text('Dashboard'),
-                ),
-                titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-                background: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                  ),
-                ),
-              ),
             ),
 
-            // Station selector
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.cardGradient,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.local_gas_station, color: AppColors.primary),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Selected station',
-                              style: AppTextStyles.labelSmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            if (stationState.isLoading)
-                              Text(
-                                'Loading stations…',
-                                style: AppTextStyles.titleSmall,
-                              )
-                            else if (stationState.error != null)
-                              Text(
-                                'Unable to load stations',
-                                style: AppTextStyles.titleSmall.copyWith(
-                                  color: AppColors.error,
-                                ),
-                              )
-                            else if (stationState.stations.isEmpty)
-                              Text(
-                                'No stations available',
-                                style: AppTextStyles.titleSmall,
-                              )
-                            else
-                              DropdownButtonHideUnderline(
-                                child: DropdownButton<String>(
-                                  value: stationState.stationId ??
-                                      stationState.stations.first.id,
-                                  isExpanded: true,
-                                  icon: const Icon(Icons.expand_more),
-                                  items: stationState.stations
-                                      .map((station) => DropdownMenuItem(
-                                            value: station.id,
-                                            child: Text(
-                                              station.name,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: AppTextStyles.titleSmall,
-                                            ),
-                                          ))
-                                      .toList(),
-                                  onChanged: (value) {
-                                    if (value == null) return;
-                                    final selected = stationState.stations.firstWhere(
-                                      (station) => station.id == value,
-                                      orElse: () => stationState.stations.first,
-                                    );
-                                    ref
-                                        .read(stationSelectionProvider.notifier)
-                                        .setStation(selected);
-                                  },
-                                ),
-                              ),
-                            if (stationState.fromCache)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.cloud_off,
-                                        size: 14, color: AppColors.textSecondary),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Showing cached data',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (stationState.lastUpdated != null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 6),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.schedule,
-                                      size: 14,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Last sync ${DateFormat('HH:mm').format(stationState.lastUpdated!)}',
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textSecondary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Realtime status
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                child: _RealtimeStatusCard(
-                  status: realtimeStatus,
-                  onReconnect: () => realtimeClient.connect(),
-                ),
-              ),
-            ),
-
-            // Quick stats
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Greeting
                     Text(
-                      'Overview',
-                      style: AppTextStyles.titleMedium,
+                      _greeting(firstName),
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: cs.onSurface,
+                          ),
                     ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: QuickStatCard(
-                            title: 'Wallet Balance',
-                            value: availableBalance != null
-                                ? '${NumberFormat('#,##0').format(availableBalance.toInt())} TZS'
-                                : '0 TZS',
-                            icon: Icons.account_balance_wallet,
-                            color: AppColors.primary,
-                            onTap: () => context.go(Routes.wallet),
-                            subtitle: availableBalance != null &&
-                                    availableBalance > 0
-                                ? 'Available'
-                                : null,
+                    const SizedBox(height: 4),
+                    Text(
+                      'What do you need today?',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: cs.onSurface.withValues(alpha: 0.5),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: QuickStatCard(
-                            title: 'Active Cards',
-                            value: activeCardsCount.toString(),
-                            icon: Icons.credit_card,
-                            color: AppColors.accent,
-                            onTap: () => context.go(Routes.cards),
-                          ),
-                        ),
-                      ],
                     ),
-                    const SizedBox(height: 12),
-                    analyticsAsync.when(
-                      loading: () => const SizedBox.shrink(),
-                      error: (err, st) => const SizedBox.shrink(),
-                      data: (analytics) => Row(
-                        children: [
-                          Expanded(
-                            child: QuickStatCard(
-                              title: 'Dispenses',
-                              value: analytics.transactionCount.toString(),
-                              icon: Icons.local_gas_station,
-                              color: AppColors.info,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: QuickStatCard(
-                              title: 'Total Liters',
-                              value: NumberFormat('#,##0.0')
-                                  .format(analytics.totalLiters),
-                              icon: Icons.water_drop_outlined,
-                              color: AppColors.success,
-                              subtitle: 'Lifetime',
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: QuickStatCard(
-                              title: 'Total Spent',
-                              value: '${NumberFormat('#,##0').format(analytics.totalSpentTzs.toInt())} TZS',
-                              icon: Icons.payments_outlined,
-                              color: AppColors.warning,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
-            // Quick actions
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Quick Actions',
-                      style: AppTextStyles.titleMedium,
+                    const SizedBox(height: 24),
+
+                    // Wallet balance card
+                    _WalletBalanceCard(
+                      balance: availableBalance,
+                      walletState: walletState,
+                      onTopUp: () => context.push(Routes.walletRecharge),
+                      onHistory: () => context.push(Routes.walletTransactions),
                     ),
+
+                    const SizedBox(height: 20),
+
+                    // Hero CTA — Fuel Up
+                    _FuelUpButton(
+                      onTap: () => context.go(Routes.map),
+                    ),
+
                     const SizedBox(height: 16),
+
+                    // Secondary actions
                     Row(
                       children: [
                         Expanded(
-                          child: QuickActionButton(
-                            label: 'Top Up Wallet',
-                            icon: Icons.add_circle_outline,
-                            color: AppColors.primary,
-                            onTap: () => context.push(Routes.walletRecharge),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: QuickActionButton(
-                            label: 'Create Card',
-                            icon: Icons.card_giftcard,
-                            color: AppColors.accent,
-                            onTap: () => context.push(Routes.createCard),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: QuickActionButton(
+                          child: _SecondaryActionTile(
+                            icon: Icons.map_rounded,
                             label: 'Find Station',
-                            icon: Icons.local_gas_station,
-                            color: AppColors.warning,
-                            onTap: () {
-                              context.push(Routes.stations);
-                            },
+                            onTap: () => context.go(Routes.map),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: QuickActionButton(
-                            label: 'History',
-                            icon: Icons.history,
-                            color: AppColors.info,
-                            onTap: () =>
-                                context.push(Routes.walletTransactions),
+                          child: _SecondaryActionTile(
+                            icon: Icons.receipt_long_rounded,
+                            label: 'Dispense History',
+                            onTap: () => context.push(Routes.dispensingRequests),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: QuickActionButton(
-                        label: 'Dispense Fuel',
-                        icon: Icons.local_gas_station,
-                        color: AppColors.success,
-                        onTap: () =>
-                            context.push(Routes.createDispensingRequest),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
-            // Realtime debug ticker (QA)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: AppColors.cardGradient,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.border),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 12,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Realtime Feed', style: AppTextStyles.titleMedium),
-                          TextButton(
-                            onPressed: () => ref
-                                .read(realtimeDebugProvider.notifier)
-                                .clear(),
-                            child: const Text('Clear'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Live telemetry events (QA visibility)',
-                        style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      if (realtimeState.events.isEmpty)
+                    const SizedBox(height: 28),
+
+                    // Recent transactions header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
                         Text(
-                          'No realtime events yet.',
-                          style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
-                          ),
-                        )
-                      else
-                        Column(
-                          children: realtimeState.events.reversed.take(4).map((event) {
-                            final type = (event['type'] ?? 'event').toString();
-                            final stationId = event['stationId']?.toString();
-                            final pumpId = event['pumpId']?.toString();
-                            final timestamp = event['timestamp']?.toString();
-                            final meta = [
-                              if (pumpId != null) 'pump $pumpId',
-                              if (stationId != null) 'station $stationId',
-                            ].join(' · ');
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 10),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.border),
+                          'Recent Transactions',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                color: cs.onSurface,
                               ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          type,
-                                          style: AppTextStyles.labelLarge,
-                                        ),
-                                        if (meta.isNotEmpty)
-                                          Text(
-                                            meta,
-                                            style: AppTextStyles.bodySmall.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                  if (timestamp != null)
-                                    Text(
-                                      timestamp.split('T').last.split('.').first,
-                                      style: AppTextStyles.bodySmall.copyWith(
-                                        color: AppColors.textTertiary,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
                         ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Recent transactions
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Recent Activity', style: AppTextStyles.titleMedium),
-                    TextButton(
-                      onPressed: () => context.push(Routes.walletTransactions),
-                      child: const Text('View All'),
+                        TextButton(
+                          onPressed: () => context.push(Routes.walletTransactions),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: Row(
+                            children: [
+                              Text(
+                                'All',
+                                style: TextStyle(color: cs.primary, fontSize: 13),
+                              ),
+                              Icon(Icons.chevron_right, size: 16, color: cs.primary),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
 
-            // Transactions list
+            // Transactions
             walletState.when(
+              loading: () => const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ),
+              error: (_, st) => SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: Text(
+                    'Could not load transactions',
+                    style: TextStyle(color: AppColors.error, fontSize: 13),
+                  ),
+                ),
+              ),
               data: (summary) {
-                final transactions = summary.recentTransactions ?? [];
-                if (transactions.isEmpty) {
-                  return SliverFillRemaining(
-                    hasScrollBody: false,
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 64,
-                              color: AppColors.textSecondary.withOpacity(0.5),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No recent activity',
-                              style: AppTextStyles.titleSmall.copyWith(
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Your transactions will appear here',
-                              style: AppTextStyles.bodySmall.copyWith(
-                                color: AppColors.textTertiary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                final txns = (summary.recentTransactions ?? []).take(3).toList();
+                if (txns.isEmpty) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                      child: _EmptyTransactions(),
                     ),
                   );
                 }
-
                 return SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final transaction = transactions[index];
-                      return TransactionListItem(
-                        transaction: transaction,
-                        onTap: () {
-                          // Could navigate to transaction details
-                        },
-                      );
-                    },
-                    childCount: transactions.length > 5 ? 5 : transactions.length,
+                    (context, i) => Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: TransactionListItem(
+                        transaction: txns[i],
+                        onTap: () {},
+                      ),
+                    ),
+                    childCount: txns.length,
                   ),
                 );
               },
-              loading: () => const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-              ),
-              error: (error, stack) => SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Text(
-                    'Failed to load recent activity',
-                    style: TextStyle(
-                      color: AppColors.error,
-                      fontSize: 14,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
             ),
 
-            // Bottom padding
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 80),
+            const SliverToBoxAdapter(child: SizedBox(height: 100)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _greeting(String firstName) {
+    final hour = DateTime.now().hour;
+    final salutation = hour < 12
+        ? 'Good morning'
+        : hour < 17
+            ? 'Good afternoon'
+            : 'Good evening';
+    return firstName.isNotEmpty ? '$salutation, $firstName' : salutation;
+  }
+}
+
+class _Avatar extends StatelessWidget {
+  const _Avatar({required this.firstName});
+
+  final String firstName;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final initial = firstName.isNotEmpty ? firstName[0].toUpperCase() : 'U';
+    return GestureDetector(
+      onTap: () => context.go(Routes.profile),
+      child: Container(
+        width: 34,
+        height: 34,
+        decoration: BoxDecoration(
+          color: cs.primaryContainer,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          initial,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: cs.onPrimaryContainer,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StatusDot extends StatelessWidget {
+  const _StatusDot({required this.status});
+
+  final RealtimeStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = switch (status.state) {
+      RealtimeConnectionState.connected => AppColors.success,
+      RealtimeConnectionState.connecting => AppColors.warning,
+      RealtimeConnectionState.reconnecting => AppColors.warning,
+      RealtimeConnectionState.disconnected => AppColors.error,
+    };
+    return Tooltip(
+      message: status.state.name,
+      child: Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+      ),
+    );
+  }
+}
+
+class _WalletBalanceCard extends StatelessWidget {
+  const _WalletBalanceCard({
+    required this.balance,
+    required this.walletState,
+    required this.onTopUp,
+    required this.onHistory,
+  });
+
+  final double? balance;
+  final AsyncValue<dynamic> walletState;
+  final VoidCallback onTopUp;
+  final VoidCallback onHistory;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final balanceText = balance != null
+        ? 'TZS ${NumberFormat('#,##0').format(balance!.toInt())}'
+        : '—';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cs.primary,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Wallet Balance',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: 0.75),
+                  letterSpacing: 0.4,
+                ),
+          ),
+          const SizedBox(height: 8),
+          walletState.isLoading
+              ? const SizedBox(
+                  height: 32,
+                  width: 32,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : Text(
+                  balanceText,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _CardAction(
+                  label: 'Top Up',
+                  icon: Icons.add_rounded,
+                  onTap: onTopUp,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _CardAction(
+                  label: 'History',
+                  icon: Icons.history_rounded,
+                  onTap: onHistory,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CardAction extends StatelessWidget {
+  const _CardAction({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
             ),
           ],
         ),
@@ -620,190 +463,150 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 }
 
-class _RealtimeStatusCard extends StatelessWidget {
-  const _RealtimeStatusCard({
-    required this.status,
-    required this.onReconnect,
-  });
+class _FuelUpButton extends StatelessWidget {
+  const _FuelUpButton({required this.onTap});
 
-  final RealtimeStatus status;
-  final VoidCallback onReconnect;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor(status.state);
-    final label = _statusLabel(status.state);
-    final detail = _lastEventLabel(status.lastEventAt, status.state);
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: AppColors.cardGradient,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 60,
+        decoration: BoxDecoration(
+          color: cs.primary,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.18),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.local_gas_station_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Realtime',
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color: AppColors.textSecondary,
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Fuel Up',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  label,
-                  style: AppTextStyles.titleSmall.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: color,
+                  Text(
+                    'Find a station & request fuel',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  detail,
-                  style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          if (status.state == RealtimeConnectionState.disconnected)
-            TextButton(
-              onPressed: onReconnect,
-              child: const Text('Reconnect'),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white.withValues(alpha: 0.7),
+              size: 14,
             ),
-        ],
+          ],
+        ),
       ),
     );
-  }
-
-  Color _statusColor(RealtimeConnectionState state) {
-    switch (state) {
-      case RealtimeConnectionState.connected:
-        return AppColors.success;
-      case RealtimeConnectionState.connecting:
-        return AppColors.warning;
-      case RealtimeConnectionState.reconnecting:
-        return AppColors.warning;
-      case RealtimeConnectionState.disconnected:
-        return AppColors.error;
-    }
-  }
-
-  String _statusLabel(RealtimeConnectionState state) {
-    switch (state) {
-      case RealtimeConnectionState.connected:
-        return 'Connected';
-      case RealtimeConnectionState.connecting:
-        return 'Connecting…';
-      case RealtimeConnectionState.reconnecting:
-        return 'Reconnecting…';
-      case RealtimeConnectionState.disconnected:
-        return 'Disconnected';
-    }
-  }
-
-  String _lastEventLabel(
-    DateTime? lastEventAt,
-    RealtimeConnectionState state,
-  ) {
-    if (lastEventAt == null) {
-      return state == RealtimeConnectionState.connected
-          ? 'Waiting for events…'
-          : 'No recent events';
-    }
-    final diff = DateTime.now().difference(lastEventAt);
-    if (diff.inSeconds < 60) {
-      return 'Last event ${diff.inSeconds}s ago';
-    }
-    if (diff.inMinutes < 60) {
-      return 'Last event ${diff.inMinutes}m ago';
-    }
-    return 'Last event at ${DateFormat('HH:mm').format(lastEventAt)}';
   }
 }
 
-class _RealtimeStatusChip extends StatelessWidget {
-  const _RealtimeStatusChip({required this.status});
+class _SecondaryActionTile extends StatelessWidget {
+  const _SecondaryActionTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
 
-  final RealtimeStatus status;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = _chipColor(status.state);
-    final label = _chipLabel(status.state);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.18),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.5)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: cs.primaryContainer,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 18, color: cs.primary),
             ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: cs.onSurface,
+                    ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyTransactions extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.receipt_long_outlined,
+            size: 40,
+            color: cs.onSurface.withValues(alpha: 0.3),
           ),
-          const SizedBox(width: 6),
+          const SizedBox(height: 8),
           Text(
-            label,
-            style: AppTextStyles.labelSmall.copyWith(color: Colors.white),
+            'No transactions yet',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: cs.onSurface.withValues(alpha: 0.5),
+                ),
           ),
         ],
       ),
     );
-  }
-
-  Color _chipColor(RealtimeConnectionState state) {
-    switch (state) {
-      case RealtimeConnectionState.connected:
-        return AppColors.success;
-      case RealtimeConnectionState.connecting:
-        return AppColors.warning;
-      case RealtimeConnectionState.reconnecting:
-        return AppColors.warning;
-      case RealtimeConnectionState.disconnected:
-        return AppColors.error;
-    }
-  }
-
-  String _chipLabel(RealtimeConnectionState state) {
-    switch (state) {
-      case RealtimeConnectionState.connected:
-        return 'Live';
-      case RealtimeConnectionState.connecting:
-        return 'Sync';
-      case RealtimeConnectionState.reconnecting:
-        return 'Retry';
-      case RealtimeConnectionState.disconnected:
-        return 'Offline';
-    }
   }
 }

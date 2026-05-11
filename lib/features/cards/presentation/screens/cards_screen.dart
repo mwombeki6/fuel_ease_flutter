@@ -8,6 +8,7 @@ import 'package:fuel_ease_flutter/features/cards/presentation/providers/cards_pr
 import 'package:fuel_ease_flutter/features/cards/presentation/widgets/fuel_card_item.dart';
 import 'package:fuel_ease_flutter/features/cards/presentation/widgets/cards_stats_card.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
 
 /// Cards screen showing all fuel cards
 class CardsScreen extends ConsumerStatefulWidget {
@@ -39,11 +40,13 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     final activeCount = ref.watch(activeCardsCountProvider);
     final totalValue = ref.watch(totalCardsValueProvider);
 
+    ref.listen(cardsProvider, (_, next) {
+      next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
+    });
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Fuel Cards'),
-        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.add_circle_outline),

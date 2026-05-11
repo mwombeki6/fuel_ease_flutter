@@ -22,7 +22,7 @@ class CardsStatsCard extends StatelessWidget {
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: AppColors.accentGradient,
+        color: AppColors.accent,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

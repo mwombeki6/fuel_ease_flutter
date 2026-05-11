@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
+import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fuel_ease_flutter/features/stations/data/models/station.dart';
 import 'package:fuel_ease_flutter/features/stations/data/repositories/stations_repository.dart';
 import 'package:fuel_ease_flutter/features/stations/data/repositories/stations_cache.dart';
@@ -50,7 +51,7 @@ class StationSelectionState {
 }
 
 class StationSelectionNotifier extends StateNotifier<StationSelectionState> {
-  StationSelectionNotifier(this._repository, this._storage, this._cache)
+  StationSelectionNotifier(this._repository, this._storage, this._cache, this._userRole)
       : super(const StationSelectionState()) {
     _loadStations(initialLoad: true);
   }
@@ -58,6 +59,7 @@ class StationSelectionNotifier extends StateNotifier<StationSelectionState> {
   final StationsRepository _repository;
   final SecureStorage _storage;
   final StationsCache _cache;
+  final String _userRole;
 
   Future<void> _loadStations({bool initialLoad = false}) async {
     if (initialLoad) {
@@ -97,7 +99,10 @@ class StationSelectionNotifier extends StateNotifier<StationSelectionState> {
     }
 
     try {
-      final stations = await _repository.getStations();
+      final isStationRole = _userRole == 'station_admin' || _userRole == 'station_manager';
+      final stations = isStationRole
+          ? await _repository.getMyStations()
+          : await _repository.getStations();
       await _cache.setStations(stations);
       state = state.copyWith(stations: stations, isLoading: false, error: null);
 
@@ -152,5 +157,9 @@ final stationSelectionProvider =
   final repository = ref.watch(stationsRepositoryProvider);
   final storage = ref.watch(secureStorageProvider);
   final cache = ref.watch(stationsCacheProvider);
-  return StationSelectionNotifier(repository, storage, cache);
+  final userRole = ref.watch(authProvider).maybeWhen(
+    authenticated: (u) => u.role,
+    orElse: () => 'customer',
+  );
+  return StationSelectionNotifier(repository, storage, cache, userRole);
 });

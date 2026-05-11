@@ -15,7 +15,10 @@ import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 class CreateDispenseScreen extends ConsumerStatefulWidget {
-  const CreateDispenseScreen({super.key});
+  const CreateDispenseScreen({super.key, this.preselectedStationId});
+
+  /// When provided (from map screen), the station selector is locked to this ID.
+  final String? preselectedStationId;
 
   @override
   ConsumerState<CreateDispenseScreen> createState() =>
@@ -30,6 +33,16 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
   String? _selectedStationId;
   String _selectedFuelType = 'petrol';
   bool _isLoading = false;
+
+  bool get _stationLocked => widget.preselectedStationId != null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.preselectedStationId != null) {
+      _selectedStationId = widget.preselectedStationId;
+    }
+  }
 
   static const _fuelTypes = ['petrol', 'diesel', 'premium', 'gas'];
 
@@ -133,11 +146,18 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
             // Station selection
             const _SectionLabel('Select Station'),
             const SizedBox(height: 8),
-            _StationPicker(
-              stations: stations,
-              selectedStationId: _selectedStationId,
-              onChanged: (id) => setState(() => _selectedStationId = id),
-            ),
+            if (_stationLocked)
+              _LockedStationRow(
+                stationId: widget.preselectedStationId!,
+                stations: stations,
+                onEdit: () => context.go(Routes.map),
+              )
+            else
+              _StationPicker(
+                stations: stations,
+                selectedStationId: _selectedStationId,
+                onChanged: (id) => setState(() => _selectedStationId = id),
+              ),
             const SizedBox(height: 24),
 
             // Fuel type selection
@@ -230,12 +250,60 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: AppColors.textPrimary,
-        ),
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
       );
+}
+
+class _LockedStationRow extends StatelessWidget {
+  const _LockedStationRow({
+    required this.stationId,
+    required this.stations,
+    required this.onEdit,
+  });
+
+  final String stationId;
+  final List<Station> stations;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final name = stations
+        .where((s) => s.id == stationId)
+        .map((s) => s.name)
+        .firstOrNull;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: cs.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_on_rounded, size: 18, color: cs.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              name ?? stationId,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: cs.onPrimaryContainer,
+                  ),
+            ),
+          ),
+          GestureDetector(
+            onTap: onEdit,
+            child: Icon(Icons.edit_outlined, size: 16, color: cs.primary),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _BalanceBanner extends StatelessWidget {
@@ -244,33 +312,34 @@ class _BalanceBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.08),
+        color: cs.primaryContainer,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: cs.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.account_balance_wallet,
-              color: AppColors.primary, size: 20),
+          Icon(Icons.account_balance_wallet_rounded,
+              color: cs.primary, size: 20),
           const SizedBox(width: 12),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Wallet Balance',
-                style: TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: cs.onPrimaryContainer.withValues(alpha: 0.7),
+                    ),
               ),
               Text(
                 '${NumberFormat('#,###').format(balanceTzs)} TZS',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: cs.primary,
+                    ),
               ),
             ],
           ),

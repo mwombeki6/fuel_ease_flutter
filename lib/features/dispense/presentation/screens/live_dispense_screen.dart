@@ -53,7 +53,6 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
         _showStopDialog(context);
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
         appBar: AppBar(
           title: Text(_appBarTitle(state.phase)),
           automaticallyImplyLeading: false,
