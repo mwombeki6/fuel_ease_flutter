@@ -1,10 +1,14 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fuel_ease_flutter/features/auth/data/models/register_payload.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_state.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -64,7 +68,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final cs = Theme.of(context).colorScheme;
 
     ref.listen<AuthState>(authProvider, (_, next) {
       next.maybeWhen(
@@ -76,105 +79,181 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isLoading = authState.maybeWhen(loading: () => true, orElse: () => false);
 
     return Scaffold(
-      appBar: AppBar(
-        leading: BackButton(
-          color: cs.onSurface,
-          onPressed: () {
-            if (_step == 1) {
-              setState(() {
-                _step = 0;
-                _errorMessage = null;
-              });
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
-        title: const Text('Create Account'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(4),
-          child: _StepIndicator(currentStep: _step, totalSteps: 2),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 220),
-            transitionBuilder: (child, anim) =>
-                FadeTransition(opacity: anim, child: child),
-            child: _step == 0
-                ? _Step1(
-                    key: const ValueKey(0),
-                    formKey: _formKey1,
-                    firstNameController: _firstNameController,
-                    lastNameController: _lastNameController,
-                    isLoading: isLoading,
-                    onNext: _nextStep,
-                  )
-                : _Step2(
-                    key: const ValueKey(1),
-                    formKey: _formKey2,
-                    emailController: _emailController,
-                    phoneController: _phoneController,
-                    passwordController: _passwordController,
-                    confirmController: _confirmPasswordController,
-                    isLoading: isLoading,
-                    obscurePassword: _obscurePassword,
-                    obscureConfirm: _obscureConfirm,
-                    errorMessage: _errorMessage,
-                    onTogglePassword: () =>
-                        setState(() => _obscurePassword = !_obscurePassword),
-                    onToggleConfirm: () =>
-                        setState(() => _obscureConfirm = !_obscureConfirm),
-                    onSubmit: _handleRegister,
-                  ),
+      backgroundColor: AppColors.midnight,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
+          Positioned(
+            top: -80,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 400,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.7,
+                  colors: [AppColors.brandGlow, Colors.transparent],
+                ),
+              ),
+            ),
           ),
-        ),
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Back navigation row
+                  Row(
+                    children: [
+                      _GlassBackButton(
+                        onTap: () {
+                          if (_step == 1) {
+                            setState(() {
+                              _step = 0;
+                              _errorMessage = null;
+                            });
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: _GradientStepIndicator(
+                          currentStep: _step,
+                          totalSteps: 2,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Form glass card
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                      child: Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceDark.withValues(alpha: 0.88),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.07),
+                          ),
+                        ),
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 260),
+                          transitionBuilder: (child, anim) => FadeTransition(
+                            opacity: anim,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0.08, 0),
+                                end: Offset.zero,
+                              ).animate(anim),
+                              child: child,
+                            ),
+                          ),
+                          child: _step == 0
+                              ? _Step1(
+                                  key: const ValueKey(0),
+                                  formKey: _formKey1,
+                                  firstNameController: _firstNameController,
+                                  lastNameController: _lastNameController,
+                                  isLoading: isLoading,
+                                  onNext: _nextStep,
+                                )
+                              : _Step2(
+                                  key: const ValueKey(1),
+                                  formKey: _formKey2,
+                                  emailController: _emailController,
+                                  phoneController: _phoneController,
+                                  passwordController: _passwordController,
+                                  confirmController: _confirmPasswordController,
+                                  isLoading: isLoading,
+                                  obscurePassword: _obscurePassword,
+                                  obscureConfirm: _obscureConfirm,
+                                  errorMessage: _errorMessage,
+                                  onTogglePassword: () =>
+                                      setState(() => _obscurePassword = !_obscurePassword),
+                                  onToggleConfirm: () =>
+                                      setState(() => _obscureConfirm = !_obscureConfirm),
+                                  onSubmit: _handleRegister,
+                                ),
+                        ),
+                      ),
+                    ),
+                  )
+                      .animate()
+                      .slideY(
+                        begin: 0.3,
+                        end: 0,
+                        duration: 500.ms,
+                        delay: 150.ms,
+                        curve: Curves.easeOutCubic,
+                      )
+                      .fadeIn(duration: 400.ms, delay: 150.ms),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _StepIndicator extends StatelessWidget {
-  const _StepIndicator({required this.currentStep, required this.totalSteps});
+// ── Gradient step indicator ────────────────────────────────────────────────
+
+class _GradientStepIndicator extends StatelessWidget {
+  const _GradientStepIndicator({
+    required this.currentStep,
+    required this.totalSteps,
+  });
 
   final int currentStep;
   final int totalSteps;
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Row(
-        children: List.generate(totalSteps, (i) {
-          final active = i == currentStep;
-          final done = i < currentStep;
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.only(right: i < totalSteps - 1 ? 6 : 0),
-              height: 3,
-              decoration: BoxDecoration(
-                color: (active || done) ? cs.primary : cs.outline.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
+    return Row(
+      children: List.generate(totalSteps, (i) {
+        final active = i == currentStep;
+        final done = i < currentStep;
+        return Expanded(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeOutCubic,
+            margin: EdgeInsets.only(right: i < totalSteps - 1 ? 6 : 0),
+            height: 4,
+            decoration: BoxDecoration(
+              gradient: (active || done) ? AppColors.brandGradient : null,
+              color: (active || done)
+                  ? null
+                  : Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(2),
             ),
-          );
-        }),
-      ),
+          ),
+        );
+      }),
     );
   }
 }
 
+// ── Step 1: Name ───────────────────────────────────────────────────────────
+
 class _Step1 extends StatelessWidget {
   const _Step1({
-    super.key,
     required this.formKey,
     required this.firstNameController,
     required this.lastNameController,
     required this.isLoading,
     required this.onNext,
+    super.key,
   });
 
   final GlobalKey<FormState> formKey;
@@ -185,7 +264,6 @@ class _Step1 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Form(
       key: formKey,
       child: Column(
@@ -193,48 +271,43 @@ class _Step1 extends StatelessWidget {
         children: [
           Text(
             'Tell us your name',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
+                  color: Colors.white,
                 ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             'Step 1 of 2',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: cs.onSurface.withValues(alpha: 0.45),
-                ),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.38),
+              fontSize: 13,
+            ),
           ),
-          const SizedBox(height: 32),
-          TextFormField(
+          const SizedBox(height: 28),
+          _DarkTextField(
             controller: firstNameController,
-            textCapitalization: TextCapitalization.words,
+            label: 'First Name',
+            icon: Icons.person_outline_rounded,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
-            decoration: const InputDecoration(
-              labelText: 'First Name',
-              prefixIcon: Icon(Icons.person_outline_rounded),
-            ),
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          _DarkTextField(
             controller: lastNameController,
-            textCapitalization: TextCapitalization.words,
+            label: 'Last Name',
+            icon: Icons.person_outline_rounded,
             textInputAction: TextInputAction.done,
             enabled: !isLoading,
             onFieldSubmitted: (_) => onNext(),
-            decoration: const InputDecoration(
-              labelText: 'Last Name',
-              prefixIcon: Icon(Icons.person_outline_rounded),
-            ),
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
           ),
-          const SizedBox(height: 32),
-          FilledButton(
+          const SizedBox(height: 28),
+          GradientButton(
             onPressed: isLoading ? null : onNext,
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-            child: const Text('Continue'),
+            label: 'Continue',
+            isLoading: isLoading,
           ),
         ],
       ),
@@ -242,9 +315,10 @@ class _Step1 extends StatelessWidget {
   }
 }
 
+// ── Step 2: Account details ────────────────────────────────────────────────
+
 class _Step2 extends StatelessWidget {
   const _Step2({
-    super.key,
     required this.formKey,
     required this.emailController,
     required this.phoneController,
@@ -257,6 +331,7 @@ class _Step2 extends StatelessWidget {
     required this.onTogglePassword,
     required this.onToggleConfirm,
     required this.onSubmit,
+    super.key,
   });
 
   final GlobalKey<FormState> formKey;
@@ -274,7 +349,6 @@ class _Step2 extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     return Form(
       key: formKey,
       child: Column(
@@ -282,57 +356,36 @@ class _Step2 extends StatelessWidget {
         children: [
           Text(
             'Account details',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: cs.onSurface,
+                  color: Colors.white,
                 ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             'Step 2 of 2',
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: cs.onSurface.withValues(alpha: 0.45),
-                ),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.38),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 20),
 
           if (errorMessage != null) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.error_outline_rounded, size: 18, color: AppColors.error),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      errorMessage!,
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppColors.error),
-                    ),
-                  ),
-                ],
-              ),
+            _ErrorBanner(
+              message: errorMessage!,
+              onDismiss: () {},
             ),
-            const SizedBox(height: 16),
           ],
 
-          TextFormField(
+          _DarkTextField(
             controller: emailController,
+            label: 'Email address',
+            hint: 'you@example.com',
+            icon: Icons.mail_outline_rounded,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
-            decoration: const InputDecoration(
-              labelText: 'Email address',
-              hintText: 'you@example.com',
-              prefixIcon: Icon(Icons.mail_outline_rounded),
-            ),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Please enter your email';
               if (!v.contains('@')) return 'Enter a valid email';
@@ -340,16 +393,14 @@ class _Step2 extends StatelessWidget {
             },
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          _DarkTextField(
             controller: phoneController,
+            label: 'Phone Number',
+            hint: '0712345678',
+            icon: Icons.phone_outlined,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
-            decoration: const InputDecoration(
-              labelText: 'Phone Number',
-              hintText: '0712345678',
-              prefixIcon: Icon(Icons.phone_outlined),
-            ),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return 'Phone number is required';
               final digits = v.trim().replaceAll(RegExp(r'\D'), '');
@@ -358,23 +409,20 @@ class _Step2 extends StatelessWidget {
             },
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          _DarkTextField(
             controller: passwordController,
+            label: 'Password',
+            icon: Icons.lock_outline_rounded,
             obscureText: obscurePassword,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  obscurePassword
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: cs.onSurface.withValues(alpha: 0.5),
-                ),
-                onPressed: onTogglePassword,
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: Colors.white.withValues(alpha: 0.4),
+                size: 20,
               ),
+              onPressed: onTogglePassword,
             ),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Please enter a password';
@@ -383,24 +431,21 @@ class _Step2 extends StatelessWidget {
             },
           ),
           const SizedBox(height: 14),
-          TextFormField(
+          _DarkTextField(
             controller: confirmController,
+            label: 'Confirm Password',
+            icon: Icons.lock_outline_rounded,
             obscureText: obscureConfirm,
             textInputAction: TextInputAction.done,
             enabled: !isLoading,
             onFieldSubmitted: (_) => onSubmit(),
-            decoration: InputDecoration(
-              labelText: 'Confirm Password',
-              prefixIcon: const Icon(Icons.lock_outline_rounded),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  obscureConfirm
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: cs.onSurface.withValues(alpha: 0.5),
-                ),
-                onPressed: onToggleConfirm,
+            suffixIcon: IconButton(
+              icon: Icon(
+                obscureConfirm ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                color: Colors.white.withValues(alpha: 0.4),
+                size: 20,
               ),
+              onPressed: onToggleConfirm,
             ),
             validator: (v) {
               if (v == null || v.isEmpty) return 'Please confirm your password';
@@ -408,22 +453,157 @@ class _Step2 extends StatelessWidget {
               return null;
             },
           ),
-          const SizedBox(height: 32),
-          FilledButton(
+          const SizedBox(height: 28),
+          GradientButton(
             onPressed: isLoading ? null : onSubmit,
-            style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
-            child: isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  )
-                : const Text('Create Account'),
+            label: 'Create Account',
+            isLoading: isLoading,
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ── Shared auth widgets ────────────────────────────────────────────────────
+
+class _GlassBackButton extends StatelessWidget {
+  const _GlassBackButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: Colors.white,
+          size: 16,
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner({required this.message, required this.onDismiss});
+
+  final String message;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline_rounded, size: 17, color: AppColors.error),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: AppColors.error, fontSize: 13),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.close_rounded,
+                size: 16, color: AppColors.error.withValues(alpha: 0.7)),
+            onPressed: onDismiss,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DarkTextField extends StatelessWidget {
+  const _DarkTextField({
+    required this.controller,
+    required this.label,
+    required this.icon,
+    this.hint,
+    this.obscureText = false,
+    this.enabled = true,
+    this.keyboardType,
+    this.textInputAction,
+    this.suffixIcon,
+    this.validator,
+    this.onFieldSubmitted,
+  });
+
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final IconData icon;
+  final bool obscureText;
+  final bool enabled;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final Widget? suffixIcon;
+  final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onFieldSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      obscureText: obscureText,
+      enabled: enabled,
+      keyboardType: keyboardType,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
+      validator: validator,
+      style: const TextStyle(color: Colors.white, fontSize: 15),
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        labelStyle:
+            TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 14),
+        hintStyle:
+            TextStyle(color: Colors.white.withValues(alpha: 0.25), fontSize: 14),
+        prefixIcon: Icon(icon, color: Colors.white.withValues(alpha: 0.4), size: 20),
+        suffixIcon: suffixIcon,
+        filled: true,
+        fillColor: Colors.white.withValues(alpha: 0.06),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: AppColors.error.withValues(alpha: 0.7)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+        ),
+        errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
     );
   }

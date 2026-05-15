@@ -111,7 +111,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: Routes.map,
-            builder: (context, state) => const StationMapScreen(),
+            builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
             path: Routes.cards,

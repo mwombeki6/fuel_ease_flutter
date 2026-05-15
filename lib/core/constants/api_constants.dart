@@ -6,7 +6,7 @@ class ApiConstants {
   /// Override at build time: flutter build apk --dart-define=API_BASE_URL=https://your.api.com/api/v1
   static const String baseUrl = String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://192.168.100.96:8080/api/v1',
+    defaultValue: 'https://api.fdc.ink/api/v1',
   );
 
   /// WebSocket base URL for real-time events
@@ -34,6 +34,17 @@ class ApiConstants {
 
   /// API retry attempts
   static const int maxRetries = 3;
+
+  /// Mapbox public access token — get yours at https://account.mapbox.com
+  /// Set at build time: flutter build apk --dart-define=MAPBOX_TOKEN=pk.xxx
+  static const String mapboxToken = String.fromEnvironment(
+    'MAPBOX_TOKEN',
+    defaultValue: 'YOUR_MAPBOX_PUBLIC_TOKEN',
+  );
+
+  /// Mapbox dark map style tile URL
+  static String mapboxDarkTileUrl(int z, int x, int y) =>
+      'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/$z/$x/$y@2x?access_token=$mapboxToken';
 
   /// Client identifier header value
   static const String clientType = 'mobile';

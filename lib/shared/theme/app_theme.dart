@@ -15,11 +15,11 @@ class AppTheme {
 
     final colorScheme = isDark
         ? const ColorScheme.dark(
-            primary: AppColors.primaryDarkMode,
+            primary: AppColors.brandLight,
             onPrimary: Colors.white,
             primaryContainer: AppColors.primarySoftDark,
-            onPrimaryContainer: AppColors.primaryLight,
-            secondary: AppColors.accent,
+            onPrimaryContainer: AppColors.brandLight,
+            secondary: AppColors.brandCyan,
             onSecondary: Colors.white,
             error: AppColors.error,
             onError: Colors.white,
@@ -27,14 +27,14 @@ class AppTheme {
             onSurface: AppColors.textPrimaryDark,
             surfaceContainerHighest: AppColors.surfaceVariantDark,
             outline: AppColors.borderDark,
-            outlineVariant: AppColors.borderDark,
+            outlineVariant: AppColors.borderSubtleDark,
           )
         : const ColorScheme.light(
-            primary: AppColors.primary,
+            primary: AppColors.brand,
             onPrimary: Colors.white,
             primaryContainer: AppColors.primarySoft,
-            onPrimaryContainer: AppColors.primaryDark,
-            secondary: AppColors.accent,
+            onPrimaryContainer: AppColors.brandDark,
+            secondary: AppColors.brandCyan,
             onSecondary: Colors.white,
             error: AppColors.error,
             onError: Colors.white,
@@ -45,24 +45,22 @@ class AppTheme {
             outlineVariant: AppColors.borderStrong,
           );
 
-    final bg = isDark ? AppColors.backgroundDark : AppColors.background;
-    final cardBg = isDark ? AppColors.surfaceDark : AppColors.surface;
+    final bg = isDark ? AppColors.midnight : AppColors.background;
+    final cardBg = isDark ? AppColors.surfaceElevatedDark : AppColors.surface;
     final cardBorder = isDark ? AppColors.borderDark : AppColors.border;
     final inputFill = isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant;
     final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
     final textSecondary = isDark ? AppColors.textSecondaryDark : AppColors.textSecondary;
-    final navBg = isDark ? AppColors.surfaceDark : AppColors.surface;
-    final indicatorColor = isDark ? AppColors.primarySoftDark : AppColors.primarySoft;
 
     final systemOverlay = isDark
         ? SystemUiOverlayStyle.light.copyWith(
             statusBarColor: Colors.transparent,
-            systemNavigationBarColor: AppColors.surfaceDark,
+            systemNavigationBarColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.light,
           )
         : SystemUiOverlayStyle.dark.copyWith(
             statusBarColor: Colors.transparent,
-            systemNavigationBarColor: AppColors.surface,
+            systemNavigationBarColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.dark,
           );
 
@@ -87,7 +85,7 @@ class AppTheme {
         elevation: 0,
         shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: cardBorder, width: 1),
         ),
         color: cardBg,
@@ -99,30 +97,27 @@ class AppTheme {
         filled: true,
         fillColor: inputFill,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: cardBorder, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: cardBorder, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(
-            color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
-            width: 2,
-          ),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppColors.brandLight, width: 2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.error, width: 2),
         ),
         disabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           borderSide: BorderSide(color: cardBorder, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -133,12 +128,12 @@ class AppTheme {
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+          backgroundColor: AppColors.brand,
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.textDisabled,
           disabledForegroundColor: AppColors.textTertiary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: AppTextStyles.buttonMedium,
           elevation: 0,
         ),
@@ -146,10 +141,10 @@ class AppTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+          foregroundColor: isDark ? AppColors.brandLight : AppColors.brand,
           disabledForegroundColor: AppColors.textDisabled,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           side: BorderSide(color: cardBorder, width: 1.5),
           textStyle: AppTextStyles.buttonMedium,
         ),
@@ -157,39 +152,39 @@ class AppTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+          foregroundColor: isDark ? AppColors.brandLight : AppColors.brand,
           disabledForegroundColor: AppColors.textDisabled,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           textStyle: AppTextStyles.buttonMedium,
         ),
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+          backgroundColor: AppColors.brand,
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.textDisabled,
           disabledForegroundColor: AppColors.textTertiary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           textStyle: AppTextStyles.buttonMedium,
           elevation: 0,
         ),
       ),
 
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.brand,
         foregroundColor: Colors.white,
         elevation: 4,
-        shape: const CircleBorder(),
+        shape: CircleBorder(),
       ),
 
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: cardBg,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         showDragHandle: true,
         dragHandleColor: cardBorder,
@@ -204,18 +199,18 @@ class AppTheme {
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? AppColors.surfaceVariantDark : AppColors.textPrimary,
+        backgroundColor: isDark ? AppColors.surfaceElevatedDark : AppColors.textPrimary,
         contentTextStyle: AppTextStyles.bodyMedium.copyWith(color: Colors.white),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         behavior: SnackBarBehavior.floating,
-        actionTextColor: isDark ? AppColors.primaryDarkMode : AppColors.primarySoft,
+        actionTextColor: AppColors.brandLight,
       ),
 
       chipTheme: ChipThemeData(
         backgroundColor: isDark ? AppColors.surfaceVariantDark : AppColors.surfaceVariant,
         deleteIconColor: textSecondary,
         disabledColor: AppColors.textDisabled,
-        selectedColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+        selectedColor: isDark ? AppColors.brandLight : AppColors.brand,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         labelStyle: AppTextStyles.labelMedium.copyWith(color: textSecondary),
         brightness: brightness,
@@ -225,10 +220,7 @@ class AppTheme {
       dividerTheme: DividerThemeData(color: cardBorder, space: 1, thickness: 1),
 
       iconTheme: IconThemeData(color: textPrimary, size: 24),
-      primaryIconTheme: IconThemeData(
-        color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
-        size: 24,
-      ),
+      primaryIconTheme: const IconThemeData(color: AppColors.brandLight, size: 24),
 
       textTheme: TextTheme(
         displayLarge: AppTextStyles.displayLarge,
@@ -255,78 +247,65 @@ class AppTheme {
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(
-        color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+        color: AppColors.brand,
         linearTrackColor: inputFill,
         circularTrackColor: inputFill,
       ),
 
       radioTheme: RadioThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return isDark ? AppColors.primaryDarkMode : AppColors.primary;
-          }
+          if (states.contains(WidgetState.selected)) return AppColors.brand;
           return textSecondary;
         }),
       ),
 
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return isDark ? AppColors.primaryDarkMode : AppColors.primary;
-          }
-          return textSecondary;
+          if (states.contains(WidgetState.selected)) return AppColors.brand;
+          return Colors.transparent;
         }),
+        checkColor: const WidgetStatePropertyAll(Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       ),
 
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return isDark ? AppColors.primaryDarkMode : AppColors.primary;
-          }
+          if (states.contains(WidgetState.selected)) return Colors.white;
           return textSecondary;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) {
-            return indicatorColor;
-          }
+          if (states.contains(WidgetState.selected)) return AppColors.brand;
           return inputFill;
         }),
       ),
 
+      // Keep defined for fallback use — main nav uses custom glass pill
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: navBg,
-        indicatorColor: indicatorColor,
+        backgroundColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppTextStyles.labelSmall.copyWith(
-              color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
-            );
+            return AppTextStyles.labelSmall.copyWith(color: AppColors.brandLight);
           }
           return AppTextStyles.labelSmall.copyWith(color: textSecondary);
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return IconThemeData(
-              color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
-            );
+            return const IconThemeData(color: AppColors.brandLight);
           }
           return IconThemeData(color: textSecondary);
         }),
       ),
 
       tabBarTheme: TabBarThemeData(
-        labelColor: isDark ? AppColors.primaryDarkMode : AppColors.primary,
+        labelColor: AppColors.brand,
         unselectedLabelColor: textSecondary,
         labelStyle: AppTextStyles.labelLarge,
         unselectedLabelStyle: AppTextStyles.labelLarge,
-        indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(
-            color: isDark ? AppColors.primaryDarkMode : AppColors.primary,
-            width: 2,
-          ),
+        indicator: const UnderlineTabIndicator(
+          borderSide: BorderSide(color: AppColors.brand, width: 2),
         ),
       ),
     );

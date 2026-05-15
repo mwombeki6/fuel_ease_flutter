@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 
+import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/stations/data/models/station_map_pin.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_map_provider.dart';
@@ -97,8 +98,10 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate:
-                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    urlTemplate: ApiConstants.mapboxToken ==
+                            'YOUR_MAPBOX_PUBLIC_TOKEN'
+                        ? 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+                        : 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=${ApiConstants.mapboxToken}',
                     userAgentPackageName: 'com.fuelease.app',
                   ),
                   MarkerLayer(
@@ -229,18 +232,22 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
   }
 
   Marker _buildMarker(StationMapPin pin) {
-    final isSuspended = pin.hasSuspension;
-    final isActive = pin.status == 'active';
-    final color = isSuspended
+    final isSelected = _selectedPin?.id == pin.id;
+    final color = pin.hasSuspension
         ? AppColors.error
-        : isActive
-            ? AppColors.primary
+        : pin.status == 'active'
+            ? AppColors.brand
             : AppColors.statusInactive;
+
+    final name =
+        pin.name.length > 18 ? '${pin.name.substring(0, 16)}…' : pin.name;
+    final estWidth = (name.length * 7.2 + 50.0).clamp(70.0, 180.0);
 
     return Marker(
       point: LatLng(pin.lat, pin.lng),
-      width: 44,
-      height: 44,
+      width: estWidth,
+      height: 40,
+      alignment: Alignment.bottomCenter,
       child: GestureDetector(
         onTap: () {
           setState(() => _selectedPin = pin);
@@ -251,27 +258,47 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                 : 13,
           );
         },
-        child: Container(
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
           decoration: BoxDecoration(
-            color: color,
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 2.5),
+            color: isSelected ? Colors.white : color,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? color : Colors.white.withValues(alpha: 0.3),
+              width: isSelected ? 2.5 : 1,
+            ),
             boxShadow: [
               BoxShadow(
-                color: color.withValues(alpha: 0.4),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: color.withValues(alpha: isSelected ? 0.7 : 0.4),
+                blurRadius: isSelected ? 20 : 8,
+                spreadRadius: isSelected ? 2 : 0,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          alignment: Alignment.center,
-          child: Text(
-            pin.activePumps.toString(),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.local_gas_station_rounded,
+                color: isSelected ? color : Colors.white,
+                size: 11,
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: Text(
+                  name,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isSelected ? color : Colors.white,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.1,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

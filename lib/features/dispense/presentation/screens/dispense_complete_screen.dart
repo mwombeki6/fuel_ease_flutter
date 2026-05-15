@@ -1,4 +1,9 @@
+import 'dart:ui';
+
+import 'package:confetti/confetti.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -6,189 +11,352 @@ import 'package:intl/intl.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/providers/dispense_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
+import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
-class DispenseCompleteScreen extends ConsumerWidget {
+class DispenseCompleteScreen extends ConsumerStatefulWidget {
   const DispenseCompleteScreen({required this.requestId, super.key});
 
   final String requestId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final requestAsync = ref.watch(dispenseRequestByIdProvider(requestId));
+  ConsumerState<DispenseCompleteScreen> createState() =>
+      _DispenseCompleteScreenState();
+}
+
+class _DispenseCompleteScreenState
+    extends ConsumerState<DispenseCompleteScreen>
+    with SingleTickerProviderStateMixin {
+  late final ConfettiController _confettiController;
+  late final AnimationController _checkmarkController;
+
+  @override
+  void initState() {
+    super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 4));
+    _checkmarkController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _confettiController.play();
+      _checkmarkController.forward();
+      HapticFeedback.heavyImpact();
+    });
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    _checkmarkController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final requestAsync = ref.watch(dispenseRequestByIdProvider(widget.requestId));
     final numberFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('HH:mm, MMM d');
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: requestAsync.when(
-        data: (request) {
-          final liters = (request.actualLiters ?? 0.0) > 0
-              ? request.actualLiters!
-              : request.requestedLiters;
-          final cost = (liters * request.pricePerLiterTzs).ceil();
+      backgroundColor: AppColors.midnight,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Night gradient
+          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
 
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  const Spacer(),
-
-                  // Checkmark
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color: AppColors.success.withOpacity(0.12),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_circle_outline,
-                      color: AppColors.success,
-                      size: 56,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  const Text(
-                    'Fuel Dispensed',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Primary numbers
-                  Text(
-                    '${liters.toStringAsFixed(2)} L',
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  Text(
-                    'TZS ${numberFormat.format(cost)}',
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Details card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      children: [
-                        _DetailRow(
-                          label: 'Ref',
-                          value: requestId.length > 8
-                              ? requestId.substring(0, 8).toUpperCase()
-                              : requestId.toUpperCase(),
-                        ),
-                        const SizedBox(height: 8),
-                        _DetailRow(
-                          label: 'Time',
-                          value: dateFormat.format(request.createdAt.toLocal()),
-                        ),
-                        const SizedBox(height: 8),
-                        _DetailRow(
-                          label: 'Status',
-                          value: request.formattedStatus,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Actions
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => context.go(Routes.walletTransactions),
-                          child: const Text('View History'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => context.go(Routes.home),
-                          child: const Text('Done'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+          // Success glow
+          Positioned(
+            top: -60,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 400,
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.topCenter,
+                  radius: 0.75,
+                  colors: [
+                    AppColors.success.withValues(alpha: 0.12),
+                    Colors.transparent,
+                  ],
+                ),
               ),
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 72),
-                const SizedBox(height: 24),
-                const Text(
-                  'Fuel dispensed successfully',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 32),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => context.go(Routes.home),
-                    child: const Text('Done'),
-                  ),
-                ),
+          ),
+
+          // Confetti
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirectionality: BlastDirectionality.explosive,
+              numberOfParticles: 24,
+              particleDrag: 0.05,
+              emissionFrequency: 0.04,
+              gravity: 0.06,
+              colors: const [
+                AppColors.brand,
+                AppColors.brandCyan,
+                Colors.white,
+                AppColors.success,
+                Color(0xFFFFC107),
               ],
             ),
           ),
-        ),
+
+          // Content
+          requestAsync.when(
+            data: (request) {
+              final liters = (request.actualLiters ?? 0.0) > 0
+                  ? request.actualLiters!
+                  : request.requestedLiters;
+              final cost = (liters * request.pricePerLiterTzs).ceil();
+
+              return SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                  child: Column(
+                    children: [
+                      const Spacer(),
+
+                      // Animated checkmark
+                      ScaleTransition(
+                        scale: CurvedAnimation(
+                          parent: _checkmarkController,
+                          curve: Curves.easeOutBack,
+                        ),
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppColors.success,
+                                AppColors.success.withValues(alpha: 0.6),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.success.withValues(alpha: 0.4),
+                                blurRadius: 36,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.check_rounded,
+                            color: Colors.white,
+                            size: 56,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      Text(
+                        'Fuel Dispensed!',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                ),
+                      )
+                          .animate()
+                          .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 300.ms)
+                          .fadeIn(duration: 350.ms, delay: 300.ms),
+
+                      const SizedBox(height: 32),
+
+                      // Liters
+                      AnimatedCounter(
+                        value: liters,
+                        formatter: (v) => '${v.toStringAsFixed(2)} L',
+                        style: const TextStyle(
+                          fontSize: 52,
+                          fontWeight: FontWeight.w900,
+                          color: Colors.white,
+                          letterSpacing: -1,
+                        ),
+                      )
+                          .animate()
+                          .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 400.ms)
+                          .fadeIn(duration: 350.ms, delay: 400.ms),
+
+                      const SizedBox(height: 8),
+
+                      AnimatedCounter(
+                        value: cost.toDouble(),
+                        formatter: (v) => 'TZS ${numberFormat.format(v.toInt())}',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white.withValues(alpha: 0.75),
+                        ),
+                      )
+                          .animate()
+                          .fadeIn(duration: 350.ms, delay: 500.ms),
+
+                      const SizedBox(height: 32),
+
+                      // Details glass card
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceElevatedDark.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.07)),
+                            ),
+                            child: Column(
+                              children: [
+                                _DetailRow(
+                                  label: 'Ref',
+                                  value: widget.requestId.length > 8
+                                      ? widget.requestId
+                                          .substring(0, 8)
+                                          .toUpperCase()
+                                      : widget.requestId.toUpperCase(),
+                                ),
+                                const SizedBox(height: 12),
+                                _DetailRow(
+                                  label: 'Time',
+                                  value: dateFormat
+                                      .format(request.createdAt.toLocal()),
+                                ),
+                                const SizedBox(height: 12),
+                                _DetailRow(
+                                  label: 'Status',
+                                  value: request.formattedStatus,
+                                  valueColor: AppColors.success,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      )
+                          .animate()
+                          .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 550.ms)
+                          .fadeIn(duration: 350.ms, delay: 550.ms),
+
+                      const Spacer(),
+
+                      // Action buttons
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => context.go(Routes.walletTransactions),
+                              child: Container(
+                                height: 52,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                      color: Colors.white.withValues(alpha: 0.15)),
+                                ),
+                                child: Text(
+                                  'View History',
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.8),
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GradientButton(
+                              onPressed: () => context.go(Routes.home),
+                              label: 'Done',
+                            ),
+                          ),
+                        ],
+                      )
+                          .animate()
+                          .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 650.ms)
+                          .fadeIn(duration: 350.ms, delay: 650.ms),
+                    ],
+                  ),
+                ),
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (e, _) => SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        color: AppColors.success, size: 80),
+                    const SizedBox(height: 28),
+                    const Text(
+                      'Fuel dispensed successfully',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 36),
+                    GradientButton(
+                      onPressed: () => context.go(Routes.home),
+                      label: 'Done',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+// ── Detail row ─────────────────────────────────────────────────────────────
+
 class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.label, required this.value});
+  const _DetailRow({required this.label, required this.value, this.valueColor});
 
   final String label;
   final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14, color: AppColors.textSecondary)),
-        Text(value,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white.withValues(alpha: 0.45),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: valueColor ?? Colors.white,
+          ),
+        ),
       ],
     );
   }

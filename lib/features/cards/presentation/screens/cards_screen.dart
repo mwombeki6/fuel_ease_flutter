@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,8 +10,8 @@ import 'package:fuel_ease_flutter/features/cards/presentation/widgets/fuel_card_
 import 'package:fuel_ease_flutter/features/cards/presentation/widgets/cards_stats_card.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
+import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
-/// Cards screen showing all fuel cards
 class CardsScreen extends ConsumerStatefulWidget {
   const CardsScreen({super.key});
 
@@ -19,7 +20,7 @@ class CardsScreen extends ConsumerStatefulWidget {
 }
 
 class _CardsScreenState extends ConsumerState<CardsScreen> {
-  String _selectedFilter = 'all'; // all, active, used, expired
+  String _selectedFilter = 'all';
 
   List<FuelCard> _filterCards(List<FuelCard> cards) {
     switch (_selectedFilter) {
@@ -45,35 +46,70 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     });
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Fuel Cards'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add_circle_outline),
-            onPressed: () {
-              context.push(Routes.createCard);
-            },
-            tooltip: 'Create New Card',
+      backgroundColor: AppColors.midnight,
+      body: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          // Dark pinned app bar
+          SliverAppBar(
+            pinned: true,
+            backgroundColor: AppColors.midnight,
+            surfaceTintColor: Colors.transparent,
+            title: const Text(
+              'Fuel Cards',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 20,
+              ),
+            ),
+            actions: [
+              Padding(
+                padding: const EdgeInsets.only(right: 16),
+                child: GestureDetector(
+                  onTap: () => context.push(Routes.createCard),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.brandGradient,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.brandGlow,
+                          blurRadius: 12,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          // Content based on state
+          ...cardsState.when(
+            data: (cards) => _buildContent(context, ref, cards, activeCount, totalValue),
+            loading: () => [
+              const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
+            error: (error, stack) => [
+              SliverFillRemaining(
+                child: _buildError(context, ref, error),
+              ),
+            ],
           ),
         ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          await ref.read(cardsProvider.notifier).refresh();
-        },
-        child: cardsState.when(
-          data: (cards) => _buildContent(context, cards, activeCount, totalValue),
-          loading: () => const Center(
-            child: CircularProgressIndicator(),
-          ),
-          error: (error, stack) => _buildError(context, error),
-        ),
       ),
     );
   }
 
-  Widget _buildContent(
+  List<Widget> _buildContent(
     BuildContext context,
+    WidgetRef ref,
     List<FuelCard> cards,
     int activeCount,
     double totalValue,
@@ -81,89 +117,87 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     final usedCount = cards.where((c) => c.isUsed).length;
     final filteredCards = _filterCards(cards);
 
-    return CustomScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      slivers: [
-        // Stats card
-        SliverToBoxAdapter(
+    return [
+      // Stats card
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
           child: CardsStatsCard(
             activeCount: activeCount,
             totalValue: totalValue,
             usedCount: usedCount,
           ),
         ),
+      ),
 
-        // Filter chips
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _FilterChip(
-                    label: 'All (${cards.length})',
-                    isSelected: _selectedFilter == 'all',
-                    onTap: () => setState(() => _selectedFilter = 'all'),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Active ($activeCount)',
-                    isSelected: _selectedFilter == 'active',
-                    onTap: () => setState(() => _selectedFilter = 'active'),
-                    color: AppColors.success,
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Used ($usedCount)',
-                    isSelected: _selectedFilter == 'used',
-                    onTap: () => setState(() => _selectedFilter = 'used'),
-                    color: AppColors.info,
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Expired',
-                    isSelected: _selectedFilter == 'expired',
-                    onTap: () => setState(() => _selectedFilter = 'expired'),
-                    color: AppColors.error,
-                  ),
-                ],
-              ),
+      // Filter chips
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _DarkFilterChip(
+                  label: 'All (${cards.length})',
+                  isSelected: _selectedFilter == 'all',
+                  onTap: () => setState(() => _selectedFilter = 'all'),
+                ),
+                const SizedBox(width: 8),
+                _DarkFilterChip(
+                  label: 'Active ($activeCount)',
+                  isSelected: _selectedFilter == 'active',
+                  onTap: () => setState(() => _selectedFilter = 'active'),
+                  activeColor: AppColors.success,
+                ),
+                const SizedBox(width: 8),
+                _DarkFilterChip(
+                  label: 'Used ($usedCount)',
+                  isSelected: _selectedFilter == 'used',
+                  onTap: () => setState(() => _selectedFilter = 'used'),
+                  activeColor: AppColors.info,
+                ),
+                const SizedBox(width: 8),
+                _DarkFilterChip(
+                  label: 'Expired',
+                  isSelected: _selectedFilter == 'expired',
+                  onTap: () => setState(() => _selectedFilter = 'expired'),
+                  activeColor: AppColors.error,
+                ),
+              ],
             ),
           ),
         ),
+      ),
 
-        // Cards list
-        if (filteredCards.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: _buildEmptyState(),
-          )
-        else
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final card = filteredCards[index];
-                return FuelCardItem(
-                  card: card,
-                  onTap: () {
-                    context.push(Routes.cardDetails(card.id));
-                  },
-                );
-              },
-              childCount: filteredCards.length,
-            ),
+      // Cards list / empty state
+      if (filteredCards.isEmpty)
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: _buildEmptyState(context),
+        )
+      else
+        SliverList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) {
+              final card = filteredCards[index];
+              return FuelCardItem(
+                card: card,
+                onTap: () => context.push(Routes.cardDetails(card.id)),
+              )
+                  .animate(delay: (index * 40).ms)
+                  .slideY(begin: 0.15, end: 0, duration: 300.ms, curve: Curves.easeOutCubic)
+                  .fadeIn(duration: 250.ms);
+            },
+            childCount: filteredCards.length,
           ),
-
-        // Bottom padding
-        const SliverToBoxAdapter(
-          child: SizedBox(height: 80),
         ),
-      ],
-    );
+
+      const SliverToBoxAdapter(child: SizedBox(height: 100)),
+    ];
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     String message;
     String description;
 
@@ -171,15 +205,12 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
       case 'active':
         message = 'No active cards';
         description = 'Create a new fuel card to get started';
-        break;
       case 'used':
         message = 'No used cards';
         description = 'Cards you\'ve redeemed will appear here';
-        break;
       case 'expired':
         message = 'No expired cards';
         description = 'Expired cards will appear here';
-        break;
       default:
         message = 'No fuel cards yet';
         description = 'Create your first fuel card to share fuel with others';
@@ -191,18 +222,29 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.credit_card_outlined,
-              size: 64,
-              color: AppColors.textSecondary.withOpacity(0.5),
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceElevatedDark,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.06),
+                ),
+              ),
+              child: Icon(
+                Icons.credit_card_outlined,
+                size: 36,
+                color: Colors.white.withValues(alpha: 0.25),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               message,
-              style: TextStyle(
-                fontSize: 18,
+              style: const TextStyle(
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
@@ -210,18 +252,15 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
               description,
               style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textTertiary,
+                color: Colors.white.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
             ),
             if (_selectedFilter == 'all') ...[
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: () {
-                  context.push(Routes.createCard);
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Create Card'),
+              const SizedBox(height: 28),
+              GradientButton(
+                onPressed: () => context.push(Routes.createCard),
+                label: 'Create Card',
               ),
             ],
           ],
@@ -230,43 +269,36 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     );
   }
 
-  Widget _buildError(BuildContext context, Object error) {
+  Widget _buildError(BuildContext context, WidgetRef ref, Object error) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: AppColors.error,
-            ),
-            const SizedBox(height: 16),
-            Text(
+            Icon(Icons.error_outline, size: 56, color: AppColors.error),
+            const SizedBox(height: 20),
+            const Text(
               'Failed to load cards',
               style: TextStyle(
-                fontSize: 18,
+                fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
               style: TextStyle(
-                fontSize: 14,
-                color: AppColors.textSecondary,
+                fontSize: 13,
+                color: Colors.white.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () {
-                ref.read(cardsProvider.notifier).refresh();
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Try Again'),
+            const SizedBox(height: 28),
+            GradientButton(
+              onPressed: () => ref.read(cardsProvider.notifier).refresh(),
+              label: 'Try Again',
             ),
           ],
         ),
@@ -275,39 +307,53 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
   }
 }
 
-/// Filter chip widget
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
+// ── Dark filter chip ───────────────────────────────────────────────────────
+
+class _DarkFilterChip extends StatelessWidget {
+  const _DarkFilterChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
-    this.color,
+    this.activeColor,
   });
 
   final String label;
   final bool isSelected;
   final VoidCallback onTap;
-  final Color? color;
+  final Color? activeColor;
 
   @override
   Widget build(BuildContext context) {
-    final chipColor = color ?? AppColors.primary;
+    final color = activeColor ?? AppColors.brand;
 
-    return InkWell(
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? chipColor : AppColors.surfaceVariant,
+          gradient: isSelected ? AppColors.brandGradient : null,
+          color: isSelected ? null : AppColors.surfaceElevatedDark,
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.08),
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    spreadRadius: 0,
+                  )
+                ]
+              : null,
         ),
         child: Text(
           label,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textPrimary,
+            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
           ),
         ),
       ),
