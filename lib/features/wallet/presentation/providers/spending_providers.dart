@@ -6,6 +6,7 @@ import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_
 final weeklySpendProvider = Provider<int>((ref) {
   final walletState = ref.watch(walletProvider);
   return walletState.whenOrNull(data: (summary) {
+    // Rebuilds only when walletProvider rebuilds; time-boundary drifts are acceptable between refreshes.
     final cutoff = DateTime.now().subtract(const Duration(days: 7));
     return (summary.recentTransactions ?? [])
         .where((t) => t.isDebit && (t.createdAt?.isAfter(cutoff) ?? false))
@@ -18,6 +19,7 @@ final weeklySpendProvider = Provider<int>((ref) {
 final spendingChartDataProvider = Provider<Map<int, int>>((ref) {
   final walletState = ref.watch(walletProvider);
   return walletState.whenOrNull(data: (summary) {
+    // Rebuilds only when walletProvider rebuilds; time-boundary drifts are acceptable between refreshes.
     final now = DateTime.now();
     final result = <int, int>{};
     for (final t in (summary.recentTransactions ?? [])) {
@@ -26,7 +28,7 @@ final spendingChartDataProvider = Provider<Map<int, int>>((ref) {
       if (date == null) continue;
       final daysAgo = now.difference(date).inDays;
       if (daysAgo < 0 || daysAgo >= 30) continue;
-      result[daysAgo] = ((result[daysAgo] ?? 0) + t.amountTzs).toInt();
+      result[daysAgo] = (result[daysAgo] ?? 0) + t.amountTzs as int;
     }
     return result;
   }) ?? {};

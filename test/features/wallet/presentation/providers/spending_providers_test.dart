@@ -70,6 +70,7 @@ void main() {
     expect(data[15], 4000);
     expect(data.containsKey(31), isFalse);
     expect(data.values.every((v) => v > 0), isTrue);
+    expect(data.length, 2); // only 2 debit txs in the 30-day window
   });
 }
 

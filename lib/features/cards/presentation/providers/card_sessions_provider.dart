@@ -8,7 +8,9 @@ final cardSessionsProvider =
     Provider.family<List<DispenseRequest>, String>((ref, cardId) {
   final dispenseState = ref.watch(dispenseProvider);
   return dispenseState.whenOrNull(data: (requests) {
-    return [...requests.where((r) => r.cardId == cardId)]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-  }) ?? [];
+    final filtered = requests.where((r) => r.cardId == cardId).toList();
+    if (filtered.isEmpty) return const [];
+    filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return filtered;
+  }) ?? const [];
 });
