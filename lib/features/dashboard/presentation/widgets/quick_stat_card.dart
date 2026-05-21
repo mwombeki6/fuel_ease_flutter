@@ -31,14 +31,14 @@ class QuickStatCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surfaceElevatedDark,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
+            border: Border.all(color: AppColors.borderDark),
+            boxShadow: const [
               BoxShadow(
                 color: AppColors.shadow,
                 blurRadius: 12,
-                offset: const Offset(0, 6),
+                offset: Offset(0, 6),
               ),
             ],
           ),
@@ -52,7 +52,7 @@ class QuickStatCard extends StatelessWidget {
                   height: 72,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: color.withOpacity(0.08),
+                    color: color.withValues(alpha: 0.08),
                   ),
                 ),
               ),
@@ -63,7 +63,7 @@ class QuickStatCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
+                      color: color.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(
@@ -87,7 +87,7 @@ class QuickStatCard extends StatelessWidget {
                   Text(
                     title,
                     style: AppTextStyles.labelSmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                   ),
 

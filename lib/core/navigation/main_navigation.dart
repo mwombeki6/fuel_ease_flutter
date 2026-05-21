@@ -5,6 +5,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import 'package:fuel_ease_flutter/core/network/connectivity_provider.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
@@ -56,17 +57,69 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
       },
     );
 
+    final isOnline = ref.watch(isOnlineProvider);
+
     return Scaffold(
       extendBody: true,
       backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           widget.child,
+          // Offline banner — slides in from the top when connectivity is lost
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeOutCubic,
+            top: isOnline ? -56 : MediaQuery.of(context).padding.top,
+            left: 0,
+            right: 0,
+            child: const _OfflineBanner(),
+          ),
           const Positioned(
             left: 0,
             right: 0,
             bottom: 0,
             child: _FeNavBar(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Offline banner — slides in from top when network is lost
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.warning.withValues(alpha: 0.96),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.wifi_off_rounded, color: Colors.white, size: 15),
+          SizedBox(width: 8),
+          Text(
+            'No internet connection',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),

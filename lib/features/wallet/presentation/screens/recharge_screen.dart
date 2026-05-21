@@ -98,7 +98,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Top Up Wallet'),
         elevation: 0,
@@ -112,10 +112,10 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.1),
+                color: AppColors.info.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.info.withOpacity(0.3),
+                  color: AppColors.info.withValues(alpha: 0.3),
                   width: 1,
                 ),
               ),
@@ -133,7 +133,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                       'You will receive a payment prompt on your phone. Complete the payment to add fuel units to your wallet.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryDark,
                         height: 1.4,
                       ),
                     ),
@@ -149,7 +149,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
             ),
             const SizedBox(height: 12),
@@ -180,7 +180,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                 hintText: '10,000',
                 prefixText: 'TZS ',
                 prefixStyle: const TextStyle(
-                  color: AppColors.textPrimary,
+                  color: AppColors.textPrimaryDark,
                   fontWeight: FontWeight.w600,
                 ),
                 border: OutlineInputBorder(
@@ -216,7 +216,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
             ),
             const SizedBox(height: 12),
@@ -257,7 +257,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
             ),
             const SizedBox(height: 12),
@@ -402,10 +402,10 @@ class _ProviderOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withOpacity(0.1)
-              : AppColors.surface,
+              ? AppColors.primary.withValues(alpha: 0.12)
+              : AppColors.surfaceDark,
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
+            color: isSelected ? AppColors.primary : AppColors.borderDark,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -415,7 +415,7 @@ class _ProviderOption extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              color: isSelected ? AppColors.primary : AppColors.textSecondaryDark,
               size: 24,
             ),
             const SizedBox(width: 8),
@@ -424,7 +424,7 @@ class _ProviderOption extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                color: isSelected ? AppColors.primary : AppColors.textPrimaryDark,
               ),
             ),
           ],

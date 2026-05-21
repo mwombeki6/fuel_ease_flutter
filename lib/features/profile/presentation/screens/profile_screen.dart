@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
@@ -9,6 +10,10 @@ import 'package:fuel_ease_flutter/main.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
+final _packageInfoProvider = FutureProvider<PackageInfo>(
+  (_) => PackageInfo.fromPlatform(),
+);
+
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
@@ -16,8 +21,9 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: cs.surface,
       body: authState.maybeWhen(
         authenticated: (user) => CustomScrollView(
           slivers: [
@@ -25,7 +31,7 @@ class ProfileScreen extends ConsumerWidget {
             SliverAppBar(
               pinned: true,
               expandedHeight: 200,
-              backgroundColor: AppColors.midnight,
+              backgroundColor: cs.surface,
               surfaceTintColor: Colors.transparent,
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.parallax,
@@ -165,8 +171,11 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.info_outline,
                   iconColor: Colors.white.withValues(alpha: 0.5),
                   title: 'About',
-                  subtitle: 'App version and information',
-                  onTap: () => _showAboutDialog(context),
+                  subtitle: ref.watch(_packageInfoProvider).whenOrNull(
+                        data: (info) => 'Version ${info.version} (${info.buildNumber})',
+                      ) ??
+                      'App version and information',
+                  onTap: () => _showAboutDialog(context, ref),
                 ),
                 _DarkTile(
                   icon: Icons.description_outlined,
@@ -253,11 +262,13 @@ class ProfileScreen extends ConsumerWidget {
     }
   }
 
-  void _showAboutDialog(BuildContext context) {
+  void _showAboutDialog(BuildContext context, WidgetRef ref) {
+    final info = ref.read(_packageInfoProvider).valueOrNull;
+    final version = info != null ? '${info.version}+${info.buildNumber}' : '—';
     showAboutDialog(
       context: context,
       applicationName: 'FuelEase',
-      applicationVersion: '1.0.0',
+      applicationVersion: version,
       applicationIcon: Container(
         width: 48,
         height: 48,
@@ -290,8 +301,8 @@ class _ThemeTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mode = ref.watch(themeModeProvider);
     final subtitle = switch (mode) {
-      ThemeMode.light => 'Light mode',
-      ThemeMode.dark => 'Dark mode',
+      ThemeMode.light => 'Milk (Light)',
+      ThemeMode.dark => 'Dark',
       ThemeMode.system => 'System default',
     };
     return _DarkTile(
@@ -311,7 +322,7 @@ void _showNotificationsSheet(BuildContext context) {
     context: context,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _NotificationsSheet(),
   );
 }
@@ -321,7 +332,7 @@ void _showLanguageSheet(BuildContext context) {
     context: context,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _LanguageSheet(),
   );
 }
@@ -331,7 +342,7 @@ void _showThemeSheet(BuildContext context, WidgetRef ref) {
     context: context,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => ProviderScope(
       parent: ProviderScope.containerOf(context),
       child: const _ThemeSheet(),
@@ -345,7 +356,7 @@ void _showHelpSheet(BuildContext context) {
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _HelpSheet(),
   );
 }
@@ -356,7 +367,7 @@ void _showTermsSheet(BuildContext context) {
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _TermsSheet(),
   );
 }
@@ -384,7 +395,7 @@ class _Section extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -415,15 +426,16 @@ class _DarkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevatedDark,
+          color: cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+          border: Border.all(color: cs.outline.withValues(alpha: 0.35)),
         ),
         child: Row(
           children: [
@@ -444,8 +456,8 @@ class _DarkTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: cs.onSurface,
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
                     ),
@@ -454,7 +466,7 @@ class _DarkTile extends StatelessWidget {
                   Text(
                     subtitle,
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
+                      color: cs.onSurface.withValues(alpha: 0.45),
                       fontSize: 12,
                     ),
                   ),
@@ -463,7 +475,7 @@ class _DarkTile extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: Colors.white.withValues(alpha: 0.2),
+              color: cs.onSurface.withValues(alpha: 0.25),
               size: 18,
             ),
           ],
@@ -698,13 +710,14 @@ class _ThemeSheet extends ConsumerWidget {
 
   static const _options = [
     ('System default', ThemeMode.system),
-    ('Light', ThemeMode.light),
+    ('Milk (Light)', ThemeMode.light),
     ('Dark', ThemeMode.dark),
   ];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final current = ref.watch(themeModeProvider);
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -712,16 +725,16 @@ class _ThemeSheet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _SheetHandle(),
-          const Text(
+          Text(
             'Theme',
             style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+                color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 18),
           ),
           const SizedBox(height: 6),
           Text(
             'Choose your preferred appearance',
-            style:
-                TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13),
+            style: TextStyle(
+                color: cs.onSurface.withValues(alpha: 0.45), fontSize: 13),
           ),
           const SizedBox(height: 16),
           ..._options.map(
@@ -743,12 +756,12 @@ class _ThemeSheet extends ConsumerWidget {
                 decoration: BoxDecoration(
                   color: current == opt.$2
                       ? AppColors.brand.withValues(alpha: 0.12)
-                      : Colors.white.withValues(alpha: 0.05),
+                      : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: current == opt.$2
                         ? AppColors.brand.withValues(alpha: 0.4)
-                        : Colors.white.withValues(alpha: 0.06),
+                        : cs.outline.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
@@ -759,7 +772,7 @@ class _ThemeSheet extends ConsumerWidget {
                         style: TextStyle(
                           color: current == opt.$2
                               ? AppColors.brand
-                              : Colors.white.withValues(alpha: 0.7),
+                              : cs.onSurface.withValues(alpha: 0.75),
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
                         ),

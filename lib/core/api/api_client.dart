@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
@@ -26,11 +27,10 @@ class ApiClient {
       ),
     );
 
-    // Add interceptors in order
     _dio.interceptors.addAll([
       AuthInterceptor(_secureStorage),
       ErrorInterceptor(),
-      LoggingInterceptor(),
+      if (kDebugMode) LoggingInterceptor(),
     ]);
   }
 

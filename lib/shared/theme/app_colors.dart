@@ -29,13 +29,13 @@ class AppColors {
   static const Color borderDark = Color(0xFF1E3A5F);
   static const Color borderSubtleDark = Color(0xFF0F2040);
 
-  // ── Light backgrounds ────────────────────────────────────────────────────
-  static const Color background = Color(0xFFF8FAFC);
-  static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceVariant = Color(0xFFF1F5F9);
-  static const Color surfaceStrong = Color(0xFFE2E8F0);
-  static const Color border = Color(0xFFE2E8F0);
-  static const Color borderStrong = Color(0xFFCBD5E1);
+  // ── Milk (warm light) backgrounds ────────────────────────────────────────
+  static const Color background = Color(0xFFFAF8F2);         // warm cream
+  static const Color surface = Color(0xFFFDFCF8);            // near-white warm
+  static const Color surfaceVariant = Color(0xFFF0EBE0);     // light tan
+  static const Color surfaceStrong = Color(0xFFE5DFD2);      // warm beige
+  static const Color border = Color(0xFFD8D2C4);             // warm border
+  static const Color borderStrong = Color(0xFFC4BDB0);       // stronger warm border
 
   // ── Text ─────────────────────────────────────────────────────────────────
   static const Color textPrimary = Color(0xFF0F172A);

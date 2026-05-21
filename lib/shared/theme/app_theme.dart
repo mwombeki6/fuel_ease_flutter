@@ -38,10 +38,10 @@ class AppTheme {
             onSecondary: Colors.white,
             error: AppColors.error,
             onError: Colors.white,
-            surface: AppColors.surface,
+            surface: AppColors.surface,           // warm near-white
             onSurface: AppColors.textPrimary,
-            surfaceContainerHighest: AppColors.surfaceStrong,
-            outline: AppColors.border,
+            surfaceContainerHighest: AppColors.surfaceStrong,  // warm beige
+            outline: AppColors.border,            // warm border
             outlineVariant: AppColors.borderStrong,
           );
 

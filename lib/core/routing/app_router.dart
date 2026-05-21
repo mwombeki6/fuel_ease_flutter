@@ -33,13 +33,38 @@ import 'package:fuel_ease_flutter/features/profile/presentation/screens/edit_pro
 import 'package:fuel_ease_flutter/features/profile/presentation/screens/profile_screen.dart';
 import 'package:fuel_ease_flutter/core/navigation/main_navigation.dart';
 
+/// Global navigator key — allows navigation from outside a widget context
+/// (e.g., FCM notification tap handlers).
+final navigatorKey = GlobalKey<NavigatorState>();
+
+/// Smooth fade + subtle upward slide — replaces the default hard-cut on push.
+Page<T> _slideFade<T>(GoRouterState state, Widget child) =>
+    CustomTransitionPage<T>(
+      key: state.pageKey,
+      child: child,
+      transitionDuration: const Duration(milliseconds: 280),
+      reverseTransitionDuration: const Duration(milliseconds: 220),
+      transitionsBuilder: (context, animation, secondary, child) {
+        final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        final slide = Tween<Offset>(
+          begin: const Offset(0, 0.04),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+        return FadeTransition(
+          opacity: fade,
+          child: SlideTransition(position: slide, child: child),
+        );
+      },
+    );
+
 /// Provider for GoRouter instance
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
 
   return GoRouter(
+    navigatorKey: navigatorKey,
     initialLocation: Routes.splash,
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: false,
     redirect: (context, state) {
       final isAuthenticated = authState.maybeWhen(
         authenticated: (_) => true,
@@ -84,21 +109,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Splash screen
       GoRoute(
         path: Routes.splash,
-        builder: (context, state) => const SplashScreen(),
+        pageBuilder: (context, state) => _slideFade(state, const SplashScreen()),
       ),
 
       // Auth routes
       GoRoute(
         path: Routes.welcome,
-        builder: (context, state) => const WelcomeScreen(),
+        pageBuilder: (context, state) => _slideFade(state, const WelcomeScreen()),
       ),
       GoRoute(
         path: Routes.login,
-        builder: (context, state) => const LoginScreen(),
+        pageBuilder: (context, state) => _slideFade(state, const LoginScreen()),
       ),
       GoRoute(
         path: Routes.register,
-        builder: (context, state) => const RegisterScreen(),
+        pageBuilder: (context, state) => _slideFade(state, const RegisterScreen()),
       ),
 
       // Main app routes with bottom navigation
@@ -131,117 +156,129 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Fuel (direct access, outside shell)
       GoRoute(
         path: Routes.fuel,
-        builder: (context, state) => const CreateDispenseScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const CreateDispenseScreen()),
       ),
 
-      // Wallet sub-routes (outside shell to avoid bottom nav)
+      // Wallet sub-routes
       GoRoute(
         path: Routes.walletRecharge,
-        builder: (context, state) => const RechargeScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const RechargeScreen()),
       ),
       GoRoute(
         path: Routes.walletTransactions,
-        builder: (context, state) => const TransactionHistoryScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const TransactionHistoryScreen()),
       ),
 
-      // Cards sub-routes (outside shell to avoid bottom nav)
+      // Cards sub-routes
       GoRoute(
         path: Routes.createCard,
-        builder: (context, state) => const CreateCardScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const CreateCardScreen()),
       ),
       GoRoute(
         path: '/cards/pending/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final cardId = state.pathParameters['id']!;
-          return CardPendingScreen(cardId: cardId);
+          return _slideFade(state, CardPendingScreen(cardId: cardId));
         },
       ),
       GoRoute(
         path: '/cards/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final cardId = state.pathParameters['id']!;
-          return CardDetailsScreen(cardId: cardId);
+          return _slideFade(state, CardDetailsScreen(cardId: cardId));
         },
       ),
 
-      // Dispense routes (outside shell to avoid bottom nav)
+      // Dispense routes
       GoRoute(
         path: Routes.createDispensingRequest,
-        builder: (context, state) => CreateDispenseScreen(
-          preselectedStationId: state.extra as String?,
+        pageBuilder: (context, state) => _slideFade(
+          state,
+          CreateDispenseScreen(preselectedStationId: state.extra as String?),
         ),
       ),
       GoRoute(
         path: Routes.dispensingRequests,
-        builder: (context, state) => const DispenseHistoryScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const DispenseHistoryScreen()),
       ),
       GoRoute(
         path: '/fuel/requests/:id',
-        builder: (context, state) {
-          // Detail view — reuse history screen for now (read-only)
-          return const DispenseHistoryScreen();
-        },
+        pageBuilder: (context, state) =>
+            _slideFade(state, const DispenseHistoryScreen()),
       ),
       GoRoute(
         path: '/fuel/token/:token',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final response = state.extra as CreateDispenseResponse?;
           if (response == null) {
-            return const Scaffold(
-              body: Center(child: Text('Invalid dispense token')),
+            return _slideFade(
+              state,
+              const Scaffold(
+                  body: Center(child: Text('Invalid dispense token'))),
             );
           }
-          return PinQrScreen(
-            requestId: response.request.id,
-            pin: response.pin,
-            qrPayload: response.qrPayload,
-            stationId: response.request.stationId,
-            requestedLiters: response.request.requestedLiters,
-            pricePerLiterTzs: response.request.pricePerLiterTzs,
+          return _slideFade(
+            state,
+            PinQrScreen(
+              requestId: response.request.id,
+              pin: response.pin,
+              qrPayload: response.qrPayload,
+              stationId: response.request.stationId,
+              requestedLiters: response.request.requestedLiters,
+              pricePerLiterTzs: response.request.pricePerLiterTzs,
+            ),
           );
         },
       ),
-
       GoRoute(
         path: '/fuel/live/:requestId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final params = state.extra as LiveDispenseParams;
-          return LiveDispenseScreen(params: params);
+          return _slideFade(state, LiveDispenseScreen(params: params));
         },
       ),
       GoRoute(
         path: '/fuel/complete/:requestId',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final requestId = state.pathParameters['requestId']!;
-          return DispenseCompleteScreen(requestId: requestId);
+          return _slideFade(
+              state, DispenseCompleteScreen(requestId: requestId));
         },
       ),
 
       // Settings routes
       GoRoute(
         path: Routes.editProfile,
-        builder: (context, state) => const EditProfileScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const EditProfileScreen()),
       ),
       GoRoute(
         path: Routes.changePassword,
-        builder: (context, state) => const ChangePasswordScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const ChangePasswordScreen()),
       ),
 
-      // Stations list (outside shell)
+      // Stations
       GoRoute(
         path: Routes.stations,
-        builder: (context, state) => const StationsScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const StationsScreen()),
       ),
-      // Station map — must be registered before /stations/:id to avoid conflict
       GoRoute(
         path: Routes.stationMap,
-        builder: (context, state) => const StationMapScreen(),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const StationMapScreen()),
       ),
       GoRoute(
         path: '/stations/:id',
-        builder: (context, state) {
+        pageBuilder: (context, state) {
           final stationId = state.pathParameters['id']!;
-          return StationDetailsScreen(stationId: stationId);
+          return _slideFade(state, StationDetailsScreen(stationId: stationId));
         },
       ),
     ],

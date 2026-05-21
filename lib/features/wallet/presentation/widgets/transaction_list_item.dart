@@ -32,8 +32,8 @@ class TransactionListItem extends StatelessWidget {
               height: 44,
               decoration: BoxDecoration(
                 color: transaction.isCredit
-                    ? AppColors.success.withOpacity(0.1)
-                    : AppColors.error.withOpacity(0.1),
+                    ? AppColors.success.withValues(alpha: 0.1)
+                    : AppColors.error.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -55,7 +55,7 @@ class TransactionListItem extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: AppColors.textPrimaryDark,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -66,7 +66,7 @@ class TransactionListItem extends StatelessWidget {
                           dateFormat.format(transaction.createdAt!),
                           style: const TextStyle(
                             fontSize: 13,
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryDark,
                           ),
                         ),
                       if (transaction.reference != null) ...[
@@ -77,14 +77,14 @@ class TransactionListItem extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceVariant,
+                            color: AppColors.surfaceVariantDark,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             transaction.reference!,
                             style: const TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondary,
+                              color: AppColors.textSecondaryDark,
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -118,7 +118,7 @@ class TransactionListItem extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: transaction.isCredit
                         ? AppColors.success
-                        : AppColors.textPrimary,
+                        : AppColors.textPrimaryDark,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -126,7 +126,7 @@ class TransactionListItem extends StatelessWidget {
                   '${numberFormat.format(transaction.balanceAfterTzs)} TZS',
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryDark,
                   ),
                 ),
               ],

@@ -68,7 +68,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Personal Information'),
         elevation: 0,
@@ -100,13 +100,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             Center(
               child: CircleAvatar(
                 radius: 44,
-                backgroundColor: AppColors.primary.withOpacity(0.12),
+                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
                 child: Text(
                   _firstNameCtrl.text.isNotEmpty
                       ? _firstNameCtrl.text[0].toUpperCase()
                       : '?',
                   style: AppTextStyles.headlineMedium.copyWith(
-                    color: AppColors.primary,
+                    color: AppColors.brandLight,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -118,9 +118,9 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.08),
+                  color: AppColors.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   _error!,
@@ -213,24 +213,26 @@ class _Field extends StatelessWidget {
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
+      style: const TextStyle(color: AppColors.textPrimaryDark),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20),
+        prefixIcon: Icon(icon, size: 20, color: AppColors.textSecondaryDark),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.surfaceVariantDark,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.borderDark),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.borderDark),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: AppColors.brandLight, width: 2),
         ),
+        labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
       ),
     );
   }

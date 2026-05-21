@@ -20,7 +20,7 @@ class DispenseHistoryScreen extends ConsumerWidget {
     final requestsState = ref.watch(dispenseProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Dispense History'),
         elevation: 0,
@@ -63,7 +63,7 @@ void _showDetail(BuildContext context, DispenseRequest req) {
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.surfaceDark,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -92,7 +92,7 @@ class _DispenseRequestItem extends StatelessWidget {
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textSecondaryDark;
     }
   }
 
@@ -101,7 +101,7 @@ class _DispenseRequestItem extends StatelessWidget {
     final color = _statusColor();
 
     return Material(
-      color: AppColors.surface,
+      color: AppColors.surfaceElevatedDark,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -110,7 +110,7 @@ class _DispenseRequestItem extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.borderDark),
           ),
           child: Row(
             children: [
@@ -118,7 +118,7 @@ class _DispenseRequestItem extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(Icons.local_gas_station, color: color, size: 22),
@@ -133,7 +133,9 @@ class _DispenseRequestItem extends StatelessWidget {
                       children: [
                         Text(
                           '${_litersFormat.format(request.requestedLiters)} L',
-                          style: AppTextStyles.titleSmall,
+                          style: AppTextStyles.titleSmall.copyWith(
+                            color: AppColors.textPrimaryDark,
+                          ),
                         ),
                         _StatusBadge(status: request.status, color: color),
                       ],
@@ -142,13 +144,13 @@ class _DispenseRequestItem extends StatelessWidget {
                     Text(
                       '${_currencyFormat.format(request.estimatedCostTzs)} TZS',
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: AppColors.textSecondaryDark),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _dateFormat.format(request.createdAt),
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondary),
+                          .copyWith(color: AppColors.textSecondaryDark),
                     ),
                     if (request.isCompleted && request.actualLiters != null) ...[
                       const SizedBox(height: 4),
@@ -165,7 +167,7 @@ class _DispenseRequestItem extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondary, size: 20),
+                  color: AppColors.textSecondaryDark, size: 20),
             ],
           ),
         ),
@@ -201,7 +203,7 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -232,7 +234,7 @@ class _DetailSheet extends StatelessWidget {
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textSecondaryDark;
     }
   }
 
@@ -274,7 +276,7 @@ class _DetailSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.borderDark,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -288,11 +290,10 @@ class _DetailSheet extends StatelessWidget {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: _statusColor.withOpacity(0.12),
+                      color: _statusColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child:
-                        Icon(_statusIcon, color: _statusColor, size: 32),
+                    child: Icon(_statusIcon, color: _statusColor, size: 32),
                   ),
                   const SizedBox(height: 12),
                   Text(request.formattedStatus,
@@ -301,12 +302,14 @@ class _DetailSheet extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     '${_litersFormat.format(request.actualLiters ?? request.requestedLiters)} L',
-                    style: AppTextStyles.headlineMedium,
+                    style: AppTextStyles.headlineMedium.copyWith(
+                      color: AppColors.textPrimaryDark,
+                    ),
                   ),
                   Text(
                     '${_currencyFormat.format(cost)} TZS',
                     style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textSecondary),
+                        .copyWith(color: AppColors.textSecondaryDark),
                   ),
                 ],
               ),
@@ -317,9 +320,9 @@ class _DetailSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.background,
+                color: AppColors.surfaceVariantDark,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: AppColors.borderDark),
               ),
               child: Column(
                 children: [
@@ -368,13 +371,13 @@ class _DetailSheet extends StatelessWidget {
                     children: [
                       Text('Request ID',
                           style: AppTextStyles.labelSmall
-                              .copyWith(color: AppColors.textSecondary)),
+                              .copyWith(color: AppColors.textSecondaryDark)),
                       const SizedBox(height: 2),
                       Text(
                         request.id,
                         style: AppTextStyles.bodySmall.copyWith(
                           fontFamily: 'monospace',
-                          color: AppColors.textPrimary,
+                          color: AppColors.textPrimaryDark,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -382,9 +385,8 @@ class _DetailSheet extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon:
-                      const Icon(Icons.copy_outlined, size: 18),
-                  color: AppColors.textSecondary,
+                  icon: const Icon(Icons.copy_outlined, size: 18),
+                  color: AppColors.textSecondaryDark,
                   tooltip: 'Copy ID',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: request.id));
@@ -422,14 +424,14 @@ class _Row extends StatelessWidget {
             width: 110,
             child: Text(label,
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary)),
+                    .copyWith(color: AppColors.textSecondaryDark)),
           ),
           Expanded(
             child: Text(
               value,
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.textPrimary,
+                color: valueColor ?? AppColors.textPrimaryDark,
               ),
             ),
           ),
@@ -452,16 +454,23 @@ class _EmptyView extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.local_gas_station_outlined,
-                size: 64, color: AppColors.textSecondary.withOpacity(0.4)),
+            Icon(
+              Icons.local_gas_station_outlined,
+              size: 64,
+              color: AppColors.textSecondaryDark.withValues(alpha: 0.4),
+            ),
             const SizedBox(height: 16),
-            Text('No dispense requests yet',
-                style: AppTextStyles.titleSmall),
+            Text(
+              'No dispense requests yet',
+              style: AppTextStyles.titleSmall.copyWith(
+                color: AppColors.textPrimaryDark,
+              ),
+            ),
             const SizedBox(height: 8),
             Text(
               'Your fuel dispense history will appear here.',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+                  .copyWith(color: AppColors.textSecondaryDark),
               textAlign: TextAlign.center,
             ),
           ],
@@ -489,7 +498,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(error,
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondary),
+                    .copyWith(color: AppColors.textSecondaryDark),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(

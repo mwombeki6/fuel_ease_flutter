@@ -10,7 +10,7 @@ import 'package:fuel_ease_flutter/shared/theme/app_text_styles.dart';
 void showTransactionDetail(BuildContext context, WalletTransaction transaction) {
   showModalBottomSheet(
     context: context,
-    backgroundColor: AppColors.surface,
+    backgroundColor: AppColors.surfaceDark,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -49,7 +49,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 24),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.borderDark,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -62,7 +62,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                   width: 52,
                   height: 52,
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.12),
+                    color: color.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Icon(
@@ -76,12 +76,17 @@ class _TransactionDetailSheet extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(transaction.formattedType, style: AppTextStyles.titleMedium),
+                      Text(
+                        transaction.formattedType,
+                        style: AppTextStyles.titleMedium.copyWith(
+                          color: AppColors.textPrimaryDark,
+                        ),
+                      ),
                       if (transaction.createdAt != null)
                         Text(
                           _formatDateTime(transaction.createdAt!),
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryDark,
                           ),
                         ),
                     ],
@@ -97,7 +102,7 @@ class _TransactionDetailSheet extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 20),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.06),
+                color: color.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -113,7 +118,7 @@ class _TransactionDetailSheet extends StatelessWidget {
                   Text(
                     'Balance after: ${NumberFormat('#,##0').format(transaction.balanceAfterTzs)} TZS',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                   ),
                 ],
@@ -121,7 +126,7 @@ class _TransactionDetailSheet extends StatelessWidget {
             ),
 
             const SizedBox(height: 20),
-            const Divider(height: 1),
+            Divider(height: 1, color: AppColors.borderDark),
             const SizedBox(height: 16),
 
             // Details
@@ -143,6 +148,8 @@ class _TransactionDetailSheet extends StatelessWidget {
                 onPressed: () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: AppColors.borderDark),
+                  foregroundColor: AppColors.textPrimaryDark,
                 ),
                 child: const Text('Close'),
               ),
@@ -191,7 +198,7 @@ class _Row extends StatelessWidget {
             child: Text(
               label,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryDark,
               ),
             ),
           ),
@@ -204,7 +211,7 @@ class _Row extends StatelessWidget {
                   .copyWith(
                 fontWeight: FontWeight.w600,
                 fontSize: small ? 11 : 14,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
             ),
           ),

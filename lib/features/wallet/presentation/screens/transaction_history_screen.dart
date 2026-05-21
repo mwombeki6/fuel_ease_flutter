@@ -96,7 +96,7 @@ class _TransactionHistoryScreenState
     final asyncTx = ref.watch(_transactionListProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Transaction History'),
         elevation: 0,
@@ -114,7 +114,7 @@ class _TransactionHistoryScreenState
           // Filter chips
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.surface,
+            color: AppColors.surfaceDark,
             child: Row(
               children: [
                 _Chip(
@@ -157,7 +157,7 @@ class _TransactionHistoryScreenState
                     itemCount: items.length + 1,
                     separatorBuilder: (context2, idx2) => Divider(
                       height: 1,
-                      color: AppColors.border,
+                      color: AppColors.borderDark,
                       indent: 72,
                     ),
                     itemBuilder: (context, index) {
@@ -211,7 +211,7 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceVariant,
+          color: selected ? AppColors.primary : AppColors.surfaceVariantDark,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -228,7 +228,7 @@ class _Chip extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
-                color: selected ? Colors.white : AppColors.textPrimary,
+                color: selected ? Colors.white : AppColors.textPrimaryDark,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -272,7 +272,7 @@ class _Empty extends StatelessWidget {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: AppColors.textSecondary.withOpacity(0.4),
+              color: AppColors.textSecondaryDark.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(msg, style: AppTextStyles.titleSmall),
@@ -282,7 +282,7 @@ class _Empty extends StatelessWidget {
                   ? 'Your transaction history will appear here'
                   : 'Change filter to view other transactions',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryDark,
               ),
               textAlign: TextAlign.center,
             ),
@@ -314,7 +314,7 @@ class _Error extends StatelessWidget {
             Text(
               message,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryDark,
               ),
               textAlign: TextAlign.center,
             ),

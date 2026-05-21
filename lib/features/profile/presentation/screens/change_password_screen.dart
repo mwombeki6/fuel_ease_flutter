@@ -82,7 +82,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Change Password'),
         elevation: 0,
@@ -96,14 +96,14 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.08),
+                color: AppColors.info.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.info.withOpacity(0.25)),
+                border: Border.all(color: AppColors.info.withValues(alpha: 0.25)),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(Icons.info_outline, size: 18, color: AppColors.info),
+                  const Icon(Icons.info_outline, size: 18, color: AppColors.info),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
@@ -123,9 +123,9 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withOpacity(0.08),
+                  color: AppColors.error.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                 ),
                 child: Text(
                   _error!,
@@ -223,30 +223,34 @@ class _PasswordField extends StatelessWidget {
       controller: controller,
       obscureText: !show,
       validator: validator,
+      style: const TextStyle(color: AppColors.textPrimaryDark),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline, size: 20),
+        prefixIcon: const Icon(Icons.lock_outline,
+            size: 20, color: AppColors.textSecondaryDark),
         suffixIcon: IconButton(
           icon: Icon(
             show ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             size: 20,
+            color: AppColors.textSecondaryDark,
           ),
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: AppColors.surface,
+        fillColor: AppColors.surfaceVariantDark,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.borderDark),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.border),
+          borderSide: const BorderSide(color: AppColors.borderDark),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.primary, width: 2),
+          borderSide: const BorderSide(color: AppColors.brandLight, width: 2),
         ),
+        labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
       ),
     );
   }

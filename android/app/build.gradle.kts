@@ -20,21 +20,47 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.fuelease.fuel_ease_flutter"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        minSdk = flutter.minSdkVersion // flutter_secure_storage (encryptedSharedPreferences) + geolocator require API 23+
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        // Release signing — override by setting these properties in
+        // ~/.gradle/gradle.properties or via CI environment variables:
+        //   FUELEASE_KEYSTORE_PATH, FUELEASE_KEYSTORE_PASSWORD,
+        //   FUELEASE_KEY_ALIAS, FUELEASE_KEY_PASSWORD
+        create("release") {
+            val keystorePath = System.getenv("FUELEASE_KEYSTORE_PATH")
+                ?: project.findProperty("FUELEASE_KEYSTORE_PATH") as String?
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("FUELEASE_KEYSTORE_PASSWORD")
+                    ?: project.findProperty("FUELEASE_KEYSTORE_PASSWORD") as String?
+                keyAlias = System.getenv("FUELEASE_KEY_ALIAS")
+                    ?: project.findProperty("FUELEASE_KEY_ALIAS") as String?
+                keyPassword = System.getenv("FUELEASE_KEY_PASSWORD")
+                    ?: project.findProperty("FUELEASE_KEY_PASSWORD") as String?
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            val hasKeystore = System.getenv("FUELEASE_KEYSTORE_PATH") != null
+                || project.hasProperty("FUELEASE_KEYSTORE_PATH")
+            signingConfig = if (hasKeystore)
+                signingConfigs.getByName("release")
+            else
+                signingConfigs.getByName("debug") // fallback for local dev
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 }

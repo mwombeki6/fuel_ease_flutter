@@ -59,7 +59,7 @@ class _CardPendingScreenState extends ConsumerState<CardPendingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Card Application'),
         elevation: 0,
@@ -75,7 +75,7 @@ class _CardPendingScreenState extends ConsumerState<CardPendingScreen> {
               width: 96,
               height: 96,
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.12),
+                color: AppColors.warning.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -90,7 +90,7 @@ class _CardPendingScreenState extends ConsumerState<CardPendingScreen> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
               textAlign: TextAlign.center,
             ),
@@ -99,7 +99,7 @@ class _CardPendingScreenState extends ConsumerState<CardPendingScreen> {
               'Your card is being reviewed. This typically takes up to 48 hours. We\'ll notify you when it\'s ready.',
               style: TextStyle(
                 fontSize: 15,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryDark,
                 height: 1.6,
               ),
               textAlign: TextAlign.center,
@@ -109,7 +109,7 @@ class _CardPendingScreenState extends ConsumerState<CardPendingScreen> {
               'This screen will automatically advance when your card is activated.',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textTertiary,
+                color: AppColors.textTertiaryDark,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,

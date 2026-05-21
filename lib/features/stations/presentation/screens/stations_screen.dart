@@ -76,7 +76,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                     Icon(
                       stationState.fromCache ? Icons.cloud_off : Icons.cloud_done,
                       size: 16,
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -85,7 +85,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                             ? 'Showing cached data'
                             : 'Updated ${DateFormat('MMM d, HH:mm').format(stationState.lastUpdated!)}',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryDark,
                         ),
                       ),
                     ),
@@ -98,9 +98,9 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withOpacity(0.08),
+                    color: AppColors.error.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -127,7 +127,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                   child: Text(
                     'No stations found',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                   ),
                 ),
@@ -245,7 +245,7 @@ class _StationsLoading extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: AppColors.borderDark),
             ),
             child: Shimmer.fromColors(
               baseColor: Colors.grey.shade200,

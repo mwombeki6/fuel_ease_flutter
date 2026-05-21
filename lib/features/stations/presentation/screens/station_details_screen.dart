@@ -32,7 +32,7 @@ class StationDetailsScreen extends ConsumerWidget {
         : const AsyncValue<List<FuelInventoryEntry>>.data([]);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Station Details'),
         elevation: 0,
@@ -135,14 +135,14 @@ class _StationHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevatedDark,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
+        border: Border.all(color: AppColors.borderDark),
+        boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
             blurRadius: 12,
-            offset: const Offset(0, 6),
+            offset: Offset(0, 6),
           ),
         ],
       ),
@@ -156,6 +156,7 @@ class _StationHeader extends StatelessWidget {
                   name,
                   style: AppTextStyles.titleLarge.copyWith(
                     fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimaryDark,
                   ),
                 ),
               ),
@@ -163,7 +164,7 @@ class _StationHeader extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -181,13 +182,14 @@ class _StationHeader extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.location_on, size: 18),
+                Icon(Icons.location_on,
+                    size: 18, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _joinAddress(address, district, region),
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                   ),
                 ),
@@ -197,12 +199,12 @@ class _StationHeader extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.phone, size: 18),
+                Icon(Icons.phone, size: 18, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 8),
                 Text(
                   contactNumber!,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryDark,
                   ),
                 ),
               ],
@@ -212,13 +214,14 @@ class _StationHeader extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                const Icon(Icons.schedule, size: 18),
+                Icon(Icons.schedule,
+                    size: 18, color: AppColors.textSecondaryDark),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     operatingHours!,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                   ),
                 ),
@@ -245,9 +248,9 @@ class _StationHeader extends StatelessWidget {
       case 'MAINTENANCE':
         return AppColors.warning;
       case 'INACTIVE':
-        return AppColors.textSecondary;
+        return AppColors.textSecondaryDark;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textSecondaryDark;
     }
   }
 }
@@ -268,12 +271,14 @@ class _SectionHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTextStyles.titleMedium),
+          Text(title,
+              style: AppTextStyles.titleMedium
+                  .copyWith(color: AppColors.textPrimaryDark)),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondary,
+              color: AppColors.textSecondaryDark,
             ),
           ),
         ],
@@ -301,16 +306,9 @@ class _InventoryGrid extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surfaceElevatedDark,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(color: AppColors.borderDark),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,7 +326,7 @@ class _InventoryGrid extends StatelessWidget {
                   Text(
                     '${percent.toStringAsFixed(0)}%',
                     style: AppTextStyles.labelLarge.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.textSecondaryDark,
                     ),
                   ),
                 ],
@@ -338,7 +336,7 @@ class _InventoryGrid extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
                 child: LinearProgressIndicator(
                   value: percent / 100,
-                  backgroundColor: AppColors.surfaceVariant,
+                  backgroundColor: AppColors.surfaceVariantDark,
                   color: color,
                   minHeight: 10,
                 ),
@@ -347,7 +345,7 @@ class _InventoryGrid extends StatelessWidget {
               Text(
                 '${NumberFormat('#,##0').format(entry.currentLevel)} / ${NumberFormat('#,##0').format(entry.capacity)} L',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary,
+                  color: AppColors.textSecondaryDark,
                 ),
               ),
               if (entry.lastRefill != null) ...[
@@ -355,7 +353,7 @@ class _InventoryGrid extends StatelessWidget {
                 Text(
                   'Last refill: ${entry.lastRefill}',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryDark,
                   ),
                 ),
               ],
@@ -413,16 +411,9 @@ class _PumpList extends StatelessWidget {
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.surfaceElevatedDark,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.border),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            border: Border.all(color: AppColors.borderDark),
           ),
           child: Row(
             children: [
@@ -430,7 +421,7 @@ class _PumpList extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: statusColor.withOpacity(0.12),
+                  color: statusColor.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -447,13 +438,14 @@ class _PumpList extends StatelessWidget {
                       'Pump ${pump.pumpNumber}',
                       style: AppTextStyles.titleSmall.copyWith(
                         fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimaryDark,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       pump.fuelType.toUpperCase(),
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondary,
+                        color: AppColors.textSecondaryDark,
                       ),
                     ),
                     if (flowRate != null) ...[
@@ -461,7 +453,7 @@ class _PumpList extends StatelessWidget {
                       Text(
                         'Flow rate: ${flowRate.toString()} L/s',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
+                          color: AppColors.textSecondaryDark,
                         ),
                       ),
                     ],
@@ -475,7 +467,7 @@ class _PumpList extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.12),
+                      color: statusColor.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(999),
                     ),
                     child: Text(
@@ -503,7 +495,7 @@ class _PumpList extends StatelessWidget {
                         Text(
                           'Live',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondary,
+                            color: AppColors.textSecondaryDark,
                           ),
                         ),
                       ],
@@ -528,9 +520,9 @@ class _PumpList extends StatelessWidget {
         return AppColors.warning;
       case 'DISABLED':
       case 'INACTIVE':
-        return AppColors.textSecondary;
+        return AppColors.textSecondaryDark;
       default:
-        return AppColors.textSecondary;
+        return AppColors.textSecondaryDark;
     }
   }
 }
@@ -543,9 +535,9 @@ class _SectionLoading extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceElevatedDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderDark),
       ),
       child: const Center(child: CircularProgressIndicator()),
     );
@@ -562,9 +554,9 @@ class _SectionError extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.error.withOpacity(0.08),
+        color: AppColors.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -594,9 +586,9 @@ class _SectionInfo extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.info.withOpacity(0.08),
+        color: AppColors.info.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.info.withOpacity(0.3)),
+        border: Border.all(color: AppColors.info.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
@@ -606,7 +598,7 @@ class _SectionInfo extends StatelessWidget {
             child: Text(
               message,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryDark,
               ),
             ),
           ),
@@ -626,15 +618,15 @@ class _EmptyState extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceElevatedDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderDark),
       ),
       child: Center(
         child: Text(
           message,
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondary,
+            color: AppColors.textSecondaryDark,
           ),
         ),
       ),

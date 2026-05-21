@@ -1,16 +1,21 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
+import 'package:fuel_ease_flutter/core/providers/station_live_activity_provider.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
+import 'package:fuel_ease_flutter/core/services/mapbox_geocoding_service.dart';
+import 'package:fuel_ease_flutter/main.dart' show themeModeProvider;
+import 'package:fuel_ease_flutter/shared/map/map_config.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_status_provider.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
@@ -23,7 +28,16 @@ import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
-const _defaultCenter = LatLng(-6.7924, 39.2083); // Dar es Salaam
+const _defaultCenter = LatLng(-6.7924, 39.2083);
+const _distCalc = Distance();
+
+double _metersTo(LatLng a, LatLng b) =>
+    _distCalc.as(LengthUnit.Meter, a, b);
+
+String _distanceLabel(LatLng from, LatLng to) {
+  final m = _metersTo(from, to);
+  return m < 1000 ? '${m.round()} m' : '${(m / 1000).toStringAsFixed(1)} km';
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HomeScreen — map-first customer experience
@@ -46,14 +60,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final Animation<Offset> _pinPanelSlide;
 
   String _searchQuery = '';
-  StationMapPin? _selectedPin; // currently highlighted on map
-  StationMapPin? _displayPin; // shown in the panel (stays during slide-out)
+  StationMapPin? _selectedPin;
+  StationMapPin? _displayPin;
   bool _locating = false;
   bool _hasSeenConnected = false;
+  LatLng? _userPosition;
+  StreamSubscription<Position>? _positionSub;
+  MapStyle _mapStyle = MapStyle.night;
+  List<GeocodingResult> _suggestions = [];
+  Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
+    final themeMode = ref.read(themeModeProvider);
+    if (themeMode == ThemeMode.light) {
+      _mapStyle = MapStyle.streets;
+    } else if (themeMode == ThemeMode.system) {
+      final brightness =
+          WidgetsBinding.instance.platformDispatcher.platformBrightness;
+      if (brightness == Brightness.light) _mapStyle = MapStyle.streets;
+    }
     _pinPanelCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 380),
@@ -68,10 +95,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         setState(() => _displayPin = null);
       }
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _initLocation());
   }
 
   @override
   void dispose() {
+    _positionSub?.cancel();
+    _debounce?.cancel();
     _mapController.dispose();
     _searchController.dispose();
     _sheetController.dispose();
@@ -79,10 +109,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.dispose();
   }
 
-  Future<void> _goToMyLocation() async {
+  Future<void> _initLocation() async {
     setState(() => _locating = true);
     try {
-      LocationPermission perm = await Geolocator.checkPermission();
+      var perm = await Geolocator.checkPermission();
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
@@ -91,12 +121,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return;
       }
       final pos = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
       );
-      _mapController.move(LatLng(pos.latitude, pos.longitude), 13);
+      final here = LatLng(pos.latitude, pos.longitude);
+      if (mounted) {
+        setState(() => _userPosition = here);
+        _mapController.move(here, 13);
+      }
+      _positionSub = Geolocator.getPositionStream(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          distanceFilter: 20,
+        ),
+      ).listen((p) {
+        if (mounted) {
+          setState(() => _userPosition = LatLng(p.latitude, p.longitude));
+        }
+      });
+    } catch (_) {
+      // Falls back to Dar es Salaam if location is unavailable.
     } finally {
       if (mounted) setState(() => _locating = false);
     }
+  }
+
+  Future<void> _goToMyLocation() async {
+    if (_userPosition != null) {
+      _mapController.move(_userPosition!, 14);
+      return;
+    }
+    await _initLocation();
   }
 
   void _selectPin(StationMapPin pin) {
@@ -124,6 +179,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   Widget build(BuildContext context) {
     final pinsAsync = ref.watch(stationMapPinsProvider);
+    final liveStations = ref.watch(stationLiveActivityProvider);
     final walletState = ref.watch(walletProvider);
     final availableBalance = ref.watch(availableBalanceProvider);
     final authState = ref.watch(authProvider);
@@ -175,15 +231,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             .toList();
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: Stack(
         children: [
           // ── Layer 1: Full-screen Mapbox dark map ──────────────────────────
           _MapLayer(
             mapController: _mapController,
             markers: filtered
-                .map((p) => _buildNamedMarker(p, _selectedPin?.id == p.id))
+                .map((p) => _buildNamedMarker(
+                    p, _selectedPin?.id == p.id, liveStations.contains(p.id)))
                 .toList(),
+            liveStations: liveStations,
+            userPosition: _userPosition,
+            mapStyle: _mapStyle,
             onMapTap: () {
               if (_selectedPin != null) _clearPin();
             },
@@ -196,10 +255,143 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             searchController: _searchController,
             searchQuery: _searchQuery,
             stationCount: filtered.length,
-            onSearchChanged: (q) => setState(() => _searchQuery = q),
+            onSearchChanged: (q) {
+              setState(() => _searchQuery = q);
+              _debounce?.cancel();
+              if (q.isEmpty) {
+                setState(() => _suggestions = []);
+                return;
+              }
+              // Immediate station auto-pan.
+              final stationMatches = pins
+                  .where((p) =>
+                      p.name.toLowerCase().contains(q.toLowerCase()) ||
+                      p.region.toLowerCase().contains(q.toLowerCase()) ||
+                      p.district.toLowerCase().contains(q.toLowerCase()))
+                  .toList();
+              if (stationMatches.length == 1) {
+                _mapController.move(
+                  LatLng(stationMatches.first.lat, stationMatches.first.lng),
+                  14,
+                );
+              }
+              // Debounced geocoding.
+              _debounce = Timer(const Duration(milliseconds: 420), () async {
+                final results = await MapboxGeocodingService.suggest(
+                  q,
+                  proximity: _userPosition,
+                );
+                if (mounted) setState(() => _suggestions = results);
+              });
+            },
           ),
 
-          // ── Layer 3: My location FAB ──────────────────────────────────────
+          // ── Layer 3: Map style picker ─────────────────────────────────────
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(0, 80, 16, 0),
+                child: MapStylePicker(
+                  current: _mapStyle,
+                  onChanged: (s) => setState(() => _mapStyle = s),
+                ),
+              ),
+            ),
+          ),
+
+          // ── Layer 4: Geocoding suggestions dropdown ───────────────────────
+          if (_suggestions.isNotEmpty)
+            SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 72), // clear the search bar
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.15),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: ListView.separated(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _suggestions.length,
+                          separatorBuilder: (ctx, i) => Divider(
+                            height: 1,
+                            indent: 48,
+                            color: Theme.of(ctx)
+                                .colorScheme
+                                .outline
+                                .withValues(alpha: 0.15),
+                          ),
+                          itemBuilder: (_, i) {
+                            final r = _suggestions[i];
+                            return ListTile(
+                              dense: true,
+                              leading: Icon(
+                                r.iconType == IconType.poi
+                                    ? Icons.place_rounded
+                                    : r.iconType == IconType.address
+                                        ? Icons.home_rounded
+                                        : Icons.location_city_rounded,
+                                color: AppColors.primary,
+                                size: 18,
+                              ),
+                              title: Text(
+                                r.name,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.copyWith(fontWeight: FontWeight.w600),
+                              ),
+                              subtitle: r.fullName.isNotEmpty
+                                  ? Text(
+                                      r.fullName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onSurface
+                                                  .withValues(alpha: 0.5)),
+                                    )
+                                  : null,
+                              onTap: () {
+                                HapticFeedback.selectionClick();
+                                _mapController.move(r.center, 13);
+                                setState(() {
+                                  _suggestions = [];
+                                  _searchQuery = '';
+                                });
+                                _searchController.clear();
+                                _debounce?.cancel();
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+          // ── Layer 5: My location FAB ──────────────────────────────────────
           Positioned(
             right: 16,
             bottom: navArea + 240,
@@ -235,6 +427,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 position: _pinPanelSlide,
                 child: _StationDetailPanel(
                   pin: _displayPin!,
+                  distance: _userPosition != null
+                      ? _distanceLabel(
+                          _userPosition!,
+                          LatLng(_displayPin!.lat, _displayPin!.lng),
+                        )
+                      : null,
                   onClose: _clearPin,
                   onFuelUp: () => context.push(
                     Routes.createDispensingRequest,
@@ -249,12 +447,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Marker _buildNamedMarker(StationMapPin pin, bool isSelected) {
+  Marker _buildNamedMarker(StationMapPin pin, bool isSelected, bool isLive) {
     final color = pin.hasSuspension
         ? AppColors.error
-        : pin.status == 'active'
-            ? AppColors.brand
-            : AppColors.statusInactive;
+        : isLive
+            ? AppColors.success
+            : pin.status == 'active'
+                ? AppColors.brand
+                : AppColors.statusInactive;
 
     final name =
         pin.name.length > 18 ? '${pin.name.substring(0, 16)}…' : pin.name;
@@ -308,14 +508,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
               ),
-              if (pin.hasSuspension) ...[
+              if (isLive || pin.hasSuspension) ...[
                 const SizedBox(width: 4),
                 Container(
                   width: 5,
                   height: 5,
-                  decoration: const BoxDecoration(
-                    color: AppColors.error,
+                  decoration: BoxDecoration(
+                    color: isLive
+                        ? (isSelected ? AppColors.success : Colors.white.withValues(alpha: 0.9))
+                        : AppColors.error,
                     shape: BoxShape.circle,
+                    boxShadow: isLive
+                        ? [BoxShadow(color: AppColors.success, blurRadius: 4)]
+                        : null,
                   ),
                 ),
               ],
@@ -336,19 +541,17 @@ class _MapLayer extends StatelessWidget {
     required this.mapController,
     required this.markers,
     required this.onMapTap,
+    required this.mapStyle,
+    required this.liveStations,
+    this.userPosition,
   });
 
   final MapController mapController;
   final List<Marker> markers;
   final VoidCallback onMapTap;
-
-  static String _tileUrl() {
-    final token = ApiConstants.mapboxToken;
-    if (token == 'YOUR_MAPBOX_PUBLIC_TOKEN') {
-      return 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
-    }
-    return 'https://api.mapbox.com/styles/v1/mapbox/dark-v11/tiles/256/{z}/{x}/{y}@2x?access_token=$token';
-  }
+  final MapStyle mapStyle;
+  final Set<String> liveStations;
+  final LatLng? userPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -359,14 +562,43 @@ class _MapLayer extends StatelessWidget {
         initialZoom: 7,
         minZoom: 5,
         maxZoom: 18,
-        onTap: (_, _) => onMapTap(),
+        backgroundColor: mapStyle.mapBackground,
+        onTap: (tapPos, point) => onMapTap(),
       ),
       children: [
         TileLayer(
-          urlTemplate: _tileUrl(),
+          urlTemplate: mapStyle.tileUrl(),
+          tileSize: 512,
+          zoomOffset: -1,
+          keepBuffer: 3,
+          panBuffer: 1,
           userAgentPackageName: 'com.fuelease.app',
         ),
-        MarkerLayer(markers: markers),
+        // Clustered station markers — collapse to count badge below zoom 12
+        MarkerClusterLayerWidget(
+          options: MarkerClusterLayerOptions(
+            maxClusterRadius: 80,
+            size: const Size(52, 52),
+            alignment: Alignment.center,
+            markers: markers,
+            builder: (context, clusterMarkers) => StationClusterMarker(
+              count: clusterMarkers.length,
+            ),
+          ),
+        ),
+        // User position — never clustered
+        if (userPosition != null)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: userPosition!,
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                child: const UserLocationMarker(),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -843,12 +1075,14 @@ class _StationDetailPanel extends StatelessWidget {
     required this.onClose,
     required this.onFuelUp,
     required this.bottomPad,
+    this.distance,
   });
 
   final StationMapPin pin;
   final VoidCallback onClose;
   final VoidCallback onFuelUp;
   final double bottomPad;
+  final String? distance;
 
   @override
   Widget build(BuildContext context) {
@@ -999,6 +1233,14 @@ class _StationDetailPanel extends StatelessWidget {
                         '${pin.activePumps} pump${pin.activePumps != 1 ? 's' : ''} active',
                     color: AppColors.brand,
                   ),
+                  if (distance != null) ...[
+                    const SizedBox(width: 8),
+                    _InfoChip(
+                      icon: Icons.near_me_rounded,
+                      label: distance!,
+                      color: AppColors.primary,
+                    ),
+                  ],
                   if (isSuspended) ...[
                     const SizedBox(width: 8),
                     _InfoChip(

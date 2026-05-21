@@ -21,7 +21,7 @@ class CardDetailsScreen extends ConsumerWidget {
     final cardAsync = ref.watch(cardByIdProvider(cardId));
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Card Details'),
         elevation: 0,
@@ -54,7 +54,7 @@ class CardDetailsScreen extends ConsumerWidget {
               boxShadow: [
                 BoxShadow(
                   color: (card.isActive ? AppColors.primary : Colors.grey)
-                      .withOpacity(0.3),
+                      .withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 4),
                 ),
@@ -70,7 +70,7 @@ class CardDetailsScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Icon(
@@ -85,7 +85,7 @@ class CardDetailsScreen extends ConsumerWidget {
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: Colors.white.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
@@ -118,7 +118,7 @@ class CardDetailsScreen extends ConsumerWidget {
                 Text(
                   'Expires ${card.expiresAt.month.toString().padLeft(2, '0')}/${card.expiresAt.year}',
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 14,
                     letterSpacing: 1,
                   ),
@@ -236,7 +236,7 @@ class CardDetailsScreen extends ConsumerWidget {
   void _shareCard(BuildContext context, dynamic card) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.surfaceDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -252,7 +252,7 @@ class CardDetailsScreen extends ConsumerWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: AppColors.borderDark,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -264,7 +264,7 @@ class CardDetailsScreen extends ConsumerWidget {
             const SizedBox(height: 6),
             const Text(
               'Choose how to share your card information',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              style: TextStyle(fontSize: 13, color: AppColors.textSecondaryDark),
             ),
             const SizedBox(height: 20),
             _ShareOption(
@@ -403,15 +403,15 @@ class CardDetailsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondary,
+                color: AppColors.textSecondaryDark,
               ),
               textAlign: TextAlign.center,
             ),
@@ -445,9 +445,9 @@ class _InfoSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surfaceElevatedDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: AppColors.borderDark),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -457,7 +457,7 @@ class _InfoSection extends StatelessWidget {
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary,
+              color: AppColors.textPrimaryDark,
             ),
           ),
           const SizedBox(height: 16),
@@ -491,7 +491,7 @@ class _InfoRow extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: AppColors.textSecondary,
+            color: AppColors.textSecondaryDark,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -502,7 +502,7 @@ class _InfoRow extends StatelessWidget {
                   label,
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondary,
+                    color: AppColors.textSecondaryDark,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -511,7 +511,7 @@ class _InfoRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: valueColor ?? AppColors.textPrimary,
+                    color: valueColor ?? AppColors.textPrimaryDark,
                   ),
                 ),
               ],
@@ -543,16 +543,16 @@ class _ShareOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.background,
+          color: AppColors.surfaceDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: AppColors.borderDark),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: AppColors.primary, size: 20),
@@ -563,11 +563,11 @@ class _ShareOption extends StatelessWidget {
               style: const TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.textPrimaryDark,
               ),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondary, size: 20),
+            const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark, size: 20),
           ],
         ),
       ),

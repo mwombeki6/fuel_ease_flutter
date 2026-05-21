@@ -47,3 +47,4 @@ dart_defines.json
 firebase_options.dart
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
+lib/core/constants/secrets.dart

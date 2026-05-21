@@ -112,13 +112,13 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
             const SizedBox(height: 20),
             Text(
               'Card ending ****$last4',
-              style: const TextStyle(color: AppColors.textSecondary),
+              style: const TextStyle(color: AppColors.textSecondaryDark),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -147,7 +147,7 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.surfaceDark,
       appBar: AppBar(title: const Text('Create Fuel Card'), elevation: 0),
       body: _loadingCompanies
           ? const Center(child: CircularProgressIndicator())
@@ -160,13 +160,13 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryDark,
                   ),
                 ),
                 const SizedBox(height: 12),
                 _companies.isEmpty
                     ? const Text('No companies available',
-                        style: TextStyle(color: AppColors.textSecondary))
+                        style: TextStyle(color: AppColors.textSecondaryDark))
                     : DropdownButtonFormField<String>(
                         value: _selectedCompanyId,
                         decoration: InputDecoration(
@@ -191,7 +191,7 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: AppColors.textPrimaryDark,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -209,7 +209,7 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
                           : 'Default: 1 year from today',
                       style: TextStyle(
                         color: _selectedExpiry != null
-                            ? AppColors.textPrimary
+                            ? AppColors.textPrimaryDark
                             : AppColors.textTertiary,
                       ),
                     ),

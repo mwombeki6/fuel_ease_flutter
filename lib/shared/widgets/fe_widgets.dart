@@ -469,6 +469,59 @@ class FeTextField extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// UserLocationMarker — pulsing "you are here" dot for flutter_map markers
+// ─────────────────────────────────────────────────────────────────────────────
+
+class UserLocationMarker extends StatelessWidget {
+  const UserLocationMarker({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 44,
+      height: 44,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary.withValues(alpha: 0.25),
+            ),
+          )
+              .animate(onPlay: (c) => c.repeat())
+              .scale(
+                begin: const Offset(0.3, 0.3),
+                end: const Offset(1.2, 1.2),
+                duration: 1600.ms,
+                curve: Curves.easeOut,
+              )
+              .then()
+              .fadeOut(duration: 500.ms),
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary,
+              border: Border.all(color: Colors.white, width: 2.5),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.5),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // SectionHeader — consistent section label
 // ─────────────────────────────────────────────────────────────────────────────
 

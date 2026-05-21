@@ -31,15 +31,15 @@ class QuickActionButton extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                buttonColor.withOpacity(0.14),
-                buttonColor.withOpacity(0.06),
+                buttonColor.withValues(alpha: 0.14),
+                buttonColor.withValues(alpha: 0.06),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: buttonColor.withOpacity(0.3),
+              color: buttonColor.withValues(alpha: 0.3),
               width: 1,
             ),
             boxShadow: [
