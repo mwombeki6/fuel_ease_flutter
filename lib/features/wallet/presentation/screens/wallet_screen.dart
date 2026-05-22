@@ -358,7 +358,7 @@ class _DataChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: Colors.white.withValues(alpha: 0.85)),
+          Icon(icon, size: 13, color: color.withValues(alpha: 0.9)),
           const SizedBox(width: 5),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
