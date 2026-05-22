@@ -1,3 +1,4 @@
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,12 +6,17 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
+import 'package:fuel_ease_flutter/features/cards/presentation/providers/cards_provider.dart';
+import 'package:fuel_ease_flutter/features/wallet/data/models/wallet.dart';
+import 'package:fuel_ease_flutter/features/wallet/presentation/providers/spending_providers.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_detail_sheet.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_list_item.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
+
+import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_summary.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
@@ -24,15 +30,14 @@ class WalletScreen extends ConsumerWidget {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: RefreshIndicator(
         color: AppColors.brand,
-        backgroundColor: AppColors.surfaceDark,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         onRefresh: () async {
           await ref.read(walletProvider.notifier).refresh();
         },
         child: walletState.when(
-          data: (summary) => _buildContent(context, ref, summary),
+          data: (WalletSummary summary) => _buildContent(context, ref, summary),
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => _buildError(context, ref, error),
         ),
@@ -45,22 +50,25 @@ class WalletScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, dynamic summary) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, WalletSummary summary) {
     final wallet = summary.wallet;
     final recentTransactions = summary.recentTransactions ?? [];
+    final weeklySpend = ref.watch(weeklySpendProvider);
+    final activeCards = ref.watch(activeCardsCountProvider);
+    final chartData = ref.watch(spendingChartDataProvider);
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        // Dark pinned app bar
+        // Pinned app bar
         SliverAppBar(
           pinned: true,
-          backgroundColor: AppColors.midnight,
+          backgroundColor: Theme.of(context).colorScheme.surface,
           surfaceTintColor: Colors.transparent,
-          title: const Text(
+          title: Text(
             'My Wallet',
             style: TextStyle(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w700,
               fontSize: 20,
             ),
@@ -69,7 +77,7 @@ class WalletScreen extends ConsumerWidget {
             IconButton(
               icon: Icon(
                 Icons.history_rounded,
-                color: Colors.white.withValues(alpha: 0.7),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               onPressed: () => context.push(Routes.walletTransactions),
               tooltip: 'Transaction History',
@@ -81,7 +89,20 @@ class WalletScreen extends ConsumerWidget {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: _BalanceCard(wallet: wallet, onTopUp: () => context.push(Routes.walletRecharge)),
+            child: _BalanceCard(
+              wallet: wallet,
+              onTopUp: () => context.push(Routes.walletRecharge),
+              weeklySpend: weeklySpend,
+              activeCards: activeCards,
+            ),
+          ),
+        ),
+
+        // Spending chart — NEW
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _SpendingChart(data: chartData),
           ),
         ),
 
@@ -97,7 +118,7 @@ class WalletScreen extends ConsumerWidget {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.9),
+                    color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
                 if (recentTransactions.length >= 5)
@@ -156,23 +177,25 @@ class WalletScreen extends ConsumerWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevatedDark,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+                ),
               ),
               child: Icon(
                 Icons.receipt_long_outlined,
                 size: 36,
-                color: Colors.white.withValues(alpha: 0.25),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'No transactions yet',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -180,7 +203,7 @@ class WalletScreen extends ConsumerWidget {
               'Top up your wallet to get started',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
             ),
@@ -199,18 +222,21 @@ class WalletScreen extends ConsumerWidget {
           children: [
             Icon(Icons.error_outline, size: 56, color: AppColors.error),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Failed to load wallet',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.4)),
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
@@ -228,14 +254,22 @@ class WalletScreen extends ConsumerWidget {
 // ── Animated balance card ──────────────────────────────────────────────────
 
 class _BalanceCard extends StatelessWidget {
-  const _BalanceCard({required this.wallet, required this.onTopUp});
+  const _BalanceCard({
+    required this.wallet,
+    required this.onTopUp,
+    required this.weeklySpend,
+    required this.activeCards,
+  });
 
-  final dynamic wallet;
+  final Wallet wallet;
   final VoidCallback onTopUp;
+  final int weeklySpend;
+  final int activeCards;
 
   @override
   Widget build(BuildContext context) {
     final numberFmt = NumberFormat('#,##0');
+    final compactFmt = NumberFormat.compact();
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -243,11 +277,7 @@ class _BalanceCard extends StatelessWidget {
         gradient: AppColors.brandGradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(
-            color: AppColors.brandGlow,
-            blurRadius: 32,
-            spreadRadius: 2,
-          ),
+          BoxShadow(color: AppColors.brandGlow, blurRadius: 32, spreadRadius: 2),
         ],
       ),
       child: Column(
@@ -274,38 +304,26 @@ class _BalanceCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              _CardChip(
-                icon: Icons.add_rounded,
-                label: 'Top Up',
-                onTap: onTopUp,
-              ),
-              const SizedBox(width: 10),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _CardChip(icon: Icons.add_rounded, label: 'Top Up', onTap: onTopUp),
+                const SizedBox(width: 8),
+                _DataChip(
+                  icon: Icons.trending_up_rounded,
+                  label: 'TZS ${compactFmt.format(weeklySpend)}',
+                  sublabel: 'this week',
+                  color: AppColors.warning,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.account_balance_wallet_rounded,
-                        size: 14, color: Colors.white.withValues(alpha: 0.8)),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Active wallet',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 8),
+                _DataChip(
+                  icon: Icons.credit_card_rounded,
+                  label: '$activeCards active',
+                  color: AppColors.primary,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -313,6 +331,61 @@ class _BalanceCard extends StatelessWidget {
         .animate()
         .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOutCubic)
         .fadeIn(duration: 350.ms);
+  }
+}
+
+class _DataChip extends StatelessWidget {
+  const _DataChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+    this.sublabel,
+  });
+
+  final IconData icon;
+  final String label;
+  final String? sublabel;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: Colors.white.withValues(alpha: 0.85)),
+          const SizedBox(width: 5),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (sublabel != null)
+                Text(
+                  sublabel!,
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.white.withValues(alpha: 0.65),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -348,6 +421,182 @@ class _CardChip extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Spending chart ─────────────────────────────────────────────────────────
+
+class _SpendingChart extends StatefulWidget {
+  const _SpendingChart({required this.data});
+  final Map<int, int> data;
+
+  @override
+  State<_SpendingChart> createState() => _SpendingChartState();
+}
+
+class _SpendingChartState extends State<_SpendingChart> {
+  bool _isDaily = true;
+
+  List<BarChartGroupData> _buildGroups() {
+    if (_isDaily) {
+      return List.generate(30, (i) {
+        final daysAgo = 29 - i;
+        final spend = (widget.data[daysAgo] ?? 0) / 1000.0;
+        return BarChartGroupData(
+          x: i,
+          barRods: [
+            BarChartRodData(
+              toY: spend,
+              color: AppColors.primary,
+              width: 5,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+            ),
+          ],
+        );
+      });
+    }
+    return List.generate(4, (week) {
+      var sum = 0;
+      for (var d = week * 7; d < week * 7 + 7; d++) {
+        sum += widget.data[d] ?? 0;
+      }
+      return BarChartGroupData(
+        x: 3 - week,
+        barRods: [
+          BarChartRodData(
+            toY: sum / 1000.0,
+            color: AppColors.primary,
+            width: 18,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+          ),
+        ],
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final groups = _buildGroups();
+    final maxY = groups
+        .map((g) => g.barRods.first.toY)
+        .fold(0.0, (a, b) => a > b ? a : b);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Spending',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
+                ),
+              ),
+              Row(
+                children: [
+                  _ToggleChip(
+                    label: 'Daily',
+                    selected: _isDaily,
+                    onTap: () => setState(() => _isDaily = true),
+                  ),
+                  const SizedBox(width: 6),
+                  _ToggleChip(
+                    label: 'Weekly',
+                    selected: !_isDaily,
+                    onTap: () => setState(() => _isDaily = false),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 120,
+            child: BarChart(
+              BarChartData(
+                maxY: maxY <= 0 ? 10 : maxY * 1.2,
+                barGroups: groups,
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                barTouchData: BarTouchData(enabled: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 36,
+                      getTitlesWidget: (value, meta) => Text(
+                        '${value.toInt()}K',
+                        style: TextStyle(
+                          fontSize: 9,
+                          color: cs.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+              ),
+              swapAnimationDuration: const Duration(milliseconds: 250),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleChip extends StatelessWidget {
+  const _ToggleChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: selected ? Colors.white : cs.onSurface.withValues(alpha: 0.55),
+          ),
         ),
       ),
     );
