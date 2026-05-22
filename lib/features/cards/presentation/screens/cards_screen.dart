@@ -46,19 +46,18 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: CustomScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: [
-          // Dark pinned app bar
+          // Pinned app bar
           SliverAppBar(
             pinned: true,
-            backgroundColor: AppColors.midnight,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             surfaceTintColor: Colors.transparent,
-            title: const Text(
+            title: Text(
               'Fuel Cards',
               style: TextStyle(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
                 fontWeight: FontWeight.w700,
                 fontSize: 20,
               ),
@@ -138,27 +137,27 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _DarkFilterChip(
+                _FilterChip(
                   label: 'All (${cards.length})',
                   isSelected: _selectedFilter == 'all',
                   onTap: () => setState(() => _selectedFilter = 'all'),
                 ),
                 const SizedBox(width: 8),
-                _DarkFilterChip(
+                _FilterChip(
                   label: 'Active ($activeCount)',
                   isSelected: _selectedFilter == 'active',
                   onTap: () => setState(() => _selectedFilter = 'active'),
                   activeColor: AppColors.success,
                 ),
                 const SizedBox(width: 8),
-                _DarkFilterChip(
+                _FilterChip(
                   label: 'Used ($usedCount)',
                   isSelected: _selectedFilter == 'used',
                   onTap: () => setState(() => _selectedFilter = 'used'),
                   activeColor: AppColors.info,
                 ),
                 const SizedBox(width: 8),
-                _DarkFilterChip(
+                _FilterChip(
                   label: 'Expired',
                   isSelected: _selectedFilter == 'expired',
                   onTap: () => setState(() => _selectedFilter = 'expired'),
@@ -226,25 +225,25 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevatedDark,
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.06),
+                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
                 ),
               ),
               child: Icon(
                 Icons.credit_card_outlined,
                 size: 36,
-                color: Colors.white.withValues(alpha: 0.25),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.25),
               ),
             ),
             const SizedBox(height: 20),
             Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -252,7 +251,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
               description,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
             ),
@@ -278,12 +277,12 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
           children: [
             Icon(Icons.error_outline, size: 56, color: AppColors.error),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Failed to load cards',
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -291,7 +290,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
               error.toString(),
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.white.withValues(alpha: 0.4),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
               ),
               textAlign: TextAlign.center,
             ),
@@ -307,10 +306,10 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
   }
 }
 
-// ── Dark filter chip ───────────────────────────────────────────────────────
+// ── Filter chip ────────────────────────────────────────────────────────────
 
-class _DarkFilterChip extends StatelessWidget {
-  const _DarkFilterChip({
+class _FilterChip extends StatelessWidget {
+  const _FilterChip({
     required this.label,
     required this.isSelected,
     required this.onTap,
@@ -324,6 +323,7 @@ class _DarkFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     final color = activeColor ?? AppColors.brand;
 
     return GestureDetector(
@@ -333,17 +333,18 @@ class _DarkFilterChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           gradient: isSelected ? AppColors.brandGradient : null,
-          color: isSelected ? null : AppColors.surfaceElevatedDark,
+          color: isSelected ? null : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? Colors.transparent : Colors.white.withValues(alpha: 0.08),
+            color: isSelected
+                ? Colors.transparent
+                : cs.outline.withValues(alpha: 0.2),
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: color.withValues(alpha: 0.35),
+                    color: color.withValues(alpha: 0.3),
                     blurRadius: 10,
-                    spreadRadius: 0,
                   )
                 ]
               : null,
@@ -353,7 +354,9 @@ class _DarkFilterChip extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
+            color: isSelected
+                ? Colors.white
+                : cs.onSurface.withValues(alpha: 0.6),
           ),
         ),
       ),
