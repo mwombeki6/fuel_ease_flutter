@@ -46,62 +46,67 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     });
 
     return Scaffold(
-      body: CustomScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        slivers: [
-          // Pinned app bar
-          SliverAppBar(
-            pinned: true,
-            backgroundColor: Theme.of(context).colorScheme.surface,
-            surfaceTintColor: Colors.transparent,
-            title: Text(
-              'Fuel Cards',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
-                fontWeight: FontWeight.w700,
-                fontSize: 20,
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16),
-                child: GestureDetector(
-                  onTap: () => context.push(Routes.createCard),
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      gradient: AppColors.brandGradient,
-                      borderRadius: BorderRadius.circular(10),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.brandGlow,
-                          blurRadius: 12,
-                          spreadRadius: 1,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
-                  ),
+      body: RefreshIndicator(
+        color: AppColors.brand,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        onRefresh: () => ref.read(cardsProvider.notifier).refresh(),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Pinned app bar
+            SliverAppBar(
+              pinned: true,
+              backgroundColor: Theme.of(context).colorScheme.surface,
+              surfaceTintColor: Colors.transparent,
+              title: Text(
+                'Fuel Cards',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
                 ),
               ),
-            ],
-          ),
+              actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 16),
+                  child: GestureDetector(
+                    onTap: () => context.push(Routes.createCard),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        gradient: AppColors.brandGradient,
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.brandGlow,
+                            blurRadius: 12,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.add_rounded, color: Colors.white, size: 20),
+                    ),
+                  ),
+                ),
+              ],
+            ),
 
-          // Content based on state
-          ...cardsState.when(
-            data: (cards) => _buildContent(context, ref, cards, activeCount, totalValue),
-            loading: () => [
-              const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            ],
-            error: (error, stack) => [
-              SliverFillRemaining(
-                child: _buildError(context, ref, error),
-              ),
-            ],
-          ),
-        ],
+            // Content based on state
+            ...cardsState.when(
+              data: (cards) => _buildContent(context, ref, cards, activeCount, totalValue),
+              loading: () => [
+                const SliverFillRemaining(
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+              ],
+              error: (error, stack) => [
+                SliverFillRemaining(
+                  child: _buildError(context, ref, error),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
