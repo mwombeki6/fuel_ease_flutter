@@ -4,7 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
+import 'package:fuel_ease_flutter/features/cards/data/models/fuel_card.dart';
+import 'package:fuel_ease_flutter/features/cards/presentation/providers/card_sessions_provider.dart';
 import 'package:fuel_ease_flutter/features/cards/presentation/providers/cards_provider.dart';
+import 'package:fuel_ease_flutter/features/cards/presentation/widgets/flip_fuel_card.dart';
+import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_map_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 /// Card details screen showing full card information
@@ -21,10 +25,11 @@ class CardDetailsScreen extends ConsumerWidget {
     final cardAsync = ref.watch(cardByIdProvider(cardId));
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Card Details'),
         elevation: 0,
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
       ),
       body: cardAsync.when(
         data: (card) => _buildContent(context, ref, card),
@@ -36,7 +41,7 @@ class CardDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildContent(BuildContext context, WidgetRef ref, dynamic card) {
+  Widget _buildContent(BuildContext context, WidgetRef ref, FuelCard card) {
     final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
 
     return SingleChildScrollView(
@@ -44,98 +49,16 @@ class CardDetailsScreen extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Card visual representation
-          Container(
-            height: 220,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: card.isActive ? AppColors.primary : Colors.grey.shade700,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: (card.isActive ? AppColors.primary : Colors.grey)
-                      .withValues(alpha: 0.3),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Status and logo
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.local_gas_station,
-                        color: Colors.white,
-                        size: 28,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.25),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        card.formattedStatus,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-
-                // Card number
-                Text(
-                  card.cardNumber,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 2,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Expiry
-                Text(
-                  'Expires ${card.expiresAt.month.toString().padLeft(2, '0')}/${card.expiresAt.year}',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 14,
-                    letterSpacing: 1,
-                  ),
-                ),
-                const SizedBox(height: 20),
-
-                // CVV (shown once on creation, hidden afterwards)
-                Text(
-                  card.cvv != null ? 'CVV: ${card.cvv}' : 'CVV: ***',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-              ],
+          // Flip card visual
+          FlipFuelCard(card: card),
+          const SizedBox(height: 6),
+          Center(
+            child: Text(
+              'Tap card to flip',
+              style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
             ),
           ),
           const SizedBox(height: 24),
@@ -188,18 +111,15 @@ class CardDetailsScreen extends ConsumerWidget {
                 ),
               _InfoRow(
                 label: 'Created',
-                value: card.createdAt != null
-                    ? dateFormat.format(card.createdAt!)
-                    : 'N/A',
+                value: dateFormat.format(card.createdAt),
                 icon: Icons.calendar_today_outlined,
               ),
-              if (card.expiresAt != null)
-                _InfoRow(
-                  label: 'Expires',
-                  value: dateFormat.format(card.expiresAt!),
-                  icon: Icons.event_outlined,
-                  valueColor: card.isExpiringSoon ? AppColors.warning : null,
-                ),
+              _InfoRow(
+                label: 'Expires',
+                value: dateFormat.format(card.expiresAt),
+                icon: Icons.event_outlined,
+                valueColor: card.isExpiringSoon ? AppColors.warning : null,
+              ),
               if (card.usedAt != null)
                 _InfoRow(
                   label: 'Used On',
@@ -214,6 +134,11 @@ class CardDetailsScreen extends ConsumerWidget {
                 ),
             ],
           ),
+
+          const SizedBox(height: 24),
+          _SessionsSection(cardId: card.id),
+          const SizedBox(height: 24),
+          _StatusTimeline(card: card),
 
           // Cancel button (only for active cards)
           if (card.isActive) ...[
@@ -233,10 +158,10 @@ class CardDetailsScreen extends ConsumerWidget {
     );
   }
 
-  void _shareCard(BuildContext context, dynamic card) {
+  void _shareCard(BuildContext context, FuelCard card) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -252,7 +177,7 @@ class CardDetailsScreen extends ConsumerWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: Theme.of(ctx).colorScheme.outline.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -262,9 +187,12 @@ class CardDetailsScreen extends ConsumerWidget {
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'Choose how to share your card information',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondaryDark),
+              style: TextStyle(
+                fontSize: 13,
+                color: Theme.of(ctx).colorScheme.onSurface.withValues(alpha: 0.55),
+              ),
             ),
             const SizedBox(height: 20),
             _ShareOption(
@@ -272,7 +200,7 @@ class CardDetailsScreen extends ConsumerWidget {
               label: 'Copy Card Number',
               onTap: () {
                 Clipboard.setData(
-                  ClipboardData(text: card.maskedCardNumber as String),
+                  ClipboardData(text: card.maskedCardNumber),
                 );
                 Navigator.of(ctx).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -318,7 +246,7 @@ class CardDetailsScreen extends ConsumerWidget {
     );
   }
 
-  void _copyCardDetails(BuildContext context, dynamic card) {
+  void _copyCardDetails(BuildContext context, FuelCard card) {
     final details = 'Card: ${card.maskedCardNumber}\nExpires: ${card.expiresAt}';
 
     Clipboard.setData(ClipboardData(text: details));
@@ -403,15 +331,15 @@ class CardDetailsScreen extends ConsumerWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               error.toString(),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
-                color: AppColors.textSecondaryDark,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
               textAlign: TextAlign.center,
             ),
@@ -445,19 +373,19 @@ class _InfoSection extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevatedDark,
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: AppColors.textPrimaryDark,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -491,7 +419,7 @@ class _InfoRow extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: AppColors.textSecondaryDark,
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -500,9 +428,9 @@ class _InfoRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondaryDark,
+                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.55),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -511,7 +439,7 @@ class _InfoRow extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: valueColor ?? AppColors.textPrimaryDark,
+                    color: valueColor ?? Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
               ],
@@ -543,9 +471,9 @@ class _ShareOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.surfaceDark,
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.borderDark),
+          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
@@ -560,17 +488,256 @@ class _ShareOption extends StatelessWidget {
             const SizedBox(width: 14),
             Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryDark,
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right, color: AppColors.textSecondaryDark, size: 20),
+            Icon(
+              Icons.chevron_right,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              size: 20,
+            ),
           ],
         ),
       ),
     );
   }
+}
+
+class _SessionsSection extends ConsumerWidget {
+  const _SessionsSection({required this.cardId});
+  final String cardId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sessions = ref.watch(cardSessionsProvider(cardId));
+    final pinsAsync = ref.watch(stationMapPinsProvider);
+    final cs = Theme.of(context).colorScheme;
+    final dateFmt = DateFormat('MMM d, HH:mm');
+
+    if (sessions.isEmpty) return const SizedBox.shrink();
+
+    final stationNames = pinsAsync.whenOrNull(
+          data: (pins) => {for (final p in pins) p.id: p.name},
+        ) ??
+        {};
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fuel Sessions',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: cs.onSurface),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: cs.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: cs.outline.withValues(alpha: 0.15)),
+          ),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: sessions.length,
+            separatorBuilder: (context, index) =>
+                Divider(height: 1, color: cs.outline.withValues(alpha: 0.12)),
+            itemBuilder: (context, i) {
+              final session = sessions[i];
+              final stationName = stationNames[session.stationId] ??
+                  'Station …${session.stationId.substring(session.stationId.length - 8)}';
+              final liters = session.actualLiters ?? session.requestedLiters;
+              final statusColor = session.isCompleted
+                  ? AppColors.success
+                  : session.isCancelled
+                      ? cs.onSurface.withValues(alpha: 0.4)
+                      : AppColors.warning;
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.local_gas_station_rounded, size: 18, color: statusColor),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(stationName,
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${liters.toStringAsFixed(1)} L • ${dateFmt.format(session.createdAt)}',
+                            style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        session.formattedStatus,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: statusColor),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusTimeline extends StatelessWidget {
+  const _StatusTimeline({required this.card});
+  final FuelCard card;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    final dateFmt = DateFormat('MMM d, yyyy');
+
+    final steps = <_TimelineStep>[
+      _TimelineStep(
+        label: 'Issued',
+        date: dateFmt.format(card.createdAt),
+        reached: true,
+        isCurrent: card.status == 'pending',
+        color: AppColors.primary,
+      ),
+      _TimelineStep(
+        label: 'Active',
+        date: null,
+        reached: card.isActive || card.status == 'blocked' || card.isExpired,
+        isCurrent: card.isActive,
+        color: AppColors.success,
+      ),
+      if (card.status == 'blocked')
+        _TimelineStep(
+          label: 'Blocked',
+          date: null,
+          reached: true,
+          isCurrent: true,
+          color: AppColors.error,
+        ),
+      _TimelineStep(
+        label: 'Expired',
+        date: card.isExpired ? dateFmt.format(card.expiresAt) : null,
+        reached: card.isExpired,
+        isCurrent: card.isExpired && card.status != 'blocked',
+        color: cs.onSurface.withValues(alpha: 0.4),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Card Status',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, color: cs.onSurface),
+        ),
+        const SizedBox(height: 16),
+        ...List.generate(steps.length, (i) {
+          final step = steps[i];
+          final isLast = i == steps.length - 1;
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 28,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 14,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: step.reached ? step.color : cs.outline.withValues(alpha: 0.3),
+                          border: step.isCurrent
+                              ? Border.all(color: step.color, width: 2)
+                              : null,
+                        ),
+                        child: step.isCurrent
+                            ? Center(
+                                child: Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(shape: BoxShape.circle, color: step.color),
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (!isLast)
+                        Expanded(
+                          child: Container(width: 1, color: cs.outline.withValues(alpha: 0.2)),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        step.label,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: step.reached ? cs.onSurface : cs.onSurface.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      if (step.date != null)
+                        Text(
+                          step.date!,
+                          style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.5)),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _TimelineStep {
+  const _TimelineStep({
+    required this.label,
+    required this.date,
+    required this.reached,
+    required this.isCurrent,
+    required this.color,
+  });
+
+  final String label;
+  final String? date;
+  final bool reached;
+  final bool isCurrent;
+  final Color color;
 }
