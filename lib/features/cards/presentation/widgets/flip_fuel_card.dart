@@ -47,7 +47,7 @@ class _CardStatusBadge extends StatelessWidget {
   Color get _color => switch (status) {
         'active' => AppColors.success,
         'blocked' => AppColors.error,
-        'expired' => AppColors.textSecondaryDark,
+        'expired' => Colors.white54,
         _ => AppColors.warning,
       };
 
