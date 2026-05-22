@@ -20,6 +20,9 @@ class CardDetailsScreen extends ConsumerWidget {
 
   final String cardId;
 
+  // Fix: static DateFormat so it's not re-allocated on every build
+  static final _dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cardAsync = ref.watch(cardByIdProvider(cardId));
@@ -42,8 +45,6 @@ class CardDetailsScreen extends ConsumerWidget {
   }
 
   Widget _buildContent(BuildContext context, WidgetRef ref, FuelCard card) {
-    final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -111,19 +112,19 @@ class CardDetailsScreen extends ConsumerWidget {
                 ),
               _InfoRow(
                 label: 'Created',
-                value: dateFormat.format(card.createdAt),
+                value: _dateFormat.format(card.createdAt),
                 icon: Icons.calendar_today_outlined,
               ),
               _InfoRow(
                 label: 'Expires',
-                value: dateFormat.format(card.expiresAt),
+                value: _dateFormat.format(card.expiresAt),
                 icon: Icons.event_outlined,
                 valueColor: card.isExpiringSoon ? AppColors.warning : null,
               ),
               if (card.usedAt != null)
                 _InfoRow(
                   label: 'Used On',
-                  value: dateFormat.format(card.usedAt!),
+                  value: _dateFormat.format(card.usedAt!),
                   icon: Icons.check_circle_outline,
                 ),
               if (card.usedBy != null)
@@ -195,15 +196,18 @@ class CardDetailsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
+            // Fix 2a: label changed from 'Copy Card Number' to 'Copy Card ID'
+            // Fix 3: resolve messenger before pop to avoid stale-context snackbar
             _ShareOption(
               icon: Icons.copy_outlined,
-              label: 'Copy Card Number',
+              label: 'Copy Card ID',
               onTap: () {
+                final messenger = ScaffoldMessenger.of(context);
                 Clipboard.setData(
                   ClipboardData(text: card.maskedCardNumber),
                 );
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Row(
                       children: [
@@ -217,15 +221,18 @@ class CardDetailsScreen extends ConsumerWidget {
                 );
               },
             ),
+            // Fix 2b: format expiresAt as MM/yy instead of raw DateTime.toString()
+            // Fix 3: resolve messenger before pop
             _ShareOption(
               icon: Icons.text_snippet_outlined,
               label: 'Copy Full Details',
               onTap: () {
+                final messenger = ScaffoldMessenger.of(context);
                 final text =
-                    'Card: ${card.maskedCardNumber}\nExpires: ${card.expiresAt}';
+                    'Card: ${card.maskedCardNumber}\nExpires: ${DateFormat('MM/yy').format(card.expiresAt)}';
                 Clipboard.setData(ClipboardData(text: text));
                 Navigator.of(ctx).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
+                messenger.showSnackBar(
                   const SnackBar(
                     content: Row(
                       children: [
@@ -511,14 +518,19 @@ class _SessionsSection extends ConsumerWidget {
   const _SessionsSection({required this.cardId});
   final String cardId;
 
+  // Fix: static DateFormat so it's not re-allocated on every build
+  static final _dateFmt = DateFormat('MMM d, HH:mm');
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Fix 4: watch sessions first, then early-return before subscribing to
+    // stationMapPinsProvider — avoids a needless provider subscription when
+    // there are no sessions to display.
     final sessions = ref.watch(cardSessionsProvider(cardId));
+    if (sessions.isEmpty) return const SizedBox.shrink();
+
     final pinsAsync = ref.watch(stationMapPinsProvider);
     final cs = Theme.of(context).colorScheme;
-    final dateFmt = DateFormat('MMM d, HH:mm');
-
-    if (sessions.isEmpty) return const SizedBox.shrink();
 
     final stationNames = pinsAsync.whenOrNull(
           data: (pins) => {for (final p in pins) p.id: p.name},
@@ -547,8 +559,11 @@ class _SessionsSection extends ConsumerWidget {
                 Divider(height: 1, color: cs.outline.withValues(alpha: 0.12)),
             itemBuilder: (context, i) {
               final session = sessions[i];
-              final stationName = stationNames[session.stationId] ??
-                  'Station …${session.stationId.substring(session.stationId.length - 8)}';
+              // Fix 1: guard against stationId shorter than 8 characters
+              final sid = session.stationId;
+              final stationFallback =
+                  'Station …${sid.length > 8 ? sid.substring(sid.length - 8) : sid}';
+              final stationName = stationNames[session.stationId] ?? stationFallback;
               final liters = session.actualLiters ?? session.requestedLiters;
               final statusColor = session.isCompleted
                   ? AppColors.success
@@ -580,7 +595,7 @@ class _SessionsSection extends ConsumerWidget {
                               overflow: TextOverflow.ellipsis),
                           const SizedBox(height: 2),
                           Text(
-                            '${liters.toStringAsFixed(1)} L • ${dateFmt.format(session.createdAt)}',
+                            '${liters.toStringAsFixed(1)} L • ${_dateFmt.format(session.createdAt)}',
                             style: TextStyle(fontSize: 11, color: cs.onSurface.withValues(alpha: 0.55)),
                           ),
                         ],
@@ -612,15 +627,17 @@ class _StatusTimeline extends StatelessWidget {
   const _StatusTimeline({required this.card});
   final FuelCard card;
 
+  // Fix: static DateFormat so it's not re-allocated on every build
+  static final _dateFmt = DateFormat('MMM d, yyyy');
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final dateFmt = DateFormat('MMM d, yyyy');
 
     final steps = <_TimelineStep>[
       _TimelineStep(
         label: 'Issued',
-        date: dateFmt.format(card.createdAt),
+        date: _dateFmt.format(card.createdAt),
         reached: true,
         isCurrent: card.status == 'pending',
         color: AppColors.primary,
@@ -628,7 +645,8 @@ class _StatusTimeline extends StatelessWidget {
       _TimelineStep(
         label: 'Active',
         date: null,
-        reached: card.isActive || card.status == 'blocked' || card.isExpired,
+        // Fix: include isCancelled so cancelled cards show Active as reached
+        reached: card.isActive || card.status == 'blocked' || card.isExpired || card.isCancelled,
         isCurrent: card.isActive,
         color: AppColors.success,
       ),
@@ -642,7 +660,7 @@ class _StatusTimeline extends StatelessWidget {
         ),
       _TimelineStep(
         label: 'Expired',
-        date: card.isExpired ? dateFmt.format(card.expiresAt) : null,
+        date: card.isExpired ? _dateFmt.format(card.expiresAt) : null,
         reached: card.isExpired,
         isCurrent: card.isExpired && card.status != 'blocked',
         color: cs.onSurface.withValues(alpha: 0.4),
