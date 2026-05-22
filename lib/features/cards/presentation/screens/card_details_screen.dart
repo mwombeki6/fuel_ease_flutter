@@ -254,7 +254,7 @@ class CardDetailsScreen extends ConsumerWidget {
   }
 
   void _copyCardDetails(BuildContext context, FuelCard card) {
-    final details = 'Card: ${card.maskedCardNumber}\nExpires: ${card.expiresAt}';
+    final details = 'Card: ${card.maskedCardNumber}\nExpires: ${_dateFormat.format(card.expiresAt)}';
 
     Clipboard.setData(ClipboardData(text: details));
 
