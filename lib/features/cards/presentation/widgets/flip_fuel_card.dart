@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:fuel_ease_flutter/features/cards/data/models/fuel_card.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
+final _validThruFmt = DateFormat('MM/yy');
+
 // ── EMV chip ────────────────────────────────────────────────────────────────
 
 class ChipPainter extends CustomPainter {
@@ -140,7 +142,7 @@ class CardFrontFace extends StatelessWidget {
                 ),
               ),
               Text(
-                'Expires ${card.expiresAt.month.toString().padLeft(2, '0')}/${card.expiresAt.year.toString().substring(2)}',
+                'Expires ${_validThruFmt.format(card.expiresAt)}',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 11,
@@ -163,9 +165,9 @@ class CardBackFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fmt = DateFormat('MM/yy');
     return Container(
       height: 200,
+      clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
         gradient: _cardGradient(card),
         borderRadius: BorderRadius.circular(16),
@@ -224,7 +226,7 @@ class CardBackFace extends StatelessWidget {
                                 letterSpacing: 1.5)),
                         const SizedBox(height: 4),
                         Text(
-                          fmt.format(card.expiresAt),
+                          _validThruFmt.format(card.expiresAt),
                           style: const TextStyle(
                               color: Colors.white,
                               fontSize: 14,
@@ -266,7 +268,6 @@ class _FlipFuelCardState extends State<FlipFuelCard>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _animation;
-  bool _showFront = true;
 
   @override
   void initState() {
@@ -285,12 +286,11 @@ class _FlipFuelCardState extends State<FlipFuelCard>
 
   void _flip() {
     if (_controller.isAnimating) return;
-    if (_showFront) {
+    if (_controller.isDismissed) {
       _controller.forward();
     } else {
       _controller.reverse();
     }
-    setState(() => _showFront = !_showFront);
   }
 
   @override
