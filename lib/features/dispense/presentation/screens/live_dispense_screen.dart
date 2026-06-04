@@ -33,7 +33,7 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
     });
 
     final (phaseLabel, phaseColor) = switch (state.phase) {
-      LiveDispensePhase.connecting => ('CONNECTING', Colors.white.withValues(alpha: 0.5)),
+      LiveDispensePhase.connecting => ('WAITING', Colors.white.withValues(alpha: 0.5)),
       LiveDispensePhase.flowing => ('FLOWING', AppColors.success),
       LiveDispensePhase.paused => ('PAUSED', Colors.amber),
       LiveDispensePhase.completed => ('DONE', AppColors.success),
@@ -269,7 +269,7 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
   }
 
   String _appBarTitle(LiveDispensePhase phase) => switch (phase) {
-        LiveDispensePhase.connecting => 'Connecting…',
+        LiveDispensePhase.connecting => 'Waiting for Flow',
         LiveDispensePhase.flowing => 'Dispensing…',
         LiveDispensePhase.paused => 'No Signal',
         LiveDispensePhase.completed => 'Done',
@@ -341,7 +341,7 @@ class _LiveSignalRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Text(
-            'Connecting to pump…',
+            'Pump authorized. Waiting for flow…',
             style: TextStyle(
                 fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
           ),

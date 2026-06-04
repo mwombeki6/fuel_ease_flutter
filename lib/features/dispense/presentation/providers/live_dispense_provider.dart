@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
+import 'package:fuel_ease_flutter/features/dispense/data/models/dispense_request.dart';
+import 'package:fuel_ease_flutter/features/dispense/data/repositories/dispense_repository.dart';
 
 enum LiveDispensePhase { connecting, flowing, paused, completed, error }
 
@@ -12,12 +14,14 @@ class LiveDispenseParams {
     required this.stationId,
     required this.requestedLiters,
     required this.pricePerLiterTzs,
+    this.initialMlDispensed = 0.0,
   });
 
   final String requestId;
   final String stationId;
   final double requestedLiters;
   final int pricePerLiterTzs;
+  final double initialMlDispensed;
 
   @override
   bool operator ==(Object other) =>
@@ -83,14 +87,32 @@ class LiveDispenseState {
 class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
   LiveDispenseNotifier(
     LiveDispenseParams params,
-    Stream<Map<String, dynamic>> eventStream,
-  ) : super(LiveDispenseState(
-          phase: LiveDispensePhase.connecting,
+    Stream<Map<String, dynamic>> eventStream, {
+    DispenseRepository? repository,
+    Iterable<Map<String, dynamic>> recentEvents = const [],
+  }) : _repository = repository,
+        super(LiveDispenseState(
+          phase: params.initialMlDispensed > 0
+              ? LiveDispensePhase.flowing
+              : LiveDispensePhase.connecting,
           requestId: params.requestId,
           requestedLiters: params.requestedLiters,
           pricePerLiterTzs: params.pricePerLiterTzs,
+          mlDispensed: params.initialMlDispensed,
+          lastEventAt: params.initialMlDispensed > 0 ? DateTime.now() : null,
         )) {
     _subscription = eventStream.listen(_handleEvent);
+    for (final event in recentEvents) {
+      _handleEvent(event);
+    }
+    _syncFromServer();
+    _snapshotTicker = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (state.phase == LiveDispensePhase.completed ||
+          state.phase == LiveDispensePhase.error) {
+        return;
+      }
+      _syncFromServer();
+    });
     _staleTicker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (state.phase == LiveDispensePhase.flowing && state.isStale) {
         state = state.copyWith(phase: LiveDispensePhase.paused);
@@ -98,8 +120,11 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
     });
   }
 
+  final DispenseRepository? _repository;
   StreamSubscription<Map<String, dynamic>>? _subscription;
   Timer? _staleTicker;
+  Timer? _snapshotTicker;
+  bool _syncing = false;
 
   void _handleEvent(Map<String, dynamic> raw) {
     // Server sends WebMessage: {"channel":"user:<id>","event":"...","data":{...}}
@@ -115,7 +140,8 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
 
     switch (eventType) {
       case 'dispensing_progress':
-        final ml = (data['ml_dispensed'] as num?)?.toDouble() ?? state.mlDispensed;
+        final ml =
+            (data['ml_dispensed'] as num?)?.toDouble() ?? state.mlDispensed;
         state = state.copyWith(
           phase: LiveDispensePhase.flowing,
           mlDispensed: ml,
@@ -125,7 +151,9 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
         final actualMl = (data['actual_ml'] as num?)?.toDouble();
         state = state.copyWith(
           phase: LiveDispensePhase.completed,
+          mlDispensed: actualMl ?? state.mlDispensed,
           actualMl: actualMl,
+          lastEventAt: DateTime.now(),
         );
       case 'error':
         state = state.copyWith(
@@ -135,10 +163,60 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
     }
   }
 
+  Future<void> _syncFromServer() async {
+    final repository = _repository;
+    if (repository == null) return;
+    if (_syncing) return;
+    _syncing = true;
+    try {
+      final request = await repository.getRequest(state.requestId);
+      _applySnapshot(request);
+    } catch (_) {
+      // Realtime is primary; transient snapshot failures should not disrupt UI.
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  void _applySnapshot(DispenseRequest request) {
+    if (request.isCompleted) {
+      final actualMl = request.actualLiters != null
+          ? request.actualLiters! * 1000
+          : state.actualMl;
+      state = state.copyWith(
+        phase: LiveDispensePhase.completed,
+        mlDispensed: actualMl ?? state.mlDispensed,
+        actualMl: actualMl,
+        lastEventAt: DateTime.now(),
+      );
+      return;
+    }
+
+    if (request.isCancelled) {
+      state = state.copyWith(
+        phase: LiveDispensePhase.error,
+        errorMessage: 'Dispense request was cancelled',
+      );
+      return;
+    }
+
+    if (request.isApproved && state.phase == LiveDispensePhase.connecting) {
+      state = state.copyWith(lastEventAt: DateTime.now());
+    }
+
+    if (request.isActive && state.phase == LiveDispensePhase.connecting) {
+      state = state.copyWith(
+        phase: LiveDispensePhase.flowing,
+        lastEventAt: DateTime.now(),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _subscription?.cancel();
     _staleTicker?.cancel();
+    _snapshotTicker?.cancel();
     super.dispose();
   }
 }
@@ -147,6 +225,13 @@ final liveDispenseProvider = StateNotifierProvider.autoDispose
     .family<LiveDispenseNotifier, LiveDispenseState, LiveDispenseParams>(
   (ref, params) {
     final client = ref.watch(realtimeClientProvider);
-    return LiveDispenseNotifier(params, client.stream);
+    final repository = ref.watch(dispenseRepositoryProvider);
+    unawaited(client.connect());
+    return LiveDispenseNotifier(
+      params,
+      client.stream,
+      repository: repository,
+      recentEvents: client.recentEvents(),
+    );
   },
 );

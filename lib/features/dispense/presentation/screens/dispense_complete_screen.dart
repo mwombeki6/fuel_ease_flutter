@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/providers/dispense_provider.dart';
+import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
@@ -43,6 +44,7 @@ class _DispenseCompleteScreenState
       _confettiController.play();
       _checkmarkController.forward();
       HapticFeedback.heavyImpact();
+      _refreshFinancialState();
     });
   }
 
@@ -256,7 +258,12 @@ class _DispenseCompleteScreenState
                         children: [
                           Expanded(
                             child: GestureDetector(
-                              onTap: () => context.go(Routes.walletTransactions),
+                              onTap: () async {
+                                await _refreshFinancialState();
+                                if (mounted) {
+                                  context.go(Routes.walletTransactions);
+                                }
+                              },
                               child: Container(
                                 height: 52,
                                 alignment: Alignment.center,
@@ -279,7 +286,10 @@ class _DispenseCompleteScreenState
                           const SizedBox(width: 12),
                           Expanded(
                             child: GradientButton(
-                              onPressed: () => context.go(Routes.home),
+                              onPressed: () async {
+                                await _refreshFinancialState();
+                                if (mounted) context.go(Routes.home);
+                              },
                               label: 'Done',
                             ),
                           ),
@@ -314,7 +324,10 @@ class _DispenseCompleteScreenState
                     ),
                     const SizedBox(height: 36),
                     GradientButton(
-                      onPressed: () => context.go(Routes.home),
+                      onPressed: () async {
+                        await _refreshFinancialState();
+                        if (mounted) context.go(Routes.home);
+                      },
                       label: 'Done',
                     ),
                   ],
@@ -325,6 +338,10 @@ class _DispenseCompleteScreenState
         ],
       ),
     );
+  }
+
+  Future<void> _refreshFinancialState() async {
+    await ref.read(walletProvider.notifier).refresh();
   }
 }
 

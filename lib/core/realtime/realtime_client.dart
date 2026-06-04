@@ -12,11 +12,14 @@ import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 class RealtimeClient {
   RealtimeClient(this._storage, this._api);
 
+  static const int _maxBufferedEvents = 50;
+
   final SecureStorage _storage;
   final ApiClient _api;
   WebSocket? _socket;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();
   final _statusController = StreamController<RealtimeStatus>.broadcast();
+  final List<_BufferedRealtimeEvent> _recentEvents = [];
   RealtimeStatus _status =
       const RealtimeStatus(state: RealtimeConnectionState.disconnected);
   bool _connecting = false;
@@ -28,6 +31,17 @@ class RealtimeClient {
   Stream<Map<String, dynamic>> get stream => _controller.stream;
   Stream<RealtimeStatus> get statusStream => _statusController.stream;
   RealtimeStatus get status => _status;
+
+  List<Map<String, dynamic>> recentEvents({
+    Duration maxAge = const Duration(seconds: 30),
+  }) {
+    final cutoff = DateTime.now().subtract(maxAge);
+    _recentEvents.removeWhere((event) => event.receivedAt.isBefore(cutoff));
+    return [
+      for (final event in _recentEvents)
+        Map<String, dynamic>.from(event.payload),
+    ];
+  }
 
   Future<void> connect({List<String> channels = const []}) async {
     if (_connecting || _socket != null) return;
@@ -103,7 +117,9 @@ class RealtimeClient {
           try {
             final payload = jsonDecode(event as String);
             if (payload is Map<String, dynamic>) {
-              _controller.add(payload);
+              final message = Map<String, dynamic>.from(payload);
+              _bufferEvent(message);
+              _controller.add(message);
               _emitStatus(
                 _status.copyWith(lastEventAt: DateTime.now()),
               );
@@ -166,6 +182,13 @@ class RealtimeClient {
     }
   }
 
+  void _bufferEvent(Map<String, dynamic> payload) {
+    _recentEvents.add(_BufferedRealtimeEvent(payload, DateTime.now()));
+    if (_recentEvents.length > _maxBufferedEvents) {
+      _recentEvents.removeRange(0, _recentEvents.length - _maxBufferedEvents);
+    }
+  }
+
   void disconnect() {
     _autoReconnect = false;
     _reconnectTimer?.cancel();
@@ -208,6 +231,13 @@ class RealtimeClient {
     _status = status;
     _statusController.add(status);
   }
+}
+
+class _BufferedRealtimeEvent {
+  const _BufferedRealtimeEvent(this.payload, this.receivedAt);
+
+  final Map<String, dynamic> payload;
+  final DateTime receivedAt;
 }
 
 final realtimeClientProvider = Provider<RealtimeClient>((ref) {

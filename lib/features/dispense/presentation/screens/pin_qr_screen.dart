@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/models/dispense_request.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/repositories/dispense_repository.dart';
@@ -48,11 +49,14 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
 
   Timer? _countdownTimer;
   Timer? _pollTimer;
+  StreamSubscription<Map<String, dynamic>>? _realtimeSubscription;
+  bool _hasNavigated = false;
 
   @override
   void initState() {
     super.initState();
     _startCountdown();
+    _startRealtimeListener();
     _startPolling();
   }
 
@@ -60,6 +64,7 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
   void dispose() {
     _countdownTimer?.cancel();
     _pollTimer?.cancel();
+    _realtimeSubscription?.cancel();
     super.dispose();
   }
 
@@ -88,22 +93,10 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
           _latestRequest = request;
           _pollError = null;
         });
-        if (request.isActive && mounted) {
-          _pollTimer?.cancel();
-          _countdownTimer?.cancel();
-          context.pushReplacement(
-            Routes.liveDispense(widget.requestId),
-            extra: LiveDispenseParams(
-              requestId: widget.requestId,
-              stationId: widget.stationId,
-              requestedLiters: widget.requestedLiters,
-              pricePerLiterTzs: widget.pricePerLiterTzs,
-            ),
-          );
+        if ((request.isActive || request.isApproved) && mounted) {
+          _goLive();
         } else if (request.isCompleted) {
-          _pollTimer?.cancel();
-          _countdownTimer?.cancel();
-          if (mounted) context.pushReplacement(Routes.dispenseComplete(widget.requestId));
+          _goComplete();
         } else if (request.isCancelled) {
           _pollTimer?.cancel();
           _countdownTimer?.cancel();
@@ -112,6 +105,57 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
         if (mounted) setState(() => _pollError = e.toString());
       }
     });
+  }
+
+  void _startRealtimeListener() {
+    ref.read(realtimeClientProvider).connect();
+    _realtimeSubscription =
+        ref.read(realtimeClientProvider).stream.listen((raw) {
+      if (!mounted || _hasNavigated) return;
+      final eventType = raw['event']?.toString();
+      if (eventType == null) return;
+
+      final data = raw['data'] is Map
+          ? Map<String, dynamic>.from(raw['data'] as Map)
+          : <String, dynamic>{};
+      if (data['request_id']?.toString() != widget.requestId) return;
+
+      if (eventType == 'dispensing_progress') {
+        _goLive(
+          initialMlDispensed:
+              (data['ml_dispensed'] as num?)?.toDouble() ?? 0.0,
+        );
+      } else if (eventType == 'dispense_complete') {
+        _goComplete();
+      }
+    });
+  }
+
+  void _goLive({double initialMlDispensed = 0.0}) {
+    if (!mounted || _hasNavigated) return;
+    _hasNavigated = true;
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
+    _realtimeSubscription?.cancel();
+    context.pushReplacement(
+      Routes.liveDispense(widget.requestId),
+      extra: LiveDispenseParams(
+        requestId: widget.requestId,
+        stationId: widget.stationId,
+        requestedLiters: widget.requestedLiters,
+        pricePerLiterTzs: widget.pricePerLiterTzs,
+        initialMlDispensed: initialMlDispensed,
+      ),
+    );
+  }
+
+  void _goComplete() {
+    if (!mounted || _hasNavigated) return;
+    _hasNavigated = true;
+    _pollTimer?.cancel();
+    _countdownTimer?.cancel();
+    _realtimeSubscription?.cancel();
+    context.pushReplacement(Routes.dispenseComplete(widget.requestId));
   }
 
   Future<void> _cancelRequest() async {

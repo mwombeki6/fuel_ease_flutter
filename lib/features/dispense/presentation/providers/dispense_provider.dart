@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/models/create_dispense_response.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/models/dispense_request.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/repositories/dispense_repository.dart';
+import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
 
 class DispenseNotifier extends AsyncNotifier<List<DispenseRequest>> {
   @override
@@ -20,12 +21,14 @@ class DispenseNotifier extends AsyncNotifier<List<DispenseRequest>> {
     final response =
         await ref.read(dispenseRepositoryProvider).createRequest(payload);
     await refresh();
+    await ref.read(walletProvider.notifier).refresh();
     return response;
   }
 
   Future<void> cancelRequest(String id) async {
     await ref.read(dispenseRepositoryProvider).cancelRequest(id);
     await refresh();
+    await ref.read(walletProvider.notifier).refresh();
   }
 }
 
