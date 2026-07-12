@@ -82,7 +82,6 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Change Password'),
         elevation: 0,
@@ -174,7 +173,7 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
             ElevatedButton(
               onPressed: _loading ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -219,38 +218,39 @@ class _PasswordField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       obscureText: !show,
       validator: validator,
-      style: const TextStyle(color: AppColors.textPrimaryDark),
+      style: TextStyle(color: cs.onSurface),
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: const Icon(Icons.lock_outline,
-            size: 20, color: AppColors.textSecondaryDark),
+        prefixIcon: Icon(Icons.lock_outline,
+            size: 20, color: cs.onSurface.withValues(alpha: 0.7)),
         suffixIcon: IconButton(
           icon: Icon(
             show ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             size: 20,
-            color: AppColors.textSecondaryDark,
+            color: cs.onSurface.withValues(alpha: 0.7),
           ),
           onPressed: onToggle,
         ),
         filled: true,
-        fillColor: AppColors.surfaceVariantDark,
+        fillColor: cs.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderSide: BorderSide(color: cs.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderSide: BorderSide(color: cs.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brandLight, width: 2),
+          borderSide: BorderSide(color: cs.primary, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
+        labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.7)),
       ),
     );
   }

@@ -40,7 +40,7 @@ class ProfileScreen extends ConsumerWidget {
                   children: [
                     // Gradient bg
                     Container(
-                      decoration: BoxDecoration(gradient: AppColors.nightGradient),
+                      color: cs.surface,
                     ),
                     Positioned(
                       top: -60,
@@ -52,7 +52,7 @@ class ProfileScreen extends ConsumerWidget {
                           gradient: RadialGradient(
                             center: Alignment.topCenter,
                             radius: 0.7,
-                            colors: [AppColors.brandGlow, Colors.transparent],
+                            colors: [cs.primary.withValues(alpha: 0.25), Colors.transparent],
                           ),
                         ),
                       ),
@@ -72,7 +72,7 @@ class ProfileScreen extends ConsumerWidget {
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.brandGlow,
+                                  color: cs.primary.withValues(alpha: 0.25),
                                   blurRadius: 24,
                                   spreadRadius: 2,
                                 ),
@@ -119,14 +119,14 @@ class ProfileScreen extends ConsumerWidget {
               tiles: [
                 _DarkTile(
                   icon: Icons.person_outline,
-                  iconColor: AppColors.brand,
+                  iconColor: cs.primary,
                   title: 'Personal Information',
                   subtitle: 'Update your name and phone',
                   onTap: () => context.push(Routes.editProfile),
                 ),
                 _DarkTile(
                   icon: Icons.lock_outline,
-                  iconColor: AppColors.brandCyan,
+                  iconColor: cs.secondary,
                   title: 'Change Password',
                   subtitle: 'Update your password',
                   onTap: () => context.push(Routes.changePassword),
@@ -234,27 +234,30 @@ class ProfileScreen extends ConsumerWidget {
   void _handleLogout(BuildContext context, WidgetRef ref) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceElevatedDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log Out',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-        content: Text('Are you sure you want to log out?',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.65))),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Cancel',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Log Out',
-                style: TextStyle(
-                    color: AppColors.error, fontWeight: FontWeight.w700)),
-          ),
-        ],
-      ),
+      builder: (ctx) {
+        final cs = Theme.of(ctx).colorScheme;
+        return AlertDialog(
+          backgroundColor: cs.surfaceContainerHighest,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text('Log Out',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+          content: Text('Are you sure you want to log out?',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.65))),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('Cancel',
+                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Log Out',
+                  style: TextStyle(
+                      color: AppColors.error, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed == true && context.mounted) {
       await ref.read(authProvider.notifier).logout();
@@ -517,6 +520,7 @@ class _DarkToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(
@@ -547,8 +551,8 @@ class _DarkToggle extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: AppColors.brand,
-            activeTrackColor: AppColors.brand.withValues(alpha: 0.3),
+            activeColor: cs.primary,
+            activeTrackColor: cs.primary.withValues(alpha: 0.3),
             inactiveThumbColor: Colors.white.withValues(alpha: 0.3),
             inactiveTrackColor: Colors.white.withValues(alpha: 0.08),
           ),
@@ -640,6 +644,7 @@ class _LanguageSheetState extends State<_LanguageSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -662,12 +667,12 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: _selected == lang
-                      ? AppColors.brand.withValues(alpha: 0.12)
+                      ? cs.primary.withValues(alpha: 0.12)
                       : Colors.white.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _selected == lang
-                        ? AppColors.brand.withValues(alpha: 0.4)
+                        ? cs.primary.withValues(alpha: 0.4)
                         : Colors.white.withValues(alpha: 0.06),
                   ),
                 ),
@@ -678,7 +683,7 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                         lang,
                         style: TextStyle(
                           color: _selected == lang
-                              ? AppColors.brand
+                              ? cs.primary
                               : Colors.white.withValues(alpha: 0.7),
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -686,8 +691,8 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                       ),
                     ),
                     if (_selected == lang)
-                      const Icon(Icons.check_rounded,
-                          color: AppColors.brand, size: 18),
+                      Icon(Icons.check_rounded,
+                          color: cs.primary, size: 18),
                   ],
                 ),
               ),
@@ -755,12 +760,12 @@ class _ThemeSheet extends ConsumerWidget {
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: current == opt.$2
-                      ? AppColors.brand.withValues(alpha: 0.12)
+                      ? cs.primary.withValues(alpha: 0.12)
                       : cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: current == opt.$2
-                        ? AppColors.brand.withValues(alpha: 0.4)
+                        ? cs.primary.withValues(alpha: 0.4)
                         : cs.outline.withValues(alpha: 0.3),
                   ),
                 ),
@@ -771,7 +776,7 @@ class _ThemeSheet extends ConsumerWidget {
                         opt.$1,
                         style: TextStyle(
                           color: current == opt.$2
-                              ? AppColors.brand
+                              ? cs.primary
                               : cs.onSurface.withValues(alpha: 0.75),
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -779,8 +784,8 @@ class _ThemeSheet extends ConsumerWidget {
                       ),
                     ),
                     if (current == opt.$2)
-                      const Icon(Icons.check_rounded,
-                          color: AppColors.brand, size: 18),
+                      Icon(Icons.check_rounded,
+                          color: cs.primary, size: 18),
                   ],
                 ),
               ),
@@ -798,14 +803,15 @@ class _HelpSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.65,
       minChildSize: 0.4,
       maxChildSize: 0.9,
       builder: (ctx, ctrl) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceDark,
+        decoration: BoxDecoration(
+          color: cs.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: ListView(
@@ -865,7 +871,7 @@ class _HelpSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.brandGlow,
+                    color: cs.primary.withValues(alpha: 0.25),
                     blurRadius: 20,
                     spreadRadius: 1,
                   ),
@@ -905,14 +911,15 @@ class _TermsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return DraggableScrollableSheet(
       expand: false,
       initialChildSize: 0.7,
       minChildSize: 0.4,
       maxChildSize: 0.95,
       builder: (ctx, ctrl) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceDark,
+        decoration: BoxDecoration(
+          color: cs.surface,
           borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: ListView(
@@ -1003,6 +1010,7 @@ class _FaqItemState extends State<_FaqItem> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: () => setState(() => _open = !_open),
       child: AnimatedContainer(
@@ -1011,12 +1019,12 @@ class _FaqItemState extends State<_FaqItem> {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: _open
-              ? AppColors.surfaceElevatedDark
+              ? cs.surfaceContainerHighest
               : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _open
-                ? AppColors.brand.withValues(alpha: 0.25)
+                ? cs.primary.withValues(alpha: 0.25)
                 : Colors.white.withValues(alpha: 0.07),
           ),
         ),
