@@ -104,6 +104,7 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final cardsState = ref.watch(cardsProvider);
     final stationState = ref.watch(stationSelectionProvider);
     final walletState = ref.watch(walletProvider);
@@ -123,9 +124,9 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
         0;
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.midnight,
+        backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
           icon: Icon(Icons.arrow_back_ios_new_rounded,
@@ -203,7 +204,7 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
 
             GradientButton(
               onPressed: _isLoading ? null : _submit,
-              label: 'Generate PIN & QR Code',
+              label: 'Generate fuel code',
               isLoading: _isLoading,
             )
                 .animate(delay: 200.ms)
@@ -244,6 +245,7 @@ class _DarkBalanceBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),
       child: BackdropFilter(
@@ -251,7 +253,7 @@ class _DarkBalanceBanner extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevatedDark.withValues(alpha: 0.9),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
           ),
@@ -313,10 +315,11 @@ class _DarkCardPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (cards.isEmpty) {
+      final colorScheme = Theme.of(context).colorScheme;
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevatedDark,
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
@@ -357,10 +360,11 @@ class _DarkStationPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (stations.isEmpty) {
+      final colorScheme = Theme.of(context).colorScheme;
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevatedDark,
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
         ),
@@ -406,17 +410,18 @@ class _DarkDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return DropdownButtonFormField<T>(
       value: value,
       isExpanded: true,
-      dropdownColor: AppColors.surfaceElevatedDark,
+      dropdownColor: colorScheme.surfaceContainerHighest,
       style: const TextStyle(color: Colors.white, fontSize: 15),
       iconEnabledColor: Colors.white.withValues(alpha: 0.4),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
         filled: true,
-        fillColor: AppColors.surfaceElevatedDark,
+        fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -427,7 +432,7 @@ class _DarkDropdown<T> extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -463,6 +468,7 @@ class _LockedStationRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final name = stations
         .where((s) => s.id == stationId)
         .map((s) => s.name)
@@ -471,13 +477,13 @@ class _LockedStationRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.brand.withValues(alpha: 0.12),
+        color: colorScheme.primary.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.brand.withValues(alpha: 0.3)),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.location_on_rounded, size: 18, color: AppColors.brand),
+          Icon(Icons.location_on_rounded, size: 18, color: colorScheme.primary),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -491,7 +497,7 @@ class _LockedStationRow extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onEdit,
-            child: const Icon(Icons.edit_outlined, size: 16, color: AppColors.brand),
+            child: Icon(Icons.edit_outlined, size: 16, color: colorScheme.primary),
           ),
         ],
       ),
@@ -507,6 +513,7 @@ class _DarkAmountField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -522,7 +529,7 @@ class _DarkAmountField extends StatelessWidget {
         suffixText: 'L',
         suffixStyle: TextStyle(color: Colors.white.withValues(alpha: 0.55)),
         filled: true,
-        fillColor: AppColors.surfaceElevatedDark,
+        fillColor: colorScheme.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.white.withValues(alpha: 0.1)),
@@ -533,7 +540,7 @@ class _DarkAmountField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
