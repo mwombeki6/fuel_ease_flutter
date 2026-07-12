@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
-
 /// Cards statistics overview card
 class CardsStatsCard extends StatelessWidget {
   const CardsStatsCard({
@@ -18,15 +16,16 @@ class CardsStatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.accent,
+        color: colorScheme.secondary,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppColors.accent.withValues(alpha: 0.3),
+            color: colorScheme.secondary.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

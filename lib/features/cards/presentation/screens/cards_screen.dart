@@ -40,6 +40,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
     final cardsState = ref.watch(cardsProvider);
     final activeCount = ref.watch(activeCardsCountProvider);
     final totalValue = ref.watch(totalCardsValueProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen(cardsProvider, (_, next) {
       next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
@@ -47,8 +48,8 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
 
     return Scaffold(
       body: RefreshIndicator(
-        color: AppColors.brand,
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        color: colorScheme.primary,
+        backgroundColor: colorScheme.surface,
         onRefresh: () => ref.read(cardsProvider.notifier).refresh(),
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -56,12 +57,12 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
             // Pinned app bar
             SliverAppBar(
               pinned: true,
-              backgroundColor: Theme.of(context).colorScheme.surface,
+              backgroundColor: colorScheme.surface,
               surfaceTintColor: Colors.transparent,
               title: Text(
                 'Fuel Cards',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color: colorScheme.onSurface,
                   fontWeight: FontWeight.w700,
                   fontSize: 20,
                 ),
@@ -78,7 +79,7 @@ class _CardsScreenState extends ConsumerState<CardsScreen> {
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.brandGlow,
+                            color: colorScheme.primary.withValues(alpha: 0.25),
                             blurRadius: 12,
                             spreadRadius: 1,
                           ),
@@ -329,7 +330,7 @@ class _FilterChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final color = activeColor ?? AppColors.brand;
+    final color = activeColor ?? cs.primary;
 
     return GestureDetector(
       onTap: onTap,
