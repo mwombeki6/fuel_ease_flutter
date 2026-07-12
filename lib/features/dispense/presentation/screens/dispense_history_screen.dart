@@ -84,7 +84,7 @@ class _DispenseRequestItem extends StatelessWidget {
   final DispenseRequest request;
   final VoidCallback onTap;
 
-  Color _statusColor() {
+  Color _statusColor(BuildContext context) {
     switch (request.status) {
       case 'completed':
         return AppColors.success;
@@ -94,13 +94,13 @@ class _DispenseRequestItem extends StatelessWidget {
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondaryDark;
+        return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor();
+    final color = _statusColor(context);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
@@ -227,7 +227,7 @@ class _DetailSheet extends StatelessWidget {
   const _DetailSheet({required this.request});
   final DispenseRequest request;
 
-  Color get _statusColor {
+  Color _statusColor(BuildContext context) {
     switch (request.status) {
       case 'completed':
         return AppColors.success;
@@ -237,7 +237,7 @@ class _DetailSheet extends StatelessWidget {
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondaryDark;
+        return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
     }
   }
 
@@ -261,6 +261,7 @@ class _DetailSheet extends StatelessWidget {
     final liters = request.actualLiters ?? request.requestedLiters;
     final cost = (liters * request.pricePerLiterTzs).ceil();
     final colorScheme = Theme.of(context).colorScheme;
+    final statusColor = _statusColor(context);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -294,15 +295,15 @@ class _DetailSheet extends StatelessWidget {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: _statusColor.withValues(alpha: 0.15),
+                      color: statusColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(_statusIcon, color: _statusColor, size: 32),
+                    child: Icon(_statusIcon, color: statusColor, size: 32),
                   ),
                   const SizedBox(height: 12),
                   Text(request.formattedStatus,
                       style: AppTextStyles.titleMedium
-                          .copyWith(color: _statusColor)),
+                          .copyWith(color: statusColor)),
                   const SizedBox(height: 4),
                   Text(
                     '${_litersFormat.format(request.actualLiters ?? request.requestedLiters)} L',
@@ -359,7 +360,7 @@ class _DetailSheet extends StatelessWidget {
                   _Row(
                     label: 'Status',
                     value: request.formattedStatus,
-                    valueColor: _statusColor,
+                    valueColor: statusColor,
                   ),
                 ],
               ),
