@@ -72,8 +72,8 @@ void main() {
   });
 
   test(
-      'falls back to the first loaded pin when user location is unresolved '
-      'and nothing is selected', () async {
+      'returns null when location has not resolved and nothing is selected',
+      () async {
     final container = ProviderContainer(
       overrides: [
         stationMapPinsProvider.overrideWith((ref) async => [far, near]),
@@ -84,6 +84,6 @@ void main() {
     await container.read(stationMapPinsProvider.future);
 
     final result = container.read(nearestOrSelectedStationValueProvider);
-    expect(result?.id, 'far');
+    expect(result, isNull);
   });
 }

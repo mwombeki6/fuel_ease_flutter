@@ -23,8 +23,9 @@ double _metersBetween(LatLng a, LatLng b) =>
 
 /// The station the Home station sheet should display: the user's tapped
 /// pin if one is selected, otherwise the nearest pin to their resolved
-/// location, otherwise the first loaded pin as a last-resort default so
-/// consumers always have something to render once pins have loaded.
+/// location. Returns null if pins haven't loaded yet, or if location
+/// hasn't resolved and nothing is explicitly selected — callers must
+/// treat null as "not ready to render" rather than guessing a station.
 final nearestOrSelectedStationValueProvider =
     Provider.autoDispose<StationMapPin?>((ref) {
   final pins = ref.watch(stationMapPinsProvider).valueOrNull;
@@ -38,7 +39,7 @@ final nearestOrSelectedStationValueProvider =
   }
 
   final userLocation = ref.watch(userLocationProvider);
-  if (userLocation == null) return pins.first;
+  if (userLocation == null) return null;
 
   StationMapPin? nearest;
   double? nearestDistance;
