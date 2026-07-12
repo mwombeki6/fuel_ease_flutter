@@ -322,29 +322,25 @@ class _QuickAmountChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final numberFormat = NumberFormat('#,###');
+    final cs = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
-      child: Builder(
-        builder: (context) {
-          final cs = Theme.of(context).colorScheme;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              border: Border.all(color: cs.primary, width: 1.5),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              numberFormat.format(amount),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: cs.primary,
-              ),
-            ),
-          );
-        },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: cs.primary, width: 1.5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          numberFormat.format(amount),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: cs.primary,
+          ),
+        ),
       ),
     );
   }

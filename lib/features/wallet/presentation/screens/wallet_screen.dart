@@ -33,7 +33,7 @@ class WalletScreen extends ConsumerWidget {
     return Scaffold(
       body: RefreshIndicator(
         color: cs.primary,
-        backgroundColor: cs.surface,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         onRefresh: () async {
           await ref.read(walletProvider.notifier).refresh();
         },
