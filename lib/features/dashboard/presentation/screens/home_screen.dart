@@ -383,6 +383,22 @@ class _HomeHeader extends StatelessWidget {
               const HeaderWalletChip(),
               const SizedBox(width: 4),
               IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                // No notifications feed/screen exists anywhere in the app yet
+                // (checked lib/core/routing/routes.dart, app_router.dart, and
+                // lib/features/**): the only related UI is the private
+                // `_NotificationsSheet` in profile_screen.dart, which is a
+                // notification *preferences* toggle sheet, not a feed to
+                // route to. Surface an honest placeholder instead of routing
+                // to the wrong destination or inventing a new screen.
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('No new notifications')),
+                  );
+                },
+                tooltip: 'Notifications',
+              ),
+              IconButton(
                 icon: const Icon(Icons.person_outline_rounded),
                 onPressed: () => context.push(Routes.profile),
                 tooltip: 'Profile',
