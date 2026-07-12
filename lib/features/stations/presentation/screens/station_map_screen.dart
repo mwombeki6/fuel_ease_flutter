@@ -258,7 +258,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
 
           // Build station markers — cluster groups collapse at low zoom
           final stationMarkers = filtered
-              .map((p) => _buildMarker(p, liveStations.contains(p.id)))
+              .map((p) => _buildMarker(p, liveStations.contains(p.id), cs))
               .toList();
 
           // Live pulse overlay markers — placed slightly above each live pin
@@ -306,7 +306,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                       polylines: [
                         Polyline(
                           points: _routePoints!,
-                          color: AppColors.primary,
+                          color: cs.primary,
                           strokeWidth: 5,
                           borderStrokeWidth: 2,
                           borderColor: Colors.white.withValues(alpha: 0.4),
@@ -424,7 +424,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                                       : r.iconType == IconType.address
                                           ? Icons.home_rounded
                                           : Icons.location_city_rounded,
-                                  color: AppColors.primary,
+                                  color: cs.primary,
                                   size: 18,
                                 ),
                                 title: Text(
@@ -479,7 +479,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                   onPressed: _locating ? null : _goToMyLocation,
                   backgroundColor: cs.surface,
                   foregroundColor: _userPosition != null
-                      ? AppColors.primary
+                      ? cs.primary
                       : cs.onSurface.withValues(alpha: 0.5),
                   elevation: 4,
                   child: _locating
@@ -488,7 +488,7 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                           height: 18,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: AppColors.primary,
+                            color: cs.primary,
                           ),
                         )
                       : Icon(_userPosition != null
@@ -515,11 +515,11 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: cs.primary,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: AppColors.primary.withValues(alpha: 0.35),
+                                color: cs.primary.withValues(alpha: 0.35),
                                 blurRadius: 10,
                                 offset: const Offset(0, 3),
                               ),
@@ -632,15 +632,16 @@ class _StationMapScreenState extends ConsumerState<StationMapScreen> {
     );
   }
 
-  Marker _buildMarker(StationMapPin pin, [bool isLive = false]) {
+  Marker _buildMarker(StationMapPin pin, [bool isLive = false, ColorScheme? cs]) {
     final isSelected = _selectedPin?.id == pin.id;
+    final colorScheme = cs ?? Theme.of(context).colorScheme;
     final color = pin.hasSuspension
         ? AppColors.error
         : isLive
             ? AppColors.success
             : pin.status == 'active'
-                ? AppColors.brand
-                : AppColors.statusInactive;
+                ? colorScheme.primary
+                : colorScheme.onSurface.withValues(alpha: 0.4);
 
     final name =
         pin.name.length > 18 ? '${pin.name.substring(0, 16)}…' : pin.name;
@@ -758,7 +759,7 @@ class _StationSheet extends StatelessWidget {
         ? AppColors.error
         : pin.status == 'active'
             ? AppColors.success
-            : AppColors.statusInactive;
+            : cs.onSurface.withValues(alpha: 0.4);
     final canFuelUp = pin.status == 'active' && !isSuspended;
 
     return Container(
@@ -876,7 +877,7 @@ class _StationSheet extends StatelessWidget {
                     Text(
                       distance!,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.primary,
+                            color: cs.primary,
                             fontWeight: FontWeight.w600,
                           ),
                     ),
@@ -894,7 +895,7 @@ class _StationSheet extends StatelessWidget {
                       width: 13,
                       height: 13,
                       child: CircularProgressIndicator(
-                          strokeWidth: 1.5, color: AppColors.primary),
+                          strokeWidth: 1.5, color: cs.primary),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -909,12 +910,12 @@ class _StationSheet extends StatelessWidget {
                 Row(
                   children: [
                     Icon(Icons.directions_car_rounded,
-                        size: 14, color: AppColors.primary),
+                        size: 14, color: cs.primary),
                     const SizedBox(width: 6),
                     Text(
                       '${routeInfo!.distanceKm.toStringAsFixed(1)} km · ${routeInfo!.durationMin} min',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.primary,
+                            color: cs.primary,
                             fontWeight: FontWeight.w600,
                           ),
                     ),
@@ -939,12 +940,12 @@ class _StationSheet extends StatelessWidget {
                     children: [
                       Icon(Icons.directions_rounded,
                           size: 14,
-                          color: AppColors.primary.withValues(alpha: 0.8)),
+                          color: cs.primary.withValues(alpha: 0.8)),
                       const SizedBox(width: 5),
                       Text(
                         'Show route',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: AppColors.primary.withValues(alpha: 0.9),
+                              color: cs.primary.withValues(alpha: 0.9),
                               fontWeight: FontWeight.w600,
                               decoration: TextDecoration.underline,
                             ),
@@ -1034,11 +1035,11 @@ class _NearbySheet extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
+                      color: cs.primary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.near_me_rounded,
-                        color: AppColors.primary, size: 18),
+                    child: Icon(Icons.near_me_rounded,
+                        color: cs.primary, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -1107,7 +1108,7 @@ class _NearbySheet extends StatelessWidget {
                     ? AppColors.error
                     : pin.status == 'active'
                         ? AppColors.success
-                        : AppColors.statusInactive;
+                        : cs.onSurface.withValues(alpha: 0.4);
                 final statusLabel =
                     isSuspended ? 'Suspended' : pin.status;
                 final distM = _metersTo(userPosition, LatLng(pin.lat, pin.lng));
@@ -1220,7 +1221,7 @@ class _NearbySheet extends StatelessWidget {
                                   .textTheme
                                   .labelSmall
                                   ?.copyWith(
-                                    color: AppColors.primary,
+                                    color: cs.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
                             ),
