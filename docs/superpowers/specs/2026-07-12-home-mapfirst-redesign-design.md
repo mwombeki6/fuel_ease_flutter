@@ -167,7 +167,7 @@ Single-line, dismissible-by-navigation (not by swipe-to-dismiss — tapping "Vie
 **`pendingActionsProvider`** (`Provider.autoDispose<PendingAction?>`, new file `lib/features/dashboard/presentation/providers/pending_actions_provider.dart`). The banner **only ever surfaces states the backend currently exposes** — it must not reference wallet-transaction lifecycle states that don't exist yet. Priority order when more than one exists, return the highest-priority one:
 
 1. An in-progress dispense session: `FuelSession.status` where `isActive == true` (existing model, `lib/features/wallet/data/models/fuel_session.dart`) — surfaces as `"Fueling in progress at {stationName}"`.
-2. A dispense session awaiting attendant confirmation (the PIN/QR has been generated but not yet scanned by staff) — surfaces as `"Waiting for attendant confirmation"`. Confirm the exact `FuelSession`/dispense-request state that represents this at implementation time; do not invent a status value that isn't in the model.
+2. A dispense request awaiting pump confirmation (PIN/QR generated, not yet validated by the pump — backend status `pending`, per `DispensingRequest.Status`'s `pending → approved → active → completed` lifecycle) — surfaces as `"Waiting for pump confirmation"`, matching the copy in Section 7. Confirm the exact status value exposed to the Flutter app at implementation time (the app's own `FuelSession.status` getters — `isActive`/`isCompleted`/`isExpired` — don't obviously map 1:1 onto the backend's `pending`/`approved` states; verify before wiring, do not invent a status value that isn't actually returned).
 3. A genuinely low wallet balance, **only if** an existing low-balance threshold/signal is already computed somewhere in the app (check `wallet_provider.dart` before building new threshold logic) — do not introduce a new arbitrary threshold as part of this delivery.
 4. Any other in-flight action the app already tracks (e.g. an unconfirmed recharge, if `RechargeScreen`'s provider exposes an in-flight state — inspect `lib/features/wallet/presentation/providers/` at implementation time for the exact provider name; do not invent one if none exists).
 
@@ -183,28 +183,30 @@ Tapping **Pay** pushes `Routes.createDispensingRequest` (existing `CreateDispens
 
 ---
 
-## 7. "Start fueling" — the Existing PIN/QR Flow, Not Pump Scanning
+## 7. "Start fueling" — PIN/QR at the Pump, Never a Customer-Scans-Pump or Attendant Flow
 
-The approved mockups labeled the station-sheet CTA `Scan pump`, implying the customer scans a QR/code physically posted at the pump. **The backend does not support that flow.** Research findings:
+The approved mockups labeled the station-sheet CTA `Scan pump`, implying the customer scans a QR/code physically posted at the pump. **The backend does not support that flow, and no human attendant is part of the mechanism either.** Findings, cross-checked against both the Go backend code and the project's own architecture clarifications doc (`/home/mwombeki/Desktop/fuel-card/clarifications.pdf`, a stakeholder Q&A that is the authoritative source on this point):
 
-- `mobile_scanner` is pinned in `pubspec.yaml` but is used nowhere in `lib/` — there is no camera-based scan screen today.
-- The existing dispense flow is the *inverse*: the app **generates** a PIN/QR (`PinQrScreen`, `lib/features/dispense/presentation/screens/pin_qr_screen.dart`) that the customer shows to station staff, who scan it. There is no evidence the backend validates a pump-side code the customer's camera would read.
-- `Routes.scanQR = '/fuel/scan'` exists as a constant in `routes.dart` but has no matching `GoRoute` — it is dead code today.
+- The clarifications doc states the intended flow directly: *"Customer generates dispense request on app (online) → Server creates a pre-authorized session → Server returns a 6-digit PIN linked to that session → **Customer enters PIN on pump keypad (or QR scan)** → Device sends PIN to server → Server validates PIN → pushes dispense command with all data to device → Device dispenses."* It also explicitly commits to **Model B** ("online required" — the device always calls the server; there is no self-validating offline token).
+- The backend's `POST /device/validate-pin` is called **only by the pump/device itself**, authenticated via device-specific HMAC/mTLS headers — never by a JWT-authenticated user session and never by an unauthenticated third party. This is the same trust boundary regardless of how the device obtained the PIN: typed on a physical keypad, or decoded from an optically-scanned QR code. Both are firmware-side input methods feeding the identical `{request_id, pin}` call — no backend change either way.
+- **There is no attendant/cashier role wired into auth anywhere in the backend.** The only roles that exist are `customer`, `station_manager`, `station_admin`, `system_admin`, `regulator`. A `StaffMember` table has HR-style roster rows (some literally titled "Cashier"/"Fuel Attendant"), but they have no `user_id`, no login, and cannot call any API. The only human-driven path is a `station_admin`/`system_admin` manual dashboard override (`POST /dispense/:id/approve`) — a management exception path, not a per-transaction confirmation step, and it doesn't take a PIN at all.
+- `mobile_scanner` is pinned in `pubspec.yaml` but used nowhere in `lib/` today — there is no camera-based scan screen in the app. `Routes.scanQR = '/fuel/scan'` exists as a route constant but has no matching `GoRoute` — dead code.
+- **Why device-reads-customer's-QR is the feasible direction, not app-reads-pump's-QR:** the backend's security guarantee is that only a physically-present, cryptographically-authenticated device can trigger a dispense. A pump reading the customer's QR (or the customer typing the PIN on the pump's keypad) preserves that guarantee and requires zero backend changes — just optional firmware capability. The reverse (the customer's app scanning something at the pump) would need a *new*, JWT-authenticated, customer-triggered dispense endpoint with no way to confirm physical presence at the pump (no geofencing exists in this system) — a materially weaker security model, not merely a UI direction change.
 
 **The station-sheet CTA is `Start fueling`, not `Scan pump`, everywhere in the customer-facing UI.** It navigates to `Routes.createDispensingRequest` with `preselectedStationId` set to the sheet's current station (`context.push(Routes.createDispensingRequest, extra: station.id)`), reusing the existing `CreateDispenseScreen → PinQrScreen` flow as-is.
 
-**Required customer-facing copy** inside that flow (update `CreateDispenseScreen`/`PinQrScreen` copy if it currently says anything scan-implying from the customer's own perspective):
+**Required customer-facing copy** inside that flow (update `CreateDispenseScreen`/`PinQrScreen` copy if it currently says anything that implies the customer scans something or that staff are involved):
 
 | Moment | Copy |
 |---|---|
 | Station-sheet button | `Start fueling` |
 | Action that produces the code | `Generate fuel code` |
-| Once the code exists | `Show QR to attendant` |
-| While waiting for staff to scan it | `Waiting for attendant confirmation` |
+| Once the code exists | `Enter this PIN at the pump, or let the pump scan the QR code` |
+| While waiting for confirmation | `Waiting for pump confirmation` |
 
-Never use the word "scan" from the customer's point of view — the customer is not scanning anything; staff scan the customer's generated code.
+Never say "scan" from the customer's point of view, and never mention an attendant/staff member. The customer either types the PIN on the pump's own keypad, or the pump optically reads the QR on their screen — the pump is always the actor doing the reading, and there is no human intermediary.
 
-Building an actual customer-facing camera scanner (using the already-pinned `mobile_scanner`) that reads a code physically posted at the pump is a larger, separate backend + app effort (the backend would need to mint and validate pump-specific codes) and is **out of scope** for this spec — see [Out of Scope](#out-of-scope).
+Building an actual customer-facing camera scanner (using the already-pinned `mobile_scanner`) that reads a code physically posted at the pump — the reverse direction — is a larger, separate, and weaker-security effort (see the feasibility point above) and is **out of scope** for this spec — see [Out of Scope](#out-of-scope).
 
 ---
 
@@ -282,4 +284,4 @@ These are data-model gaps discovered while writing this spec, not design decisio
 | `lib/features/dashboard/presentation/screens/home_screen.dart` | Full rebuild per Section 3; add header Profile icon button → `Routes.profile` |
 | `lib/shared/map/map_config.dart` | Remove `MapStylePicker` UI usage from Home; keep `MapStyle` enum/`StationClusterMarker`/`LiveDispensePulse` if referenced elsewhere, restyle marker colors per Section 1 |
 | `lib/features/dispense/presentation/screens/create_dispense_screen.dart` | Accept `preselectedStationId` entry from the station sheet (if not already supported — confirm at implementation time); correct any customer-facing "scan" copy per Section 7 |
-| `lib/features/dispense/presentation/screens/pin_qr_screen.dart` | Correct customer-facing copy per Section 7's table (`Generate fuel code` / `Show QR to attendant` / `Waiting for attendant confirmation`) |
+| `lib/features/dispense/presentation/screens/pin_qr_screen.dart` | Correct customer-facing copy per Section 7's table (`Generate fuel code` / `Enter this PIN at the pump, or let the pump scan the QR code` / `Waiting for pump confirmation`) |
