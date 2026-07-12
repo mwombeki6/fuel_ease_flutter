@@ -135,4 +135,10 @@ class _StationSheetState extends ConsumerState<StationSheet> {
       },
     );
   }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 }
