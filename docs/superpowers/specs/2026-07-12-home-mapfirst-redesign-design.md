@@ -23,7 +23,7 @@ Replace the brand-blue palette in `lib/shared/theme/app_colors.dart` with the to
 | `textPrimary` | `#211F1A` | Primary text |
 | `textSecondary` | `#8A8578` | Secondary/meta text |
 | `evergreen` | `#1F4D3A` | Brand accent: active nav icon/label, wallet-chip balance text, location-pin icon stroke, available-station map markers, cluster badges |
-| `brightGreen` | `#3FAE5C` | Primary action + success/active: Scan pump button, Pay nav icon fill, Open status text, selected-station map marker |
+| `brightGreen` | `#3FAE5C` | Primary action + success/active: Start fueling button, Pay nav icon fill, Open status text, selected-station map marker |
 | `amber` | `#A3760F` (text) / `#FDF2E3` (surface) | Pending/attention banners |
 | `errorDot` | `#D9534F` | Notification badge dot |
 | `mapCanvas` | `#E9EDE2` | Map background fill |
@@ -42,7 +42,7 @@ Replace the brand-blue palette in `lib/shared/theme/app_colors.dart` with the to
 | `textPrimaryDark` | `#F2F0EA` | Primary text |
 | `textSecondaryDark` | `#A8A296` | Secondary/meta text |
 | `evergreenDark` | `#2A5C46` | Reserved for future brand-fill surfaces on other screens (Cards/Stations/Activity). Not used anywhere on Home in this delivery — see note below. |
-| `brightGreenDark` | `#4BC470` | Does double duty on Home: brand accent (active nav label, wallet-chip text) *and* primary action/success (Scan pump button, Open status, selected marker, Pay icon fill) |
+| `brightGreenDark` | `#4BC470` | Does double duty on Home: brand accent (active nav label, wallet-chip text) *and* primary action/success (Start fueling button, Open status, selected marker, Pay icon fill) |
 | `amberDark` | `#F0CB80` (text) / `#332A17` (surface) | Pending/attention banners |
 | `errorDotDark` | `#E8837E` | Notification badge dot |
 | `mapCanvasDark` | `#1C1A17` | Map background fill |
@@ -89,12 +89,12 @@ Home · Stations · Pay · Activity · Cards
 | Tab | Route | Target screen | Redesign status |
 |---|---|---|---|
 | Home | `Routes.home` | `HomeScreen` (rebuilt, Section 3) | **This spec** |
-| Stations | `Routes.stations` | `StationsScreen` (existing) | Out of scope — future work |
-| Pay | *(not a route — see below)* | — | New, minimal (Section 6) |
-| Activity | *new route, e.g.* `/activity` | `ActivityScreen` (new, thin wrapper) | New, minimal (Section 6) |
+| Stations | `Routes.stations` | `StationsScreen` (existing) | Visual redesign out of scope — future work; reused as-is now |
+| Pay | *(not a route — see below)* | `Routes.createDispensingRequest` on tap | Reuses existing screen (Section 6) |
+| Activity | `Routes.walletTransactions` | `TransactionHistoryScreen` (existing) | Visual redesign out of scope — future work; reused as-is now |
 | Cards | `Routes.cards` | `CardsScreen` (already redesigned) | Already done |
 
-`Routes.wallet` and `Routes.profile` are no longer direct nav-bar destinations. Wallet detail is reached by tapping the header wallet chip (Section 5); Profile needs a new entry point (not designed in this round — flag as a small follow-up, e.g. a settings icon somewhere, since removing Profile's nav slot without replacing its entry point would strand that screen. Recommend the simplest fix: add a profile/settings icon button next to the header bell on Home, reusing `Routes.profile` as-is, until a proper location is designed).
+`Routes.wallet` and `Routes.profile` are no longer direct nav-bar destinations, but both remain reachable through **existing, already-built screens** — no dead ends: wallet detail is reached by tapping the header wallet chip (Section 5, → `Routes.wallet` → existing `WalletScreen`). Profile's nav slot is removed to make room for Stations/Activity, so add a small icon button next to the header bell on Home that pushes `Routes.profile` (existing `ProfileScreen`) — this is a required part of this delivery, not an optional follow-up, since removing Profile's only entry point without replacing it would strand a real, working screen.
 
 Tapping **Pay** does not switch the shell's active tab — it pushes a route (`context.push(...)`) on top of the current tab, matching the old `_CenterFuelButton`'s `context.push(Routes.createDispensingRequest)` pattern. The nav bar's "active tab" visual state is therefore driven by the shell's current route among {Home, Stations, Activity, Cards} only; Pay is never "active" in that sense (consistent with its always-on brand-colored treatment above).
 
@@ -130,19 +130,20 @@ Tapping **Pay** does not switch the shell's active tab — it pushes a route (`c
 
 ---
 
-## 4. Station Bottom Sheet — Three States
+## 4. Station Bottom Sheet — Two States, Grounded in Real Data
 
 **File:** `lib/features/dashboard/presentation/widgets/station_sheet.dart` (new)
 
 Built on Flutter SDK's `DraggableScrollableSheet` (already used elsewhere in the app for the old `_DashboardSheet` — no new package needed; confirmed no dedicated bottom-sheet package exists in `pubspec.yaml`, and none is required).
 
+The approved mockups explored a third, richer sheet state (fuel types, payment methods, amenities, phone number). None of that data exists on `StationMapPin` today. Building a third state that's either empty or full of fabricated placeholder data would misrepresent the product, so **this delivery implements exactly two states**, using only fields the backend actually returns. The richer state stays documented as a future capability — see [Known Gaps](#known-gaps--backend-follow-ups) — not built now.
+
 | State | `initialChildSize` / `minChildSize` | Content |
 |---|---|---|
-| Collapsed | `~0.22` of map-zone height | Station name (18px, `w800`), "Open"/"Closed" status text (right-aligned, colored, no pill background), distance + drive-time subtitle, `Directions` + `Scan pump` buttons side by side (48px tall, `borderRadius: 14`) |
-| Half-expanded | `~0.5` | Adds: fuel types (if available — see [Known Gaps](#known-gaps--backend-follow-ups)), "`{activePumps}` pumps available" (from `StationMapPin.activePumps`, present today), payment methods (if available — see Known Gaps) |
-| Full-expanded | `~0.92` | Adds: address/area (`StationMapPin.region`/`district`, present today), amenities and phone number (**not modeled today** — omit these rows until the backend adds them; do not fabricate placeholder data), `Directions` + `Scan pump` remain pinned at the bottom |
+| Collapsed | `~0.22` of map-zone height | Station name (18px, `w800`), "Open"/"Closed" status text (right-aligned, colored, no pill background), distance + drive-time subtitle (client-computed), `Directions` + `Start fueling` buttons side by side (48px tall, `borderRadius: 14`) |
+| Expanded | `~0.6` | Adds: "`{activePumps}` pumps available" (from `StationMapPin.activePumps`, present today), address/area (`StationMapPin.region`/`district`, present today); `Directions` + `Start fueling` remain pinned at the bottom |
 
-`snap: true`, `snapSizes: [0.22, 0.5, 0.92]`. Corner radius `26` top-only. Drag handle: 36×4px pill, `border`/`borderDark`-toned, centered, 10px top padding.
+`snap: true`, `snapSizes: [0.22, 0.6]`. Corner radius `26` top-only. Drag handle: 36×4px pill, `border`/`borderDark`-toned, centered, 10px top padding.
 
 **Open/closed derivation:** `StationMapPin` has no `isOpen` field. Keep the existing derivation used in the current `home_screen.dart`: open = `status == 'active' && !hasSuspension`.
 
@@ -157,66 +158,97 @@ Single-line, plain text, no border/background container: `"TZS {formattedBalance
 
 ---
 
-## 6. Conditional Alert Banner + Activity/Pay Tabs (minimal)
+## 6. Conditional Alert Banner + Activity/Pay Tabs
 
 ### Alert banner
 
 Single-line, dismissible-by-navigation (not by swipe-to-dismiss — tapping "View" is the only exit), amber-toned, renders only when `pendingActionsProvider` returns a non-null entry.
 
-**`pendingActionsProvider`** (`Provider.autoDispose<PendingAction?>`, new file `lib/features/dashboard/presentation/providers/pending_actions_provider.dart`). Priority order when more than one exists, return the highest-priority one:
+**`pendingActionsProvider`** (`Provider.autoDispose<PendingAction?>`, new file `lib/features/dashboard/presentation/providers/pending_actions_provider.dart`). The banner **only ever surfaces states the backend currently exposes** — it must not reference wallet-transaction lifecycle states that don't exist yet. Priority order when more than one exists, return the highest-priority one:
 
 1. An in-progress dispense session: `FuelSession.status` where `isActive == true` (existing model, `lib/features/wallet/data/models/fuel_session.dart`) — surfaces as `"Fueling in progress at {stationName}"`.
-2. Any other in-flight action the app already tracks (e.g. an unconfirmed recharge, if `RechargeScreen`'s provider exposes an in-flight state — inspect `lib/features/wallet/presentation/providers/` at implementation time for the exact provider name; do not invent one if none exists).
+2. A dispense session awaiting attendant confirmation (the PIN/QR has been generated but not yet scanned by staff) — surfaces as `"Waiting for attendant confirmation"`. Confirm the exact `FuelSession`/dispense-request state that represents this at implementation time; do not invent a status value that isn't in the model.
+3. A genuinely low wallet balance, **only if** an existing low-balance threshold/signal is already computed somewhere in the app (check `wallet_provider.dart` before building new threshold logic) — do not introduce a new arbitrary threshold as part of this delivery.
+4. Any other in-flight action the app already tracks (e.g. an unconfirmed recharge, if `RechargeScreen`'s provider exposes an in-flight state — inspect `lib/features/wallet/presentation/providers/` at implementation time for the exact provider name; do not invent one if none exists).
 
-**Known Gaps** (see below): `WalletTransaction` has no `pending`/`failed`/`reversed` status field today, so those three specific banner triggers named in the approved design ("pending, failed, reversed, or action-required transactions") **cannot be fully implemented against the current backend contract**. Implement the provider against what's available now (dispense-session state); wire the wallet-transaction-status cases as soon as the backend model supports them — the provider's shape (`PendingAction? { type, label, route }`) is designed to accept new `type` variants without a UI change.
+`WalletTransaction` has no `pending`/`failed`/`reversed` status field today. **Do not build UI for those cases in this delivery** — not even behind a flag. The provider's shape (`PendingAction? { type, label, route }`) is designed to accept new `type` variants without a UI rewrite, so wiring them in later (once the backend adds transaction-lifecycle states) is additive, not a rebuild. See [Known Gaps](#known-gaps--backend-follow-ups).
 
-### Activity tab (minimal, new)
+### Activity tab
 
-**File:** `lib/features/dashboard/presentation/screens/activity_screen.dart` (new, thin)
+Routes directly to the existing `Routes.walletTransactions` (`TransactionHistoryScreen`) — **no new screen or route is created for this tab.** A unified wallet+dispense feed was never designed in this round; building a placeholder screen instead of reusing a real, working one would be worse than pointing at the transaction list alone. Revisit as a real design task if a merged feed is wanted later — see [Out of Scope](#out-of-scope).
 
-No unified wallet+dispense feed was designed in this round. For this delivery, `ActivityScreen` renders the existing `TransactionHistoryScreen` content (reuse its body, don't fork it) reached via the new `Routes.activity` path registered in the shell. A true merged activity feed (wallet transactions + dispense sessions) is future work — see [Out of Scope](#out-of-scope).
+### Pay tab
 
-### Pay tab (minimal, new)
-
-Tapping **Pay** pushes `Routes.createDispensingRequest` (existing `CreateDispenseScreen`) — the closest existing "payment hub" entry point. A dedicated Payment Hub screen (scan / manual code / repeat payment, as described during brainstorming) was not designed in this round; this is an interim wire-up, not the final destination. Flag as follow-up design work.
+Tapping **Pay** pushes `Routes.createDispensingRequest` (existing `CreateDispenseScreen`) — the app's existing fueling/payment entry point. This is the real destination for this delivery, not a stand-in. A richer, multi-method Payment Hub (scan / manual code / repeat payment) described during brainstorming was never scoped with real backend support and is future design work — see [Out of Scope](#out-of-scope).
 
 ---
 
-## 7. "Scan pump" — Reconciling With the Existing Dispense Flow
+## 7. "Start fueling" — the Existing PIN/QR Flow, Not Pump Scanning
 
-The approved mockups show `Scan pump` as a station-sheet action implying the customer scans a QR/code physically on the pump. **This does not match the current backend flow.** Research findings:
+The approved mockups labeled the station-sheet CTA `Scan pump`, implying the customer scans a QR/code physically posted at the pump. **The backend does not support that flow.** Research findings:
 
 - `mobile_scanner` is pinned in `pubspec.yaml` but is used nowhere in `lib/` — there is no camera-based scan screen today.
 - The existing dispense flow is the *inverse*: the app **generates** a PIN/QR (`PinQrScreen`, `lib/features/dispense/presentation/screens/pin_qr_screen.dart`) that the customer shows to station staff, who scan it. There is no evidence the backend validates a pump-side code the customer's camera would read.
 - `Routes.scanQR = '/fuel/scan'` exists as a constant in `routes.dart` but has no matching `GoRoute` — it is dead code today.
 
-**Resolution for this delivery:** the `Scan pump` button on the station sheet navigates to `Routes.createDispensingRequest` with `preselectedStationId` set to the sheet's current station (`context.push(Routes.createDispensingRequest, extra: station.id)`), reusing the existing `CreateDispenseScreen → PinQrScreen` flow as-is. This preserves the design intent — the button establishes fueling context for a specific station before anything payment-related happens — without inventing scanning infrastructure the backend doesn't support.
+**The station-sheet CTA is `Start fueling`, not `Scan pump`, everywhere in the customer-facing UI.** It navigates to `Routes.createDispensingRequest` with `preselectedStationId` set to the sheet's current station (`context.push(Routes.createDispensingRequest, extra: station.id)`), reusing the existing `CreateDispenseScreen → PinQrScreen` flow as-is.
 
-Building an actual customer-facing camera scanner (using the already-pinned `mobile_scanner`) that reads a code physically posted at the pump is a larger, separate backend + app effort (the backend would need to mint and validate pump-specific codes) and is **out of scope** for this spec.
+**Required customer-facing copy** inside that flow (update `CreateDispenseScreen`/`PinQrScreen` copy if it currently says anything scan-implying from the customer's own perspective):
+
+| Moment | Copy |
+|---|---|
+| Station-sheet button | `Start fueling` |
+| Action that produces the code | `Generate fuel code` |
+| Once the code exists | `Show QR to attendant` |
+| While waiting for staff to scan it | `Waiting for attendant confirmation` |
+
+Never use the word "scan" from the customer's point of view — the customer is not scanning anything; staff scan the customer's generated code.
+
+Building an actual customer-facing camera scanner (using the already-pinned `mobile_scanner`) that reads a code physically posted at the pump is a larger, separate backend + app effort (the backend would need to mint and validate pump-specific codes) and is **out of scope** for this spec — see [Out of Scope](#out-of-scope).
+
+---
+
+## Delivery Buckets
+
+This spec's work splits into three buckets — carry this split into the implementation plan directly.
+
+### 1. Buildable now (frontend, current backend)
+Design tokens (Section 1), nav-bar rebuild (Section 2), Home screen rebuild including the full-bleed map, floating search, two-state station sheet, header wallet chip, and the `pendingActionsProvider`-driven alert banner restricted to states the backend already exposes (Sections 3-6), and the `Start fueling` copy/flow correction (Section 7).
+
+### 2. Existing-screen migration and route wiring
+Wiring the new nav shell's Stations/Activity/Cards tabs to their existing screens (`StationsScreen`, `TransactionHistoryScreen`, `CardsScreen`) without visual changes to those screens; wiring Pay to the existing `CreateDispensingRequest` flow; adding the required Profile icon button on Home's header that routes to the existing `ProfileScreen`.
+
+### 3. Deferred — needs backend work first
+- Customer-side camera QR/pump scanning (Section 7) — needs the backend to mint and validate pump-specific codes.
+- Richer station metadata: fuel types, payment methods, amenities, phone (Section 4) — needs new fields on `StationMapPin`/its backing API.
+- Wallet-transaction lifecycle statuses (`pending`/`failed`/`reversed`) (Section 6) — needs a status field added to `WalletTransaction`.
+- A dedicated multi-method Payment Hub screen for the Pay tab (Section 6).
+- A unified wallet+dispense Activity feed (Section 6).
+- Full visual redesigns of `StationsScreen`, `TransactionHistoryScreen`, `ProfileScreen`, all `dispense/` screens, `auth/` screens, `recharge_screen.dart`.
 
 ---
 
 ## Known Gaps / Backend Follow-ups
 
-These are data-model gaps discovered while writing this spec, not design decisions. The Home UI is built to degrade gracefully around them (omit the row/chip rather than fabricate data) and should be revisited once the backend adds the fields.
+These are data-model gaps discovered while writing this spec, not design decisions. The current delivery is scoped to avoid needing them — see [Delivery Buckets](#delivery-buckets) bucket 3 — rather than building UI that fabricates or partially covers the missing data.
 
-| Gap | Current state | Affects |
+| Gap | Current state | Handling in this delivery |
 |---|---|---|
-| Station fuel types | `StationMapPin` has no `fuelTypes` field | Station sheet half/full-expanded states — omit the "Petrol · Diesel" row until available |
-| Station payment methods | `StationMapPin` has no supported-payment-methods field | Station sheet half-expanded state — omit until available |
-| Station amenities/phone | Not modeled | Station sheet full-expanded state — omit until available |
-| Wallet transaction status (`pending`/`failed`/`reversed`) | `WalletTransaction` only has `type: credit\|debit`, no status field | Conditional alert banner can't surface these three cases yet — see Section 6 |
-| Profile nav entry point | Removed from the 5-item bottom nav in favor of Stations/Activity | Needs a small follow-up (icon button on Home header, or another location) — not designed in this round |
-| Duplicate `walletTransactionsProvider` | Defined independently in both `wallet_provider.dart` and `wallet_transactions_provider.dart` with different signatures | Pre-existing tech debt, unrelated to this redesign; use `recentTransactionsProvider` (from `wallet_transactions_provider.dart`) for any Home/Activity read in this delivery, don't fix the duplication as part of this work |
+| Station fuel types | `StationMapPin` has no `fuelTypes` field | Not shown anywhere — not part of either sheet state (Section 4) |
+| Station payment methods | `StationMapPin` has no supported-payment-methods field | Not shown anywhere — not part of either sheet state (Section 4) |
+| Station amenities/phone | Not modeled | Not shown anywhere — the richer third sheet state that would have needed these is deferred, not built (Section 4) |
+| Wallet transaction status (`pending`/`failed`/`reversed`) | `WalletTransaction` only has `type: credit\|debit`, no status field | Alert banner never references these states; only backend-supported dispense-session states are wired (Section 6) |
+| Duplicate `walletTransactionsProvider` | Defined independently in both `wallet_provider.dart` and `wallet_transactions_provider.dart` with different signatures | Pre-existing tech debt, unrelated to this redesign; use `recentTransactionsProvider` (from `wallet_transactions_provider.dart`) for any Home read in this delivery, don't fix the duplication as part of this work |
 
 ---
 
 ## Out of Scope
 
-- Full visual redesign of `StationsScreen`, `ActivityScreen` (beyond the thin wrapper in Section 6), `ProfileScreen`, all `dispense/` screens, `auth/` screens, `recharge_screen.dart`, `transaction_history_screen.dart`.
-- A real customer-facing camera QR scanner (Section 7).
-- A dedicated Payment Hub screen for the Pay tab (Section 6).
-- A unified wallet+dispense Activity feed (Section 6).
+- Full visual redesign of `StationsScreen`, `TransactionHistoryScreen`, `ProfileScreen`, all `dispense/` screens, `auth/` screens, `recharge_screen.dart` — these are reused exactly as they are today (Delivery Buckets, bucket 2).
+- A real customer-facing camera QR scanner (Section 7, bucket 3).
+- A dedicated Payment Hub screen for the Pay tab (Section 6, bucket 3).
+- A unified wallet+dispense Activity feed (Section 6, bucket 3).
+- The richer third station-sheet state (fuel types, payment methods, amenities, phone) (Section 4, bucket 3).
 - Wallet-balance hide/reveal, unless a mechanism already exists to reuse (Section 5).
 - Removing the `MapStyle` enum / `map_config.dart` infrastructure if it's still referenced elsewhere — only remove the day/night/satellite picker *UI* from Home.
 
@@ -228,15 +260,15 @@ These are data-model gaps discovered while writing this spec, not design decisio
 - `nearest-station` distance math already exists in the current file (`_metersTo`/`_distanceLabel`, using `latlong2`'s `Distance`) — extract it into `nearest_station_provider.dart` rather than rewriting it.
 - Existing marker clustering (`flutter_map_marker_cluster`, `maxClusterRadius: 80`) stays; only marker colors/icons change per Section 1's tokens and Section 4's semantics (available / selected / unavailable / cluster).
 - Confirm whether `flutter_svg` is already a dependency before adding it for the new icon set (Section 1) — if not present, hand-rolled `CustomPainter`s for the ~10 icons are an acceptable alternative with no new dependency.
+- Check `CreateDispenseScreen`/`PinQrScreen` for any customer-facing copy that currently implies scanning, and correct it per Section 7's copy table while touching those files for the `preselectedStationId` wiring — don't leave stale "scan" wording next to the corrected entry point.
 
 ## Files to Create
 
 | File | Purpose |
 |---|---|
-| `lib/features/dashboard/presentation/widgets/station_sheet.dart` | `StationSheet` — 3-state `DraggableScrollableSheet` (Section 4) |
+| `lib/features/dashboard/presentation/widgets/station_sheet.dart` | `StationSheet` — 2-state `DraggableScrollableSheet` (Section 4) |
 | `lib/features/dashboard/presentation/providers/nearest_station_provider.dart` | `nearestOrSelectedStationProvider` (Section 3) |
-| `lib/features/dashboard/presentation/providers/pending_actions_provider.dart` | `pendingActionsProvider`, `PendingAction` model (Section 6) |
-| `lib/features/dashboard/presentation/screens/activity_screen.dart` | Thin `ActivityScreen` wrapper (Section 6) |
+| `lib/features/dashboard/presentation/providers/pending_actions_provider.dart` | `pendingActionsProvider`, `PendingAction` model, scoped to backend-supported states only (Section 6) |
 | `lib/features/dashboard/presentation/widgets/header_wallet_chip.dart` | Wallet chip widget (Section 5) |
 
 ## Files to Modify
@@ -245,8 +277,9 @@ These are data-model gaps discovered while writing this spec, not design decisio
 |---|---|
 | `lib/shared/theme/app_colors.dart` | Full token replacement per Section 1 |
 | `lib/shared/theme/app_theme.dart` | Repoint `ColorScheme.light`/`.dark` field mappings to new tokens; update `bottomSheetTheme`/`inputDecorationTheme`/button themes' radii to match Section 3-4 (48px search field, 14px button radius, 26px sheet top radius) |
-| `lib/core/navigation/main_navigation.dart` | Full nav-bar rebuild per Section 2 |
-| `lib/core/routing/routes.dart` | Add `Routes.activity`; remove or leave dead `Routes.scanQR` (Section 7) as-is since it's unrelated to this work |
-| `lib/core/routing/app_router.dart` | Update `ShellRoute` tab set per Section 2's table; add `GoRoute` for `Routes.activity` |
-| `lib/features/dashboard/presentation/screens/home_screen.dart` | Full rebuild per Section 3 |
+| `lib/core/navigation/main_navigation.dart` | Full nav-bar rebuild per Section 2; Activity tab routes to existing `Routes.walletTransactions`, no new screen |
+| `lib/core/routing/app_router.dart` | Update `ShellRoute` tab set per Section 2's table (Stations/Activity added, Wallet/Profile removed as direct tabs — no new routes needed, all targets already exist) |
+| `lib/features/dashboard/presentation/screens/home_screen.dart` | Full rebuild per Section 3; add header Profile icon button → `Routes.profile` |
 | `lib/shared/map/map_config.dart` | Remove `MapStylePicker` UI usage from Home; keep `MapStyle` enum/`StationClusterMarker`/`LiveDispensePulse` if referenced elsewhere, restyle marker colors per Section 1 |
+| `lib/features/dispense/presentation/screens/create_dispense_screen.dart` | Accept `preselectedStationId` entry from the station sheet (if not already supported — confirm at implementation time); correct any customer-facing "scan" copy per Section 7 |
+| `lib/features/dispense/presentation/screens/pin_qr_screen.dart` | Correct customer-facing copy per Section 7's table (`Generate fuel code` / `Show QR to attendant` / `Waiting for attendant confirmation`) |
