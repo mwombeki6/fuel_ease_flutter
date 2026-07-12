@@ -154,9 +154,9 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                         color: selected ? cs.primary : Colors.transparent,
                         width: 3,
                       ),
-                      top: BorderSide(color: cs.outlineVariant),
-                      right: BorderSide(color: cs.outlineVariant),
-                      bottom: BorderSide(color: cs.outlineVariant),
+                      top: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
+                      right: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
+                      bottom: BorderSide(color: cs.outline.withValues(alpha: 0.4)),
                     ),
                   ),
                   child: ListTile(
