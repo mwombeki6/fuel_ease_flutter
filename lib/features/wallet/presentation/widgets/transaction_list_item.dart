@@ -19,6 +19,7 @@ class TransactionListItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final numberFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('MMM dd, yyyy • HH:mm');
+    final cs = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -52,10 +53,10 @@ class TransactionListItem extends StatelessWidget {
                 children: [
                   Text(
                     transaction.formattedType,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimaryDark,
+                      color: cs.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -64,9 +65,9 @@ class TransactionListItem extends StatelessWidget {
                       if (transaction.createdAt != null)
                         Text(
                           dateFormat.format(transaction.createdAt!),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
-                            color: AppColors.textSecondaryDark,
+                            color: cs.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       if (transaction.reference != null) ...[
@@ -77,14 +78,14 @@ class TransactionListItem extends StatelessWidget {
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceVariantDark,
+                            color: cs.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             transaction.reference!,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
-                              color: AppColors.textSecondaryDark,
+                              color: cs.onSurface.withValues(alpha: 0.7),
                               fontFamily: 'monospace',
                             ),
                           ),
@@ -96,9 +97,9 @@ class TransactionListItem extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       transaction.description!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textTertiary,
+                        color: cs.onSurface.withValues(alpha: 0.5),
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -118,15 +119,15 @@ class TransactionListItem extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     color: transaction.isCredit
                         ? AppColors.success
-                        : AppColors.textPrimaryDark,
+                        : cs.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${numberFormat.format(transaction.balanceAfterTzs)} TZS',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
-                    color: AppColors.textSecondaryDark,
+                    color: cs.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],

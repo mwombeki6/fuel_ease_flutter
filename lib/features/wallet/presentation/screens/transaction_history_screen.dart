@@ -94,9 +94,10 @@ class _TransactionHistoryScreenState
   @override
   Widget build(BuildContext context) {
     final asyncTx = ref.watch(_transactionListProvider);
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         title: const Text('Transaction History'),
         elevation: 0,
@@ -114,7 +115,7 @@ class _TransactionHistoryScreenState
           // Filter chips
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.surfaceDark,
+            color: cs.surface,
             child: Row(
               children: [
                 _Chip(
@@ -157,7 +158,7 @@ class _TransactionHistoryScreenState
                     itemCount: items.length + 1,
                     separatorBuilder: (context2, idx2) => Divider(
                       height: 1,
-                      color: AppColors.borderDark,
+                      color: cs.outlineVariant,
                       indent: 72,
                     ),
                     itemBuilder: (context, index) {
@@ -204,6 +205,7 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
@@ -211,7 +213,7 @@ class _Chip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : AppColors.surfaceVariantDark,
+          color: selected ? cs.primary : cs.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
@@ -228,7 +230,7 @@ class _Chip extends StatelessWidget {
             Text(
               label,
               style: AppTextStyles.labelSmall.copyWith(
-                color: selected ? Colors.white : AppColors.textPrimaryDark,
+                color: selected ? Colors.white : cs.onSurface,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -272,7 +274,7 @@ class _Empty extends StatelessWidget {
             Icon(
               Icons.receipt_long_outlined,
               size: 64,
-              color: AppColors.textSecondaryDark.withValues(alpha: 0.4),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(msg, style: AppTextStyles.titleSmall),
@@ -282,7 +284,7 @@ class _Empty extends StatelessWidget {
                   ? 'Your transaction history will appear here'
                   : 'Change filter to view other transactions',
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondaryDark,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),
@@ -314,7 +316,7 @@ class _Error extends StatelessWidget {
             Text(
               message,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondaryDark,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
               textAlign: TextAlign.center,
             ),

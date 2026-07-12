@@ -29,10 +29,11 @@ class WalletScreen extends ConsumerWidget {
       next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
     });
 
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
       body: RefreshIndicator(
-        color: AppColors.brand,
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        color: cs.primary,
+        backgroundColor: cs.surface,
         onRefresh: () async {
           await ref.read(walletProvider.notifier).refresh();
         },
@@ -129,7 +130,7 @@ class WalletScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.brand,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                     ),
                   ),
@@ -271,13 +272,14 @@ class _BalanceCard extends StatelessWidget {
     final numberFmt = NumberFormat('#,##0');
     final compactFmt = NumberFormat.compact();
 
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: AppColors.brandGradient,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: AppColors.brandGlow, blurRadius: 32, spreadRadius: 2),
+          BoxShadow(color: cs.primary.withValues(alpha: 0.25), blurRadius: 32, spreadRadius: 2),
         ],
       ),
       child: Column(
@@ -320,7 +322,7 @@ class _BalanceCard extends StatelessWidget {
                 _DataChip(
                   icon: Icons.credit_card_rounded,
                   label: '$activeCards active',
-                  color: AppColors.primary,
+                  color: cs.primary,
                 ),
               ],
             ),
@@ -440,7 +442,7 @@ class _SpendingChart extends StatefulWidget {
 class _SpendingChartState extends State<_SpendingChart> {
   bool _isDaily = true;
 
-  List<BarChartGroupData> _buildGroups() {
+  List<BarChartGroupData> _buildGroups(ColorScheme cs) {
     if (_isDaily) {
       return List.generate(30, (i) {
         final daysAgo = 29 - i;
@@ -450,7 +452,7 @@ class _SpendingChartState extends State<_SpendingChart> {
           barRods: [
             BarChartRodData(
               toY: spend,
-              color: AppColors.primary,
+              color: cs.primary,
               width: 5,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
             ),
@@ -468,7 +470,7 @@ class _SpendingChartState extends State<_SpendingChart> {
         barRods: [
           BarChartRodData(
             toY: sum / 1000.0,
-            color: AppColors.primary,
+            color: cs.primary,
             width: 18,
             borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
           ),
@@ -480,7 +482,7 @@ class _SpendingChartState extends State<_SpendingChart> {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    final groups = _buildGroups();
+    final groups = _buildGroups(cs);
     final maxY = groups
         .map((g) => g.barRods.first.toY)
         .fold(0.0, (a, b) => a > b ? a : b);
@@ -587,7 +589,7 @@ class _ToggleChip extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: selected ? AppColors.primary : Colors.transparent,
+          color: selected ? cs.primary : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(
@@ -614,6 +616,7 @@ class _GradientFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -623,7 +626,7 @@ class _GradientFab extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: AppColors.brandGlow,
+              color: cs.primary.withValues(alpha: 0.25),
               blurRadius: 20,
               spreadRadius: 2,
             ),
