@@ -8,9 +8,10 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(gradient: AppColors.nightGradient),
+        color: colorScheme.surface,
         child: Stack(
           children: [
             // Ambient radial glow
@@ -18,11 +19,11 @@ class SplashScreen extends StatelessWidget {
               child: Container(
                 width: 280,
                 height: 280,
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [AppColors.brandGlow, Colors.transparent],
-                    stops: [0.0, 1.0],
+                    colors: [colorScheme.primary.withValues(alpha: 0.25), Colors.transparent],
+                    stops: const [0.0, 1.0],
                   ),
                 ),
               ),
@@ -54,7 +55,7 @@ class SplashScreen extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.brandGlow,
+                          color: colorScheme.primary.withValues(alpha: 0.25),
                           blurRadius: 40,
                           spreadRadius: 8,
                         ),
@@ -126,7 +127,7 @@ class SplashScreen extends StatelessWidget {
                     child: LinearProgressIndicator(
                       backgroundColor: Colors.white.withValues(alpha: 0.1),
                       valueColor:
-                          const AlwaysStoppedAnimation<Color>(AppColors.brand),
+                          AlwaysStoppedAnimation<Color>(colorScheme.primary),
                       minHeight: 2,
                     ),
                   ).animate().fadeIn(delay: 700.ms, duration: 400.ms),

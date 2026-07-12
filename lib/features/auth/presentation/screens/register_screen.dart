@@ -68,6 +68,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen<AuthState>(authProvider, (_, next) {
       next.maybeWhen(
@@ -79,11 +80,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isLoading = authState.maybeWhen(loading: () => true, orElse: () => false);
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
+          Container(color: colorScheme.surface),
           Positioned(
             top: -80,
             left: 0,
@@ -94,7 +94,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 gradient: RadialGradient(
                   center: Alignment.topCenter,
                   radius: 0.7,
-                  colors: [AppColors.brandGlow, Colors.transparent],
+                  colors: [colorScheme.primary.withValues(alpha: 0.25), Colors.transparent],
                 ),
               ),
             ),
@@ -140,7 +140,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceDark.withValues(alpha: 0.88),
+                          color: colorScheme.surface.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.07),
@@ -166,6 +166,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   lastNameController: _lastNameController,
                                   isLoading: isLoading,
                                   onNext: _nextStep,
+                                  colorScheme: colorScheme,
                                 )
                               : _Step2(
                                   key: const ValueKey(1),
@@ -183,6 +184,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                                   onToggleConfirm: () =>
                                       setState(() => _obscureConfirm = !_obscureConfirm),
                                   onSubmit: _handleRegister,
+                                  colorScheme: colorScheme,
                                 ),
                         ),
                       ),
@@ -253,6 +255,7 @@ class _Step1 extends StatelessWidget {
     required this.lastNameController,
     required this.isLoading,
     required this.onNext,
+    required this.colorScheme,
     super.key,
   });
 
@@ -261,6 +264,7 @@ class _Step1 extends StatelessWidget {
   final TextEditingController lastNameController;
   final bool isLoading;
   final VoidCallback onNext;
+  final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
@@ -289,6 +293,7 @@ class _Step1 extends StatelessWidget {
             controller: firstNameController,
             label: 'First Name',
             icon: Icons.person_outline_rounded,
+            colorScheme: colorScheme,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
             validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
@@ -298,6 +303,7 @@ class _Step1 extends StatelessWidget {
             controller: lastNameController,
             label: 'Last Name',
             icon: Icons.person_outline_rounded,
+            colorScheme: colorScheme,
             textInputAction: TextInputAction.done,
             enabled: !isLoading,
             onFieldSubmitted: (_) => onNext(),
@@ -331,6 +337,7 @@ class _Step2 extends StatelessWidget {
     required this.onTogglePassword,
     required this.onToggleConfirm,
     required this.onSubmit,
+    required this.colorScheme,
     super.key,
   });
 
@@ -346,6 +353,7 @@ class _Step2 extends StatelessWidget {
   final VoidCallback onTogglePassword;
   final VoidCallback onToggleConfirm;
   final VoidCallback onSubmit;
+  final ColorScheme colorScheme;
 
   @override
   Widget build(BuildContext context) {
@@ -383,6 +391,7 @@ class _Step2 extends StatelessWidget {
             label: 'Email address',
             hint: 'you@example.com',
             icon: Icons.mail_outline_rounded,
+            colorScheme: colorScheme,
             keyboardType: TextInputType.emailAddress,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
@@ -398,6 +407,7 @@ class _Step2 extends StatelessWidget {
             label: 'Phone Number',
             hint: '0712345678',
             icon: Icons.phone_outlined,
+            colorScheme: colorScheme,
             keyboardType: TextInputType.phone,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
@@ -413,6 +423,7 @@ class _Step2 extends StatelessWidget {
             controller: passwordController,
             label: 'Password',
             icon: Icons.lock_outline_rounded,
+            colorScheme: colorScheme,
             obscureText: obscurePassword,
             textInputAction: TextInputAction.next,
             enabled: !isLoading,
@@ -435,6 +446,7 @@ class _Step2 extends StatelessWidget {
             controller: confirmController,
             label: 'Confirm Password',
             icon: Icons.lock_outline_rounded,
+            colorScheme: colorScheme,
             obscureText: obscureConfirm,
             textInputAction: TextInputAction.done,
             enabled: !isLoading,
@@ -537,6 +549,7 @@ class _DarkTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.icon,
+    required this.colorScheme,
     this.hint,
     this.obscureText = false,
     this.enabled = true,
@@ -551,6 +564,7 @@ class _DarkTextField extends StatelessWidget {
   final String label;
   final String? hint;
   final IconData icon;
+  final ColorScheme colorScheme;
   final bool obscureText;
   final bool enabled;
   final TextInputType? keyboardType;
@@ -591,7 +605,7 @@ class _DarkTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
