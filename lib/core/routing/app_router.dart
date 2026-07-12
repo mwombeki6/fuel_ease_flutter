@@ -127,6 +127,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Main app routes with bottom navigation
+      // Shell tabs: Home, Stations, Activity (wallet transactions), Cards.
+      // Wallet and Profile are standalone push destinations (see below), not
+      // shell tabs — per Task 8's 4-tab nav bar.
       ShellRoute(
         builder: (context, state, child) => MainNavigation(child: child),
         routes: [
@@ -139,16 +142,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
+            path: Routes.stations,
+            builder: (context, state) => const StationsScreen(),
+          ),
+          GoRoute(
+            path: Routes.walletTransactions,
+            builder: (context, state) => const TransactionHistoryScreen(),
+          ),
+          GoRoute(
             path: Routes.cards,
             builder: (context, state) => const CardsScreen(),
-          ),
-          GoRoute(
-            path: Routes.wallet,
-            builder: (context, state) => const WalletScreen(),
-          ),
-          GoRoute(
-            path: Routes.profile,
-            builder: (context, state) => const ProfileScreen(),
           ),
         ],
       ),
@@ -160,16 +163,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _slideFade(state, const CreateDispenseScreen()),
       ),
 
-      // Wallet sub-routes
+      // Wallet routes (standalone — Wallet is a push destination, not a
+      // shell tab; walletTransactions/"Activity" lives in the shell above)
+      GoRoute(
+        path: Routes.wallet,
+        pageBuilder: (context, state) =>
+            _slideFade(state, const WalletScreen()),
+      ),
       GoRoute(
         path: Routes.walletRecharge,
         pageBuilder: (context, state) =>
             _slideFade(state, const RechargeScreen()),
-      ),
-      GoRoute(
-        path: Routes.walletTransactions,
-        pageBuilder: (context, state) =>
-            _slideFade(state, const TransactionHistoryScreen()),
       ),
 
       // Cards sub-routes
@@ -251,6 +255,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
+      // Profile (standalone — push destination, not a shell tab)
+      GoRoute(
+        path: Routes.profile,
+        pageBuilder: (context, state) =>
+            _slideFade(state, const ProfileScreen()),
+      ),
+
       // Settings routes
       GoRoute(
         path: Routes.editProfile,
@@ -263,12 +274,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _slideFade(state, const ChangePasswordScreen()),
       ),
 
-      // Stations
-      GoRoute(
-        path: Routes.stations,
-        pageBuilder: (context, state) =>
-            _slideFade(state, const StationsScreen()),
-      ),
+      // Stations sub-routes (Routes.stations itself lives in the shell above)
       GoRoute(
         path: Routes.stationMap,
         pageBuilder: (context, state) =>

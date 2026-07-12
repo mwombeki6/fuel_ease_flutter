@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,39 +8,27 @@ import 'package:flutter_map_marker_cluster/flutter_map_marker_cluster.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:fuel_ease_flutter/core/providers/station_live_activity_provider.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/core/services/mapbox_geocoding_service.dart';
-import 'package:fuel_ease_flutter/main.dart' show themeModeProvider;
-import 'package:fuel_ease_flutter/shared/map/map_config.dart';
-import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
-import 'package:fuel_ease_flutter/core/realtime/realtime_status_provider.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
+import 'package:fuel_ease_flutter/features/dashboard/presentation/providers/nearest_station_provider.dart';
+import 'package:fuel_ease_flutter/features/dashboard/presentation/providers/pending_actions_provider.dart';
+import 'package:fuel_ease_flutter/features/dashboard/presentation/widgets/header_wallet_chip.dart';
+import 'package:fuel_ease_flutter/features/dashboard/presentation/widgets/station_sheet.dart';
 import 'package:fuel_ease_flutter/features/stations/data/models/station_map_pin.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_map_provider.dart';
-import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_summary.dart';
-import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
-import 'package:fuel_ease_flutter/features/wallet/presentation/widgets/transaction_list_item.dart';
+import 'package:fuel_ease_flutter/main.dart' show themeModeProvider;
+import 'package:fuel_ease_flutter/shared/map/map_config.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
 
 const _defaultCenter = LatLng(-6.7924, 39.2083);
-const _distCalc = Distance();
-
-double _metersTo(LatLng a, LatLng b) =>
-    _distCalc.as(LengthUnit.Meter, a, b);
-
-String _distanceLabel(LatLng from, LatLng to) {
-  final m = _metersTo(from, to);
-  return m < 1000 ? '${m.round()} m' : '${(m / 1000).toStringAsFixed(1)} km';
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HomeScreen — map-first customer experience
+// HomeScreen — full-screen map-first customer experience ("Pump & Go")
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -50,51 +38,20 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _mapController = MapController();
   final _searchController = TextEditingController();
-  final _sheetController = DraggableScrollableController();
-
-  late final AnimationController _pinPanelCtrl;
-  late final Animation<Offset> _pinPanelSlide;
 
   String _searchQuery = '';
-  StationMapPin? _selectedPin;
-  StationMapPin? _displayPin;
   bool _locating = false;
-  bool _hasSeenConnected = false;
   LatLng? _userPosition;
   StreamSubscription<Position>? _positionSub;
-  MapStyle _mapStyle = MapStyle.night;
   List<GeocodingResult> _suggestions = [];
   Timer? _debounce;
 
   @override
   void initState() {
     super.initState();
-    final themeMode = ref.read(themeModeProvider);
-    if (themeMode == ThemeMode.light) {
-      _mapStyle = MapStyle.streets;
-    } else if (themeMode == ThemeMode.system) {
-      final brightness =
-          WidgetsBinding.instance.platformDispatcher.platformBrightness;
-      if (brightness == Brightness.light) _mapStyle = MapStyle.streets;
-    }
-    _pinPanelCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 380),
-    );
-    _pinPanelSlide = Tween<Offset>(
-      begin: const Offset(0, 1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _pinPanelCtrl, curve: Curves.easeOutCubic));
-    // Clear display pin once the slide-out finishes
-    _pinPanelCtrl.addStatusListener((status) {
-      if (status == AnimationStatus.dismissed && mounted) {
-        setState(() => _displayPin = null);
-      }
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _initLocation());
   }
 
@@ -104,11 +61,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     _debounce?.cancel();
     _mapController.dispose();
     _searchController.dispose();
-    _sheetController.dispose();
-    _pinPanelCtrl.dispose();
     super.dispose();
   }
 
+  // Ported from the pre-rebuild home_screen.dart's `_initLocation` — same
+  // Geolocator permission flow and position stream, now also writing the
+  // resolved LatLng into `userLocationProvider` so
+  // `nearestOrSelectedStationValueProvider` (and `StationSheet`, which
+  // watches it) can resolve the nearest station.
   Future<void> _initLocation() async {
     setState(() => _locating = true);
     try {
@@ -127,6 +87,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final here = LatLng(pos.latitude, pos.longitude);
       if (mounted) {
         setState(() => _userPosition = here);
+        ref.read(userLocationProvider.notifier).state = here;
         _mapController.move(here, 13);
       }
       _positionSub = Geolocator.getPositionStream(
@@ -135,9 +96,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           distanceFilter: 20,
         ),
       ).listen((p) {
-        if (mounted) {
-          setState(() => _userPosition = LatLng(p.latitude, p.longitude));
-        }
+        if (!mounted) return;
+        final updated = LatLng(p.latitude, p.longitude);
+        setState(() => _userPosition = updated);
+        ref.read(userLocationProvider.notifier).state = updated;
       });
     } catch (_) {
       // Falls back to Dar es Salaam if location is unavailable.
@@ -154,73 +116,82 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     await _initLocation();
   }
 
+  // Ported from the pre-rebuild home_screen.dart's `_selectPin` — same
+  // haptic + camera-follow behavior, now writing the tapped station's id
+  // into `nearestOrSelectedStationProvider` instead of local State so
+  // `StationSheet` can pick it up.
   void _selectPin(StationMapPin pin) {
     HapticFeedback.mediumImpact();
-    setState(() {
-      _selectedPin = pin;
-      _displayPin = pin;
-    });
+    ref.read(nearestOrSelectedStationProvider.notifier).state = pin.id;
     _mapController.move(LatLng(pin.lat - 0.003, pin.lng), 14);
-    _pinPanelCtrl.forward();
-    if (_sheetController.isAttached) {
-      _sheetController.animateTo(
-        0.30,
-        duration: const Duration(milliseconds: 280),
-        curve: Curves.easeOutCubic,
-      );
-    }
   }
 
-  void _clearPin() {
-    setState(() => _selectedPin = null);
-    _pinPanelCtrl.reverse();
+  void _clearSelection() {
+    ref.read(nearestOrSelectedStationProvider.notifier).state = null;
+  }
+
+  void _onSearchChanged(String query, List<StationMapPin> pins) {
+    setState(() => _searchQuery = query);
+    _debounce?.cancel();
+    if (query.isEmpty) {
+      setState(() => _suggestions = []);
+      return;
+    }
+    // Immediate station auto-pan.
+    final stationMatches = pins
+        .where((p) =>
+            p.name.toLowerCase().contains(query.toLowerCase()) ||
+            p.region.toLowerCase().contains(query.toLowerCase()) ||
+            p.district.toLowerCase().contains(query.toLowerCase()))
+        .toList();
+    if (stationMatches.length == 1) {
+      _mapController.move(
+        LatLng(stationMatches.first.lat, stationMatches.first.lng),
+        14,
+      );
+    }
+    // Debounced geocoding.
+    _debounce = Timer(const Duration(milliseconds: 420), () async {
+      final results = await MapboxGeocodingService.suggest(
+        query,
+        proximity: _userPosition,
+      );
+      if (mounted) setState(() => _suggestions = results);
+    });
+  }
+
+  void _onSuggestionTap(GeocodingResult result) {
+    HapticFeedback.selectionClick();
+    _mapController.move(result.center, 13);
+    setState(() {
+      _suggestions = [];
+      _searchQuery = '';
+    });
+    _searchController.clear();
+    _debounce?.cancel();
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final brightness = Theme.of(context).brightness;
+    final themeMode = ref.watch(themeModeProvider);
     final pinsAsync = ref.watch(stationMapPinsProvider);
-    final liveStations = ref.watch(stationLiveActivityProvider);
-    final walletState = ref.watch(walletProvider);
-    final availableBalance = ref.watch(availableBalanceProvider);
-    final authState = ref.watch(authProvider);
-    final realtimeStatus = ref.watch(realtimeStatusProvider);
-
-    ref.listen(walletProvider, (_, next) {
-      next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
-    });
+    final selectedStationId = ref.watch(nearestOrSelectedStationProvider);
+    final pendingAction = ref.watch(pendingActionsProvider);
 
     ref.listen(stationMapPinsProvider, (_, next) {
       next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
     });
 
-    ref.listen<RealtimeStatus>(realtimeStatusProvider, (previous, next) {
-      if (!mounted) return;
-      if (!_hasSeenConnected &&
-          next.state == RealtimeConnectionState.connected) {
-        _hasSeenConnected = true;
-        return;
-      }
-      if (previous == null) return;
-      if ((previous.state == RealtimeConnectionState.reconnecting ||
-              previous.state == RealtimeConnectionState.disconnected) &&
-          next.state == RealtimeConnectionState.connected) {
-        HapticFeedback.mediumImpact();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Reconnected to live feed')),
-        );
-      }
-    });
+    // One map style per theme (per spec — the day/night/satellite/fuelEase
+    // MapStylePicker is removed from Home; MapStyle itself is kept since
+    // station_map_screen.dart, out of scope here, still uses it).
+    final isLightMap = themeMode == ThemeMode.light ||
+        (themeMode == ThemeMode.system && brightness == Brightness.light);
+    final mapStyle = isLightMap ? MapStyle.streets : MapStyle.night;
 
-    final firstName = authState.maybeWhen(
-      authenticated: (user) => user.firstName,
-      orElse: () => '',
-    );
-
-    final deviceBottom = MediaQuery.of(context).padding.bottom;
-    // Approximate bottom area taken by the floating nav pill
-    final navArea = deviceBottom + 16.0 + 64.0 + 20.0;
-
-    final pins = pinsAsync.value ?? [];
+    final pins = pinsAsync.value ?? const <StationMapPin>[];
     final filtered = _searchQuery.isEmpty
         ? pins
         : pins
@@ -231,230 +202,105 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             .toList();
 
     return Scaffold(
-      body: Stack(
-        children: [
-          // ── Layer 1: Full-screen Mapbox dark map ──────────────────────────
-          _MapLayer(
-            mapController: _mapController,
-            markers: filtered
-                .map((p) => _buildNamedMarker(
-                    p, _selectedPin?.id == p.id, liveStations.contains(p.id)))
-                .toList(),
-            liveStations: liveStations,
-            userPosition: _userPosition,
-            mapStyle: _mapStyle,
-            onMapTap: () {
-              if (_selectedPin != null) _clearPin();
-            },
-          ),
-
-          // ── Layer 2: Glass top search bar ─────────────────────────────────
-          _TopSearchBar(
-            firstName: firstName,
-            realtimeStatus: realtimeStatus,
-            searchController: _searchController,
-            searchQuery: _searchQuery,
-            stationCount: filtered.length,
-            onSearchChanged: (q) {
-              setState(() => _searchQuery = q);
-              _debounce?.cancel();
-              if (q.isEmpty) {
-                setState(() => _suggestions = []);
-                return;
-              }
-              // Immediate station auto-pan.
-              final stationMatches = pins
-                  .where((p) =>
-                      p.name.toLowerCase().contains(q.toLowerCase()) ||
-                      p.region.toLowerCase().contains(q.toLowerCase()) ||
-                      p.district.toLowerCase().contains(q.toLowerCase()))
-                  .toList();
-              if (stationMatches.length == 1) {
-                _mapController.move(
-                  LatLng(stationMatches.first.lat, stationMatches.first.lng),
-                  14,
-                );
-              }
-              // Debounced geocoding.
-              _debounce = Timer(const Duration(milliseconds: 420), () async {
-                final results = await MapboxGeocodingService.suggest(
-                  q,
-                  proximity: _userPosition,
-                );
-                if (mounted) setState(() => _suggestions = results);
-              });
-            },
-          ),
-
-          // ── Layer 3: Map style picker ─────────────────────────────────────
-          SafeArea(
-            child: Align(
-              alignment: Alignment.topRight,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(0, 80, 16, 0),
-                child: MapStylePicker(
-                  current: _mapStyle,
-                  onChanged: (s) => setState(() => _mapStyle = s),
-                ),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _HomeHeader(colorScheme: colorScheme),
+            if (pendingAction != null)
+              _PendingActionBanner(
+                action: pendingAction,
+                colorScheme: colorScheme,
               ),
-            ),
-          ),
-
-          // ── Layer 4: Geocoding suggestions dropdown ───────────────────────
-          if (_suggestions.isNotEmpty)
-            SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            Expanded(
+              child: Stack(
                 children: [
-                  const SizedBox(height: 72), // clear the search bar
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                    child: Material(
-                      color: Colors.transparent,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 16,
-                              offset: const Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: ListView.separated(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _suggestions.length,
-                          separatorBuilder: (ctx, i) => Divider(
-                            height: 1,
-                            indent: 48,
-                            color: Theme.of(ctx)
-                                .colorScheme
-                                .outline
-                                .withValues(alpha: 0.15),
-                          ),
-                          itemBuilder: (_, i) {
-                            final r = _suggestions[i];
-                            return ListTile(
-                              dense: true,
-                              leading: Icon(
-                                r.iconType == IconType.poi
-                                    ? Icons.place_rounded
-                                    : r.iconType == IconType.address
-                                        ? Icons.home_rounded
-                                        : Icons.location_city_rounded,
-                                color: AppColors.primary,
-                                size: 18,
-                              ),
-                              title: Text(
-                                r.name,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodyMedium
-                                    ?.copyWith(fontWeight: FontWeight.w600),
-                              ),
-                              subtitle: r.fullName.isNotEmpty
-                                  ? Text(
-                                      r.fullName,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall
-                                          ?.copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withValues(alpha: 0.5)),
-                                    )
-                                  : null,
-                              onTap: () {
-                                HapticFeedback.selectionClick();
-                                _mapController.move(r.center, 13);
-                                setState(() {
-                                  _suggestions = [];
-                                  _searchQuery = '';
-                                });
-                                _searchController.clear();
-                                _debounce?.cancel();
-                              },
-                            );
-                          },
-                        ),
+                  _MapLayer(
+                    mapController: _mapController,
+                    markers: filtered
+                        .map((p) => _buildStationMarker(
+                              p,
+                              selectedStationId == p.id,
+                              colorScheme,
+                              brightness,
+                            ))
+                        .toList(),
+                    userPosition: _userPosition,
+                    mapStyle: mapStyle,
+                    onMapTap: () {
+                      if (selectedStationId != null) _clearSelection();
+                    },
+                  ),
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    right: 12,
+                    child: _TopSearchBar(
+                      searchController: _searchController,
+                      searchQuery: _searchQuery,
+                      onSearchChanged: (q) => _onSearchChanged(q, pins),
+                    ),
+                  ),
+                  if (_suggestions.isNotEmpty)
+                    Positioned(
+                      top: 64,
+                      left: 12,
+                      right: 12,
+                      child: _SuggestionsList(
+                        suggestions: _suggestions,
+                        onTap: _onSuggestionTap,
                       ),
                     ),
+                  Positioned(
+                    right: 12,
+                    bottom: 172,
+                    child: _LocationFab(
+                      locating: _locating,
+                      onTap: _goToMyLocation,
+                    ),
+                  ),
+                  const Align(
+                    alignment: Alignment.bottomCenter,
+                    child: StationSheet(),
                   ),
                 ],
               ),
             ),
-
-          // ── Layer 5: My location FAB ──────────────────────────────────────
-          Positioned(
-            right: 16,
-            bottom: navArea + 240,
-            child: _LocationFab(locating: _locating, onTap: _goToMyLocation),
-          ),
-
-          // ── Layer 4: Wallet + dashboard draggable sheet ───────────────────
-          DraggableScrollableSheet(
-            controller: _sheetController,
-            initialChildSize: 0.30,
-            minChildSize: 0.14,
-            maxChildSize: 0.88,
-            snap: true,
-            snapSizes: const [0.30, 0.60, 0.88],
-            builder: (ctx, scrollController) => _DashboardSheet(
-              scrollController: scrollController,
-              balance: availableBalance,
-              walletState: walletState,
-              bottomPad: navArea,
-              onTopUp: () => context.push(Routes.walletRecharge),
-              onHistory: () => context.push(Routes.walletTransactions),
-              onFuelUp: () => context.push(Routes.createDispensingRequest),
-            ),
-          ),
-
-          // ── Layer 5: Station detail panel (animated slide-up) ─────────────
-          if (_displayPin != null)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SlideTransition(
-                position: _pinPanelSlide,
-                child: _StationDetailPanel(
-                  pin: _displayPin!,
-                  distance: _userPosition != null
-                      ? _distanceLabel(
-                          _userPosition!,
-                          LatLng(_displayPin!.lat, _displayPin!.lng),
-                        )
-                      : null,
-                  onClose: _clearPin,
-                  onFuelUp: () => context.push(
-                    Routes.createDispensingRequest,
-                    extra: _displayPin!.id,
-                  ),
-                  bottomPad: navArea,
-                ),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Marker _buildNamedMarker(StationMapPin pin, bool isSelected, bool isLive) {
-    final color = pin.hasSuspension
-        ? AppColors.error
-        : isLive
-            ? AppColors.success
-            : pin.status == 'active'
-                ? AppColors.brand
-                : AppColors.statusInactive;
+  // Ported from the pre-rebuild home_screen.dart's `_buildNamedMarker`,
+  // restyled per Section 1/4 of the redesign spec: markers now use exactly
+  // four semantic states (available / selected / unavailable / cluster).
+  // The old separate "live dispensing" pulse (`stationLiveActivityProvider`)
+  // and the red "suspended" hue are dropped — the spec's Section 4 marker
+  // semantics enumerate only those four states, and `StationSheet` (Task 7)
+  // already collapses "suspended" and "inactive" into a single "Closed"
+  // state, so pin coloring now mirrors that same simplification instead of
+  // introducing a fifth un-scoped state.
+  Marker _buildStationMarker(
+    StationMapPin pin,
+    bool isSelected,
+    ColorScheme colorScheme,
+    Brightness brightness,
+  ) {
+    final isUnavailable = pin.status != 'active' || pin.hasSuspension;
+    final mutedColor = brightness == Brightness.dark
+        ? AppColors.unavailableMarkerDark
+        : AppColors.unavailableMarkerLight;
+    // Light theme: available = evergreen (colorScheme.primary), selected =
+    // brightGreen (colorScheme.secondary). Dark theme: brightGreenDark does
+    // "double duty" for both per the design spec (evergreenDark is reserved,
+    // not used on Home this delivery) — selection is shown via the
+    // fill/border inversion below instead of a second hue.
+    final selectedColor =
+        brightness == Brightness.dark ? colorScheme.primary : colorScheme.secondary;
+    final color = isUnavailable
+        ? mutedColor
+        : (isSelected ? selectedColor : colorScheme.primary);
 
     final name =
         pin.name.length > 18 ? '${pin.name.substring(0, 16)}…' : pin.name;
@@ -508,22 +354,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 ),
               ),
-              if (isLive || pin.hasSuspension) ...[
-                const SizedBox(width: 4),
-                Container(
-                  width: 5,
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: isLive
-                        ? (isSelected ? AppColors.success : Colors.white.withValues(alpha: 0.9))
-                        : AppColors.error,
-                    shape: BoxShape.circle,
-                    boxShadow: isLive
-                        ? [BoxShadow(color: AppColors.success, blurRadius: 4)]
-                        : null,
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -533,7 +363,166 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Map layer (Mapbox dark tiles, fallback to OSM)
+// Header — greeting/location on the left, wallet chip + profile on the right
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader({required this.colorScheme});
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Expanded(child: _GreetingBlock()),
+          Row(
+            children: [
+              const HeaderWalletChip(),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(Icons.notifications_none_rounded),
+                // No notifications feed/screen exists anywhere in the app yet
+                // (checked lib/core/routing/routes.dart, app_router.dart, and
+                // lib/features/**): the only related UI is the private
+                // `_NotificationsSheet` in profile_screen.dart, which is a
+                // notification *preferences* toggle sheet, not a feed to
+                // route to. Surface an honest placeholder instead of routing
+                // to the wrong destination or inventing a new screen.
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('No new notifications')),
+                  );
+                },
+                tooltip: 'Notifications',
+              ),
+              IconButton(
+                icon: const Icon(Icons.person_outline_rounded),
+                onPressed: () => context.push(Routes.profile),
+                tooltip: 'Profile',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GreetingBlock extends ConsumerWidget {
+  const _GreetingBlock();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Ported from the pre-rebuild home_screen.dart's `build()` (the
+    // `firstName` expression watching `authProvider`, previously used only
+    // for the search bar's hint text). Combined here with a time-of-day
+    // greeting per the redesign spec ("Good evening, {firstName}").
+    final authState = ref.watch(authProvider);
+    final firstName = authState.maybeWhen(
+      authenticated: (user) => user.firstName,
+      orElse: () => '',
+    );
+    final hour = DateTime.now().hour;
+    final timeOfDay = hour < 12
+        ? 'morning'
+        : hour < 17
+            ? 'afternoon'
+            : 'evening';
+    final greetingText = firstName.isNotEmpty
+        ? 'Good $timeOfDay, ${firstName.split(' ').first}'
+        : 'Good $timeOfDay';
+
+    // No area-name text: the current codebase has no reverse-geocoding of
+    // the user's resolved LatLng into a place name — `MapboxGeocodingService`
+    // only exposes forward search (`suggest`), and no other screen resolves
+    // one either (checked `station_details_screen.dart`,
+    // `station_map_screen.dart`). Rather than fabricate a heuristic (e.g.
+    // showing the nearest station's district, which is not the same thing
+    // as the user's own area), this is left null — the block below already
+    // handles that by omitting the location row entirely.
+    const String? areaNameText = null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (areaNameText != null)
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.location_on_rounded,
+                  size: 10, color: colorScheme.primary),
+              const SizedBox(width: 4),
+              Text(
+                areaNameText,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        Text(
+          greetingText,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: colorScheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PendingActionBanner extends StatelessWidget {
+  const _PendingActionBanner({required this.action, required this.colorScheme});
+  final PendingAction action;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () => context.push(action.route),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isDark ? AppColors.amberSurfaceDark : AppColors.amberSurface,
+          borderRadius: BorderRadius.circular(11),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                action.label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? AppColors.amberTextDark : AppColors.amberText,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: () => context.push(action.route),
+              child: const Text('View'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Map layer (kept functionally as-is — FlutterMap + clustering + user dot)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MapLayer extends StatelessWidget {
@@ -542,7 +531,6 @@ class _MapLayer extends StatelessWidget {
     required this.markers,
     required this.onMapTap,
     required this.mapStyle,
-    required this.liveStations,
     this.userPosition,
   });
 
@@ -550,7 +538,6 @@ class _MapLayer extends StatelessWidget {
   final List<Marker> markers;
   final VoidCallback onMapTap;
   final MapStyle mapStyle;
-  final Set<String> liveStations;
   final LatLng? userPosition;
 
   @override
@@ -574,7 +561,7 @@ class _MapLayer extends StatelessWidget {
           panBuffer: 1,
           userAgentPackageName: 'com.fuelease.app',
         ),
-        // Clustered station markers — collapse to count badge below zoom 12
+        // Clustered station markers — collapse to count badge below zoom 12.
         MarkerClusterLayerWidget(
           options: MarkerClusterLayerOptions(
             maxClusterRadius: 80,
@@ -586,7 +573,7 @@ class _MapLayer extends StatelessWidget {
             ),
           ),
         ),
-        // User position — never clustered
+        // User position — never clustered.
         if (userPosition != null)
           MarkerLayer(
             markers: [
@@ -605,152 +592,171 @@ class _MapLayer extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Glass top search / greeting bar
+// Floating search bar — restyled: opaque surface + shadow, no glass blur
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TopSearchBar extends StatelessWidget {
   const _TopSearchBar({
-    required this.firstName,
-    required this.realtimeStatus,
     required this.searchController,
     required this.searchQuery,
-    required this.stationCount,
     required this.onSearchChanged,
   });
 
-  final String firstName;
-  final RealtimeStatus realtimeStatus;
   final TextEditingController searchController;
   final String searchQuery;
-  final int stationCount;
-  final void Function(String) onSearchChanged;
+  final ValueChanged<String> onSearchChanged;
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surfaceDark.withValues(alpha: 0.88),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.08),
-                  width: 1,
-                ),
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: isDark ? Border.all(color: AppColors.borderDark) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.search_rounded,
+            color: colorScheme.onSurface.withValues(alpha: 0.4),
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              onChanged: onSearchChanged,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(
-                  children: [
-                    // Brand icon
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: BoxDecoration(
-                        gradient: AppColors.brandGradient,
-                        borderRadius: BorderRadius.circular(9),
-                      ),
-                      alignment: Alignment.center,
-                      child: const Icon(
-                        Icons.local_gas_station_rounded,
-                        color: Colors.white,
-                        size: 17,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    // Search input
-                    Expanded(
-                      child: TextField(
-                        controller: searchController,
-                        onChanged: onSearchChanged,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: searchQuery.isEmpty
-                              ? (firstName.isNotEmpty
-                                  ? 'Hi ${firstName.split(' ').first} — find a station'
-                                  : 'Search stations…')
-                              : null,
-                          hintStyle: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.38),
-                            fontSize: 14,
-                          ),
-                          suffixIcon: searchQuery.isNotEmpty
-                              ? GestureDetector(
-                                  onTap: () {
-                                    searchController.clear();
-                                    onSearchChanged('');
-                                  },
-                                  child: Icon(
-                                    Icons.clear_rounded,
-                                    color: Colors.white.withValues(alpha: 0.5),
-                                    size: 18,
-                                  ),
-                                )
-                              : Icon(
-                                  Icons.search_rounded,
-                                  color: Colors.white.withValues(alpha: 0.35),
-                                  size: 18,
-                                ),
-                          border: InputBorder.none,
-                          enabledBorder: InputBorder.none,
-                          focusedBorder: InputBorder.none,
-                          filled: false,
-                          contentPadding:
-                              const EdgeInsets.symmetric(horizontal: 6),
-                          isDense: true,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // Realtime status dot
-                    _RealtimeDot(status: realtimeStatus),
-                  ],
+              decoration: InputDecoration(
+                hintText: 'Search stations, areas…',
+                hintStyle: TextStyle(
+                  color: colorScheme.onSurface.withValues(alpha: 0.4),
+                  fontSize: 14,
                 ),
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
             ),
           ),
-        ),
+          if (searchQuery.isNotEmpty)
+            GestureDetector(
+              onTap: () {
+                searchController.clear();
+                onSearchChanged('');
+              },
+              child: Icon(
+                Icons.clear_rounded,
+                color: colorScheme.onSurface.withValues(alpha: 0.4),
+                size: 18,
+              ),
+            ),
+        ],
       ),
     )
         .animate()
-        .slideY(
-          begin: -1,
-          end: 0,
-          duration: 600.ms,
-          curve: Curves.easeOutCubic,
-        )
-        .fadeIn(duration: 400.ms);
-  }
-}
-
-class _RealtimeDot extends StatelessWidget {
-  const _RealtimeDot({required this.status});
-  final RealtimeStatus status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status.state) {
-      RealtimeConnectionState.connected => AppColors.success,
-      RealtimeConnectionState.connecting ||
-      RealtimeConnectionState.reconnecting =>
-        AppColors.warning,
-      RealtimeConnectionState.disconnected => AppColors.error,
-    };
-    return PulsingDot(color: color, size: 6, pulseSize: 16);
+        .slideY(begin: -1, end: 0, duration: 500.ms, curve: Curves.easeOutCubic)
+        .fadeIn(duration: 350.ms);
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Location FAB (glass morphism square)
+// Geocoding suggestions dropdown
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SuggestionsList extends StatelessWidget {
+  const _SuggestionsList({required this.suggestions, required this.onTap});
+
+  final List<GeocodingResult> suggestions;
+  final ValueChanged<GeocodingResult> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: suggestions.length,
+          separatorBuilder: (ctx, i) => Divider(
+            height: 1,
+            indent: 48,
+            color: colorScheme.outline.withValues(alpha: 0.15),
+          ),
+          itemBuilder: (context, i) {
+            final r = suggestions[i];
+            return ListTile(
+              dense: true,
+              leading: Icon(
+                r.iconType == IconType.poi
+                    ? Icons.place_rounded
+                    : r.iconType == IconType.address
+                        ? Icons.home_rounded
+                        : Icons.location_city_rounded,
+                color: colorScheme.primary,
+                size: 18,
+              ),
+              title: Text(
+                r.name,
+                style: TextStyle(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              subtitle: r.fullName.isNotEmpty
+                  ? Text(
+                      r.fullName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.5),
+                        fontSize: 12,
+                      ),
+                    )
+                  : null,
+              onTap: () => onTap(r),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recenter control — restyled: opaque surface + shadow, no glass blur
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _LocationFab extends StatelessWidget {
@@ -760,549 +766,42 @@ class _LocationFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return GestureDetector(
       onTap: locating ? null : onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-          child: Container(
-            width: 46,
-            height: 46,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceDark.withValues(alpha: 0.88),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.09),
-                width: 1,
-              ),
-            ),
-            child: Center(
-              child: locating
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(AppColors.brand),
-                      ),
-                    )
-                  : const Icon(
-                      Icons.my_location_rounded,
-                      color: AppColors.brand,
-                      size: 20,
-                    ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Dashboard draggable sheet
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _DashboardSheet extends StatelessWidget {
-  const _DashboardSheet({
-    required this.scrollController,
-    required this.balance,
-    required this.walletState,
-    required this.bottomPad,
-    required this.onTopUp,
-    required this.onHistory,
-    required this.onFuelUp,
-  });
-
-  final ScrollController scrollController;
-  final double? balance;
-  final AsyncValue<WalletSummary> walletState;
-  final double bottomPad;
-  final VoidCallback onTopUp;
-  final VoidCallback onHistory;
-  final VoidCallback onFuelUp;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.surfaceDark.withValues(alpha: 0.96),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.07),
-                width: 1,
-              ),
-            ),
-          ),
-          child: CustomScrollView(
-            controller: scrollController,
-            physics: const ClampingScrollPhysics(),
-            slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  children: [
-                    // Drag handle
-                    Padding(
-                      padding: const EdgeInsets.only(top: 12, bottom: 10),
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-
-                    // Balance row
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'AVAILABLE BALANCE',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.45),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                walletState.isLoading
-                                    ? const FeShimmer(
-                                        child: ShimmerBox(
-                                          width: 130,
-                                          height: 30,
-                                          radius: 8,
-                                        ),
-                                      )
-                                    : AnimatedCounter(
-                                        value: balance ?? 0,
-                                        formatter: (v) =>
-                                            'TZS ${NumberFormat('#,##0').format(v.toInt())}',
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 26,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: -0.5,
-                                        ),
-                                      ),
-                              ],
-                            ),
-                          ),
-                          // Quick chips
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              _QuickChip(
-                                icon: Icons.add_rounded,
-                                label: 'Top Up',
-                                onTap: onTopUp,
-                              ),
-                              const SizedBox(height: 6),
-                              _QuickChip(
-                                icon: Icons.history_rounded,
-                                label: 'History',
-                                onTap: onHistory,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // Fuel Up CTA
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: GradientButton(
-                        label: 'Fuel Up Now',
-                        icon: Icons.local_gas_station_rounded,
-                        onPressed: onFuelUp,
-                      ),
-                    ),
-
-                    const SizedBox(height: 22),
-
-                    // Section header
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: SectionHeader(
-                        title: 'Recent Transactions',
-                        actionLabel: 'See all',
-                        action: onHistory,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                  ],
-                ),
-              ),
-
-              // Transactions
-              walletState.when(
-                loading: () => SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (_, i) => const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 0, 20, 10),
-                      child: FeShimmer(
-                        child: ShimmerBox(width: null, height: 58, radius: 14),
-                      ),
-                    ),
-                    childCount: 3,
-                  ),
-                ),
-                error: (_, _) =>
-                    const SliverToBoxAdapter(child: SizedBox.shrink()),
-                data: (summary) {
-                  final txns =
-                      (summary.recentTransactions ?? []).take(5).toList();
-                  if (txns.isEmpty) {
-                    return SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad + 20),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt_long_outlined,
-                              size: 40,
-                              color: Colors.white.withValues(alpha: 0.15),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              'No transactions yet',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  return SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (ctx, i) {
-                        final isLast = i == txns.length - 1;
-                        return Padding(
-                          padding: EdgeInsets.fromLTRB(
-                              12, 0, 12, isLast ? bottomPad + 20 : 0),
-                          child: TransactionListItem(
-                            transaction: txns[i],
-                            onTap: () {},
-                          ),
-                        );
-                      },
-                      childCount: txns.length,
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickChip extends StatelessWidget {
-  const _QuickChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        width: 46,
+        height: 46,
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.07),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: AppColors.brand, size: 13),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: isDark ? Border.all(color: AppColors.borderDark) : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Station detail panel (slides up from bottom)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _StationDetailPanel extends StatelessWidget {
-  const _StationDetailPanel({
-    required this.pin,
-    required this.onClose,
-    required this.onFuelUp,
-    required this.bottomPad,
-    this.distance,
-  });
-
-  final StationMapPin pin;
-  final VoidCallback onClose;
-  final VoidCallback onFuelUp;
-  final double bottomPad;
-  final String? distance;
-
-  @override
-  Widget build(BuildContext context) {
-    final isSuspended = pin.hasSuspension;
-    final isActive = pin.status == 'active' && !isSuspended;
-    final statusColor = isSuspended
-        ? AppColors.error
-        : pin.status == 'active'
-            ? AppColors.success
-            : AppColors.statusInactive;
-    final statusLabel = isSuspended
-        ? 'Suspended'
-        : pin.status == 'active'
-            ? 'Active'
-            : 'Inactive';
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: EdgeInsets.fromLTRB(20, 12, 20, bottomPad + 16),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceElevatedDark.withValues(alpha: 0.97),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(26)),
-            border: Border(
-              top: BorderSide(
-                color: Colors.white.withValues(alpha: 0.08),
-                width: 1,
-              ),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.4),
-                blurRadius: 32,
-                offset: const Offset(0, -8),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Handle + close
-              Row(
-                children: [
-                  Expanded(
-                    child: Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.18),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
+        child: Center(
+          child: locating
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
                   ),
-                  GestureDetector(
-                    onTap: onClose,
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.07),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.close_rounded,
-                        size: 16,
-                        color: Colors.white.withValues(alpha: 0.55),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 18),
-
-              // Station header
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          statusColor.withValues(alpha: 0.25),
-                          statusColor.withValues(alpha: 0.08),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                      borderRadius: BorderRadius.circular(15),
-                      border: Border.all(
-                        color: statusColor.withValues(alpha: 0.3),
-                        width: 1,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.local_gas_station_rounded,
-                      color: statusColor,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          pin.name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 19,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.4,
-                          ),
-                        ),
-                        if (pin.district.isNotEmpty || pin.region.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 3),
-                            child: Text(
-                              [pin.district, pin.region]
-                                  .where((s) => s.isNotEmpty)
-                                  .join(', '),
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.48),
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  StatusBadge(label: statusLabel, color: statusColor),
-                ],
-              ),
-
-              const SizedBox(height: 18),
-
-              // Stats chips
-              Row(
-                children: [
-                  _InfoChip(
-                    icon: Icons.ev_station_rounded,
-                    label:
-                        '${pin.activePumps} pump${pin.activePumps != 1 ? 's' : ''} active',
-                    color: AppColors.brand,
-                  ),
-                  if (distance != null) ...[
-                    const SizedBox(width: 8),
-                    _InfoChip(
-                      icon: Icons.near_me_rounded,
-                      label: distance!,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                  if (isSuspended) ...[
-                    const SizedBox(width: 8),
-                    _InfoChip(
-                      icon: Icons.block_rounded,
-                      label: 'Suspended',
-                      color: AppColors.error,
-                    ),
-                  ],
-                ],
-              ),
-
-              const SizedBox(height: 22),
-
-              // CTA
-              GradientButton(
-                label: isActive ? 'Fuel Up Here' : 'Station Unavailable',
-                icon: isActive ? Icons.local_gas_station_rounded : null,
-                onPressed: isActive ? onFuelUp : null,
-                glow: isActive,
-              ),
-            ],
-          ),
+                )
+              : Icon(
+                  Icons.my_location_rounded,
+                  color: colorScheme.primary,
+                  size: 20,
+                ),
         ),
-      ),
-    );
-  }
-}
-
-class _InfoChip extends StatelessWidget {
-  const _InfoChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.2), width: 1),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: color, size: 13),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
       ),
     );
   }

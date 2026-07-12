@@ -100,7 +100,9 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
     return showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return AlertDialog(
         title: const Text('Save Your CVV'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -112,23 +114,23 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
             const SizedBox(height: 20),
             Text(
               'Card ending ****$last4',
-              style: const TextStyle(color: AppColors.textSecondaryDark),
+              style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7)),
             ),
             const SizedBox(height: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
                 cvv,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   fontFamily: 'monospace',
                   letterSpacing: 8,
-                  color: AppColors.primary,
+                  color: colorScheme.primary,
                 ),
               ),
             ),
@@ -140,14 +142,16 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
             child: const Text("I've saved it"),
           ),
         ],
-      ),
+      );
+      },
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.surfaceDark,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(title: const Text('Create Fuel Card'), elevation: 0),
       body: _loadingCompanies
           ? const Center(child: CircularProgressIndicator())
@@ -155,18 +159,18 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
               padding: const EdgeInsets.all(16),
               children: [
                 // Company picker
-                const Text(
+                Text(
                   'Fuel Company',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimaryDark,
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 12),
                 _companies.isEmpty
-                    ? const Text('No companies available',
-                        style: TextStyle(color: AppColors.textSecondaryDark))
+                    ? Text('No companies available',
+                        style: TextStyle(color: colorScheme.onSurface.withValues(alpha: 0.7)))
                     : DropdownButtonFormField<String>(
                         value: _selectedCompanyId,
                         decoration: InputDecoration(
@@ -186,12 +190,12 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
                 const SizedBox(height: 24),
 
                 // Expiry date
-                const Text(
+                Text(
                   'Expiry Date (optional)',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimaryDark,
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -209,8 +213,8 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
                           : 'Default: 1 year from today',
                       style: TextStyle(
                         color: _selectedExpiry != null
-                            ? AppColors.textPrimaryDark
-                            : AppColors.textTertiary,
+                            ? colorScheme.onSurface
+                            : colorScheme.onSurface.withValues(alpha: 0.5),
                       ),
                     ),
                   ),
@@ -222,7 +226,7 @@ class _CreateCardScreenState extends ConsumerState<CreateCardScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleCreateCard,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: colorScheme.primary,
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12)),

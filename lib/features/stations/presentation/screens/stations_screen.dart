@@ -76,7 +76,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                     Icon(
                       stationState.fromCache ? Icons.cloud_off : Icons.cloud_done,
                       size: 16,
-                      color: AppColors.textSecondaryDark,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -85,7 +85,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                             ? 'Showing cached data'
                             : 'Updated ${DateFormat('MMM d, HH:mm').format(stationState.lastUpdated!)}',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondaryDark,
+                          color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ),
@@ -127,7 +127,7 @@ class _StationsScreenState extends ConsumerState<StationsScreen> {
                   child: Text(
                     'No stations found',
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondaryDark,
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -234,6 +234,7 @@ class _StationsLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
@@ -245,7 +246,7 @@ class _StationsLoading extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.borderDark),
+              border: Border.all(color: cs.outlineVariant),
             ),
             child: Shimmer.fromColors(
               baseColor: Colors.grey.shade200,

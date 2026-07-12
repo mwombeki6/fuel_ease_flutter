@@ -68,7 +68,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       appBar: AppBar(
         title: const Text('Personal Information'),
         elevation: 0,
@@ -100,13 +99,13 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             Center(
               child: CircleAvatar(
                 radius: 44,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+                backgroundColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
                 child: Text(
                   _firstNameCtrl.text.isNotEmpty
                       ? _firstNameCtrl.text[0].toUpperCase()
                       : '?',
                   style: AppTextStyles.headlineMedium.copyWith(
-                    color: AppColors.brandLight,
+                    color: Theme.of(context).colorScheme.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -161,7 +160,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             ElevatedButton(
               onPressed: _loading ? null : _save,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
@@ -208,31 +207,32 @@ class _Field extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       onChanged: onChanged,
-      style: const TextStyle(color: AppColors.textPrimaryDark),
+      style: TextStyle(color: cs.onSurface),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        prefixIcon: Icon(icon, size: 20, color: AppColors.textSecondaryDark),
+        prefixIcon: Icon(icon, size: 20, color: cs.onSurface.withValues(alpha: 0.7)),
         filled: true,
-        fillColor: AppColors.surfaceVariantDark,
+        fillColor: cs.surfaceContainerHighest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderSide: BorderSide(color: cs.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.borderDark),
+          borderSide: BorderSide(color: cs.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brandLight, width: 2),
+          borderSide: BorderSide(color: cs.primary, width: 2),
         ),
-        labelStyle: const TextStyle(color: AppColors.textSecondaryDark),
+        labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.7)),
       ),
     );
   }

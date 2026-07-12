@@ -18,9 +18,10 @@ class DispenseHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final requestsState = ref.watch(dispenseProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Dispense History'),
         elevation: 0,
@@ -60,10 +61,11 @@ class DispenseHistoryScreen extends ConsumerWidget {
 }
 
 void _showDetail(BuildContext context, DispenseRequest req) {
+  final colorScheme = Theme.of(context).colorScheme;
   showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: AppColors.surfaceDark,
+    backgroundColor: colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -82,7 +84,7 @@ class _DispenseRequestItem extends StatelessWidget {
   final DispenseRequest request;
   final VoidCallback onTap;
 
-  Color _statusColor() {
+  Color _statusColor(BuildContext context) {
     switch (request.status) {
       case 'completed':
         return AppColors.success;
@@ -92,16 +94,17 @@ class _DispenseRequestItem extends StatelessWidget {
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondaryDark;
+        return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final color = _statusColor();
+    final color = _statusColor(context);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
-      color: AppColors.surfaceElevatedDark,
+      color: colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         onTap: onTap,
@@ -110,7 +113,7 @@ class _DispenseRequestItem extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderDark),
+            border: Border.all(color: colorScheme.outlineVariant),
           ),
           child: Row(
             children: [
@@ -134,7 +137,7 @@ class _DispenseRequestItem extends StatelessWidget {
                         Text(
                           '${_litersFormat.format(request.requestedLiters)} L',
                           style: AppTextStyles.titleSmall.copyWith(
-                            color: AppColors.textPrimaryDark,
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         _StatusBadge(status: request.status, color: color),
@@ -144,13 +147,13 @@ class _DispenseRequestItem extends StatelessWidget {
                     Text(
                       '${_currencyFormat.format(request.estimatedCostTzs)} TZS',
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondaryDark),
+                          .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       _dateFormat.format(request.createdAt),
                       style: AppTextStyles.bodySmall
-                          .copyWith(color: AppColors.textSecondaryDark),
+                          .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                     ),
                     if (request.isCompleted && request.actualLiters != null) ...[
                       const SizedBox(height: 4),
@@ -166,8 +169,8 @@ class _DispenseRequestItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              const Icon(Icons.chevron_right,
-                  color: AppColors.textSecondaryDark, size: 20),
+              Icon(Icons.chevron_right,
+                  color: colorScheme.onSurface.withValues(alpha: 0.7), size: 20),
             ],
           ),
         ),
@@ -224,7 +227,7 @@ class _DetailSheet extends StatelessWidget {
   const _DetailSheet({required this.request});
   final DispenseRequest request;
 
-  Color get _statusColor {
+  Color _statusColor(BuildContext context) {
     switch (request.status) {
       case 'completed':
         return AppColors.success;
@@ -234,7 +237,7 @@ class _DetailSheet extends StatelessWidget {
       case 'cancelled':
         return AppColors.error;
       default:
-        return AppColors.textSecondaryDark;
+        return Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7);
     }
   }
 
@@ -257,6 +260,8 @@ class _DetailSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final liters = request.actualLiters ?? request.requestedLiters;
     final cost = (liters * request.pricePerLiterTzs).ceil();
+    final colorScheme = Theme.of(context).colorScheme;
+    final statusColor = _statusColor(context);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -276,7 +281,7 @@ class _DetailSheet extends StatelessWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.borderDark,
+                  color: colorScheme.outlineVariant,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -290,26 +295,26 @@ class _DetailSheet extends StatelessWidget {
                     width: 64,
                     height: 64,
                     decoration: BoxDecoration(
-                      color: _statusColor.withValues(alpha: 0.15),
+                      color: statusColor.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(_statusIcon, color: _statusColor, size: 32),
+                    child: Icon(_statusIcon, color: statusColor, size: 32),
                   ),
                   const SizedBox(height: 12),
                   Text(request.formattedStatus,
                       style: AppTextStyles.titleMedium
-                          .copyWith(color: _statusColor)),
+                          .copyWith(color: statusColor)),
                   const SizedBox(height: 4),
                   Text(
                     '${_litersFormat.format(request.actualLiters ?? request.requestedLiters)} L',
                     style: AppTextStyles.headlineMedium.copyWith(
-                      color: AppColors.textPrimaryDark,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   Text(
                     '${_currencyFormat.format(cost)} TZS',
                     style: AppTextStyles.bodyMedium
-                        .copyWith(color: AppColors.textSecondaryDark),
+                        .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                   ),
                 ],
               ),
@@ -320,9 +325,9 @@ class _DetailSheet extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppColors.surfaceVariantDark,
+                color: colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderDark),
+                border: Border.all(color: colorScheme.outlineVariant),
               ),
               child: Column(
                 children: [
@@ -355,7 +360,7 @@ class _DetailSheet extends StatelessWidget {
                   _Row(
                     label: 'Status',
                     value: request.formattedStatus,
-                    valueColor: _statusColor,
+                    valueColor: statusColor,
                   ),
                 ],
               ),
@@ -371,13 +376,13 @@ class _DetailSheet extends StatelessWidget {
                     children: [
                       Text('Request ID',
                           style: AppTextStyles.labelSmall
-                              .copyWith(color: AppColors.textSecondaryDark)),
+                              .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7))),
                       const SizedBox(height: 2),
                       Text(
                         request.id,
                         style: AppTextStyles.bodySmall.copyWith(
                           fontFamily: 'monospace',
-                          color: AppColors.textPrimaryDark,
+                          color: colorScheme.onSurface,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -386,7 +391,7 @@ class _DetailSheet extends StatelessWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.copy_outlined, size: 18),
-                  color: AppColors.textSecondaryDark,
+                  color: colorScheme.onSurface.withValues(alpha: 0.7),
                   tooltip: 'Copy ID',
                   onPressed: () {
                     Clipboard.setData(ClipboardData(text: request.id));
@@ -415,6 +420,7 @@ class _Row extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -424,14 +430,14 @@ class _Row extends StatelessWidget {
             width: 110,
             child: Text(label,
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondaryDark)),
+                    .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7))),
           ),
           Expanded(
             child: Text(
               value,
               style: AppTextStyles.bodySmall.copyWith(
                 fontWeight: FontWeight.w600,
-                color: valueColor ?? AppColors.textPrimaryDark,
+                color: valueColor ?? colorScheme.onSurface,
               ),
             ),
           ),
@@ -448,6 +454,7 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -457,20 +464,20 @@ class _EmptyView extends StatelessWidget {
             Icon(
               Icons.local_gas_station_outlined,
               size: 64,
-              color: AppColors.textSecondaryDark.withValues(alpha: 0.4),
+              color: colorScheme.onSurface.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 16),
             Text(
               'No dispense requests yet',
               style: AppTextStyles.titleSmall.copyWith(
-                color: AppColors.textPrimaryDark,
+                color: colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
             Text(
               'Your fuel dispense history will appear here.',
               style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondaryDark),
+                  .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),
           ],
@@ -487,6 +494,7 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -498,7 +506,7 @@ class _ErrorView extends StatelessWidget {
             const SizedBox(height: 16),
             Text(error,
                 style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textSecondaryDark),
+                    .copyWith(color: colorScheme.onSurface.withValues(alpha: 0.7)),
                 textAlign: TextAlign.center),
             const SizedBox(height: 24),
             ElevatedButton.icon(

@@ -68,6 +68,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen<AuthState>(authProvider, (_, next) {
       next.maybeWhen(
@@ -79,11 +80,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final isLoading = authState.maybeWhen(loading: () => true, orElse: () => false);
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
+          Container(color: colorScheme.surface),
           Positioned(
             top: -80,
             left: 0,
@@ -94,7 +94,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 gradient: RadialGradient(
                   center: Alignment.topCenter,
                   radius: 0.7,
-                  colors: [AppColors.brandGlow, Colors.transparent],
+                  colors: [colorScheme.primary.withValues(alpha: 0.25), Colors.transparent],
                 ),
               ),
             ),
@@ -140,7 +140,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceDark.withValues(alpha: 0.88),
+                          color: colorScheme.surface.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.07),
@@ -591,7 +591,7 @@ class _DarkTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

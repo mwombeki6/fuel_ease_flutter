@@ -249,16 +249,14 @@ class FeShimmer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (!enabled) return child;
 
     return Shimmer.fromColors(
-      baseColor: isDark
-          ? AppColors.surfaceVariantDark
-          : AppColors.surfaceVariant,
-      highlightColor: isDark
-          ? AppColors.surfaceElevatedDark
-          : AppColors.surface,
+      baseColor: colorScheme.surfaceContainerHighest,
+      highlightColor:
+          isDark ? colorScheme.surfaceContainerHighest : colorScheme.surface,
       child: child,
     );
   }
@@ -317,6 +315,7 @@ class GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final enabled = onPressed != null && !isLoading;
 
     return GestureDetector(
@@ -328,12 +327,14 @@ class GradientButton extends StatelessWidget {
           height: height,
           decoration: BoxDecoration(
             gradient: enabled ? gradient : null,
-            color: enabled ? null : AppColors.textDisabled,
+            color: enabled
+                ? null
+                : colorScheme.onSurface.withValues(alpha: 0.38),
             borderRadius: BorderRadius.circular(radius),
             boxShadow: (enabled && glow)
                 ? [
                     BoxShadow(
-                      color: AppColors.brandGlow,
+                      color: colorScheme.primary.withValues(alpha: 0.25),
                       blurRadius: 20,
                       offset: const Offset(0, 6),
                     ),
@@ -477,6 +478,7 @@ class UserLocationMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 44,
       height: 44,
@@ -488,7 +490,7 @@ class UserLocationMarker extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary.withValues(alpha: 0.25),
+              color: colorScheme.primary.withValues(alpha: 0.25),
             ),
           )
               .animate(onPlay: (c) => c.repeat())
@@ -505,11 +507,11 @@ class UserLocationMarker extends StatelessWidget {
             height: 16,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.primary,
+              color: colorScheme.primary,
               border: Border.all(color: Colors.white, width: 2.5),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.5),
+                  color: colorScheme.primary.withValues(alpha: 0.5),
                   blurRadius: 8,
                 ),
               ],

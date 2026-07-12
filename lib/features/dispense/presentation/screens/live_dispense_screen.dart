@@ -25,6 +25,7 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(liveDispenseProvider(widget.params));
     final numberFormat = NumberFormat('#,##0');
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen(liveDispenseProvider(widget.params), (_, next) {
       if (next.phase == LiveDispensePhase.completed && mounted) {
@@ -47,12 +48,12 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
         _showStopDialog(context);
       },
       child: Scaffold(
-        backgroundColor: AppColors.midnight,
+        backgroundColor: colorScheme.surface,
         body: Stack(
           fit: StackFit.expand,
           children: [
             // Night gradient
-            Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
+            Container(decoration: BoxDecoration(color: colorScheme.surface)),
 
             // Ambient glow behind the numbers
             Positioned(
@@ -68,7 +69,7 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
                     colors: [
                       (state.phase == LiveDispensePhase.error
                               ? AppColors.error
-                              : AppColors.brand)
+                              : colorScheme.primary)
                           .withValues(alpha: 0.12),
                       Colors.transparent,
                     ],
@@ -278,10 +279,11 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
 
   void _showStopDialog(BuildContext context) {
     final router = GoRouter.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceElevatedDark,
+        backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Send stop request?',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
@@ -329,15 +331,17 @@ class _LiveSignalRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (phase == LiveDispensePhase.connecting) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const SizedBox(
+          SizedBox(
             width: 14,
             height: 14,
             child: CircularProgressIndicator(
-                strokeWidth: 2, color: AppColors.brand),
+                strokeWidth: 2, color: colorScheme.primary),
           ),
           const SizedBox(width: 10),
           Text(

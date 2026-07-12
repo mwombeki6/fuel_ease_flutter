@@ -30,9 +30,10 @@ class StationDetailsScreen extends ConsumerWidget {
     final inventoryAsync = canViewInventory
         ? ref.watch(stationInventoryProvider(stationId))
         : const AsyncValue<List<FuelInventoryEntry>>.data([]);
+    final cs = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         title: const Text('Station Details'),
         elevation: 0,
@@ -130,14 +131,15 @@ class _StationHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final statusColor = _statusColor(status);
+    final cs = Theme.of(context).colorScheme;
+    final statusColor = _statusColor(status, cs);
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevatedDark,
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: cs.outlineVariant),
         boxShadow: const [
           BoxShadow(
             color: AppColors.shadow,
@@ -156,7 +158,7 @@ class _StationHeader extends StatelessWidget {
                   name,
                   style: AppTextStyles.titleLarge.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimaryDark,
+                    color: cs.onSurface,
                   ),
                 ),
               ),
@@ -183,13 +185,13 @@ class _StationHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.location_on,
-                    size: 18, color: AppColors.textSecondaryDark),
+                    size: 18, color: cs.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     _joinAddress(address, district, region),
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondaryDark,
+                      color: cs.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -199,12 +201,12 @@ class _StationHeader extends StatelessWidget {
             const SizedBox(height: 10),
             Row(
               children: [
-                Icon(Icons.phone, size: 18, color: AppColors.textSecondaryDark),
+                Icon(Icons.phone, size: 18, color: cs.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 8),
                 Text(
                   contactNumber!,
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondaryDark,
+                    color: cs.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -215,13 +217,13 @@ class _StationHeader extends StatelessWidget {
             Row(
               children: [
                 Icon(Icons.schedule,
-                    size: 18, color: AppColors.textSecondaryDark),
+                    size: 18, color: cs.onSurface.withValues(alpha: 0.7)),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     operatingHours!,
                     style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.textSecondaryDark,
+                      color: cs.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ),
@@ -241,16 +243,16 @@ class _StationHeader extends StatelessWidget {
     return parts.join(', ');
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(String status, ColorScheme cs) {
     switch (status.toUpperCase()) {
       case 'ACTIVE':
         return AppColors.success;
       case 'MAINTENANCE':
         return AppColors.warning;
       case 'INACTIVE':
-        return AppColors.textSecondaryDark;
+        return cs.onSurface.withValues(alpha: 0.7);
       default:
-        return AppColors.textSecondaryDark;
+        return cs.onSurface.withValues(alpha: 0.7);
     }
   }
 }
@@ -266,6 +268,7 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Column(
@@ -273,12 +276,12 @@ class _SectionHeader extends StatelessWidget {
         children: [
           Text(title,
               style: AppTextStyles.titleMedium
-                  .copyWith(color: AppColors.textPrimaryDark)),
+                  .copyWith(color: cs.onSurface)),
           const SizedBox(height: 4),
           Text(
             subtitle,
             style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textSecondaryDark,
+              color: cs.onSurface.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -294,6 +297,7 @@ class _InventoryGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (items.isEmpty) {
       return const _EmptyState(message: 'No inventory data available.');
     }
@@ -301,14 +305,14 @@ class _InventoryGrid extends StatelessWidget {
     return Column(
       children: items.map((entry) {
         final percent = entry.percentFull.clamp(0, 100);
-        final color = _fuelColor(entry.fuelType);
+        final color = _fuelColor(entry.fuelType, cs);
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevatedDark,
+            color: cs.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.borderDark),
+            border: Border.all(color: cs.outlineVariant),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -326,7 +330,7 @@ class _InventoryGrid extends StatelessWidget {
                   Text(
                     '${percent.toStringAsFixed(0)}%',
                     style: AppTextStyles.labelLarge.copyWith(
-                      color: AppColors.textSecondaryDark,
+                      color: cs.onSurface.withValues(alpha: 0.7),
                     ),
                   ),
                 ],
@@ -336,7 +340,7 @@ class _InventoryGrid extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
                 child: LinearProgressIndicator(
                   value: percent / 100,
-                  backgroundColor: AppColors.surfaceVariantDark,
+                  backgroundColor: cs.surfaceContainerHighest,
                   color: color,
                   minHeight: 10,
                 ),
@@ -345,7 +349,7 @@ class _InventoryGrid extends StatelessWidget {
               Text(
                 '${NumberFormat('#,##0').format(entry.currentLevel)} / ${NumberFormat('#,##0').format(entry.capacity)} L',
                 style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondaryDark,
+                  color: cs.onSurface.withValues(alpha: 0.7),
                 ),
               ),
               if (entry.lastRefill != null) ...[
@@ -353,7 +357,7 @@ class _InventoryGrid extends StatelessWidget {
                 Text(
                   'Last refill: ${entry.lastRefill}',
                   style: AppTextStyles.bodySmall.copyWith(
-                    color: AppColors.textSecondaryDark,
+                    color: cs.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
               ],
@@ -364,7 +368,7 @@ class _InventoryGrid extends StatelessWidget {
     );
   }
 
-  Color _fuelColor(String fuelType) {
+  Color _fuelColor(String fuelType, ColorScheme cs) {
     switch (fuelType.toUpperCase()) {
       case 'PETROL':
         return AppColors.petrolColor;
@@ -373,7 +377,7 @@ class _InventoryGrid extends StatelessWidget {
       case 'PREMIUM':
         return AppColors.premiumColor;
       default:
-        return AppColors.primary;
+        return cs.primary;
     }
   }
 }
@@ -391,6 +395,7 @@ class _PumpList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     if (pumps.isEmpty) {
       return const _EmptyState(message: 'No pumps available.');
     }
@@ -404,16 +409,16 @@ class _PumpList extends StatelessWidget {
         final isLive = effectiveLive != null &&
             DateTime.now().difference(effectiveLive.receivedAt).inMinutes < 3;
         final status = effectiveLive?.status ?? pump.status;
-        final statusColor = _statusColor(status);
+        final statusColor = _statusColor(status, cs);
         final flowRate =
             effectiveLive?.data['flowRate'] ?? effectiveLive?.data['flow_rate'];
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevatedDark,
+            color: cs.surfaceContainerHighest,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.borderDark),
+            border: Border.all(color: cs.outlineVariant),
           ),
           child: Row(
             children: [
@@ -438,14 +443,14 @@ class _PumpList extends StatelessWidget {
                       'Pump ${pump.pumpNumber}',
                       style: AppTextStyles.titleSmall.copyWith(
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimaryDark,
+                        color: cs.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       pump.fuelType.toUpperCase(),
                       style: AppTextStyles.bodySmall.copyWith(
-                        color: AppColors.textSecondaryDark,
+                        color: cs.onSurface.withValues(alpha: 0.7),
                       ),
                     ),
                     if (flowRate != null) ...[
@@ -453,7 +458,7 @@ class _PumpList extends StatelessWidget {
                       Text(
                         'Flow rate: ${flowRate.toString()} L/s',
                         style: AppTextStyles.bodySmall.copyWith(
-                          color: AppColors.textSecondaryDark,
+                          color: cs.onSurface.withValues(alpha: 0.7),
                         ),
                       ),
                     ],
@@ -495,7 +500,7 @@ class _PumpList extends StatelessWidget {
                         Text(
                           'Live',
                           style: AppTextStyles.bodySmall.copyWith(
-                            color: AppColors.textSecondaryDark,
+                            color: cs.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
                       ],
@@ -510,19 +515,19 @@ class _PumpList extends StatelessWidget {
     );
   }
 
-  Color _statusColor(String status) {
+  Color _statusColor(String status, ColorScheme cs) {
     switch (status.toUpperCase()) {
       case 'ACTIVE':
         return AppColors.success;
       case 'DISPENSING':
-        return AppColors.accent;
+        return cs.secondary;
       case 'MAINTENANCE':
         return AppColors.warning;
       case 'DISABLED':
       case 'INACTIVE':
-        return AppColors.textSecondaryDark;
+        return cs.onSurface.withValues(alpha: 0.7);
       default:
-        return AppColors.textSecondaryDark;
+        return cs.onSurface.withValues(alpha: 0.7);
     }
   }
 }
@@ -532,12 +537,13 @@ class _SectionLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevatedDark,
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: const Center(child: CircularProgressIndicator()),
     );
@@ -598,7 +604,7 @@ class _SectionInfo extends StatelessWidget {
             child: Text(
               message,
               style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textSecondaryDark,
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
               ),
             ),
           ),
@@ -615,18 +621,19 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevatedDark,
+        color: cs.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderDark),
+        border: Border.all(color: cs.outlineVariant),
       ),
       child: Center(
         child: Text(
           message,
           style: AppTextStyles.bodySmall.copyWith(
-            color: AppColors.textSecondaryDark,
+            color: cs.onSurface.withValues(alpha: 0.7),
           ),
         ),
       ),

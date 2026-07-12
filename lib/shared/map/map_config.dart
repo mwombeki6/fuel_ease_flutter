@@ -90,7 +90,7 @@ class MapStylePicker extends StatelessWidget {
                 color: selected
                     ? (style == MapStyle.fuelEase
                         ? const Color(0xFF2563EB)
-                        : AppColors.primary)
+                        : Theme.of(context).colorScheme.primary)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(20),
               ),
@@ -136,16 +136,17 @@ class StationClusterMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = count < 10 ? 44.0 : count < 100 ? 50.0 : 58.0;
+    final clusterBadgeColor = Theme.of(context).colorScheme.primary;
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.primary,
+        color: clusterBadgeColor,
         border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 2),
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.5),
+            color: clusterBadgeColor.withValues(alpha: 0.5),
             blurRadius: 14,
             spreadRadius: 2,
           ),

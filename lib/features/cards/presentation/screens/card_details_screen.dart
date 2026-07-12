@@ -377,12 +377,13 @@ class _InfoSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+        color: colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -471,6 +472,7 @@ class _ShareOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -478,19 +480,19 @@ class _ShareOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15)),
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.15)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
+                color: colorScheme.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 20),
+              child: Icon(icon, color: colorScheme.primary, size: 20),
             ),
             const SizedBox(width: 14),
             Text(
@@ -498,13 +500,13 @@ class _ShareOption extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
+                color: colorScheme.onSurface,
               ),
             ),
             const Spacer(),
             Icon(
               Icons.chevron_right,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+              color: colorScheme.onSurface.withValues(alpha: 0.4),
               size: 20,
             ),
           ],
@@ -640,7 +642,7 @@ class _StatusTimeline extends StatelessWidget {
         date: _dateFmt.format(card.createdAt),
         reached: true,
         isCurrent: card.status == 'pending',
-        color: AppColors.primary,
+        color: cs.primary,
       ),
       _TimelineStep(
         label: 'Active',

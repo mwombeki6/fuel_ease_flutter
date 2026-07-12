@@ -97,8 +97,9 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: cs.surface,
       appBar: AppBar(
         title: const Text('Top Up Wallet'),
         elevation: 0,
@@ -133,7 +134,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                       'You will receive a payment prompt on your phone. Complete the payment to add fuel units to your wallet.',
                       style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textSecondaryDark,
+                        color: cs.onSurface.withValues(alpha: 0.7),
                         height: 1.4,
                       ),
                     ),
@@ -144,12 +145,12 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
             const SizedBox(height: 24),
 
             // Amount section
-            const Text(
+            Text(
               'Amount (TZS)',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryDark,
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -179,8 +180,8 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
                 labelText: 'Enter amount',
                 hintText: '10,000',
                 prefixText: 'TZS ',
-                prefixStyle: const TextStyle(
-                  color: AppColors.textPrimaryDark,
+                prefixStyle: TextStyle(
+                  color: cs.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
                 border: OutlineInputBorder(
@@ -211,12 +212,12 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
             const SizedBox(height: 24),
 
             // Phone number section
-            const Text(
+            Text(
               'Mobile Money Number',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryDark,
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -252,12 +253,12 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
             const SizedBox(height: 24),
 
             // Payment provider section
-            const Text(
+            Text(
               'Payment Method',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimaryDark,
+                color: cs.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -276,7 +277,7 @@ class _RechargeScreenState extends ConsumerState<RechargeScreen> {
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _handleRecharge,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
+                  backgroundColor: cs.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -321,6 +322,7 @@ class _QuickAmountChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final numberFormat = NumberFormat('#,###');
+    final cs = Theme.of(context).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -328,15 +330,15 @@ class _QuickAmountChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          border: Border.all(color: AppColors.primary, width: 1.5),
+          border: Border.all(color: cs.primary, width: 1.5),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           numberFormat.format(amount),
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.primary,
+            color: cs.primary,
           ),
         ),
       ),
@@ -395,6 +397,7 @@ class _ProviderOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -402,10 +405,10 @@ class _ProviderOption extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.primary.withValues(alpha: 0.12)
-              : AppColors.surfaceDark,
+              ? cs.primary.withValues(alpha: 0.12)
+              : cs.surface,
           border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.borderDark,
+            color: isSelected ? cs.primary : cs.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
@@ -415,7 +418,7 @@ class _ProviderOption extends StatelessWidget {
           children: [
             Icon(
               icon,
-              color: isSelected ? AppColors.primary : AppColors.textSecondaryDark,
+              color: isSelected ? cs.primary : cs.onSurface.withValues(alpha: 0.7),
               size: 24,
             ),
             const SizedBox(width: 8),
@@ -424,7 +427,7 @@ class _ProviderOption extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
-                color: isSelected ? AppColors.primary : AppColors.textPrimaryDark,
+                color: isSelected ? cs.primary : cs.onSurface,
               ),
             ),
           ],

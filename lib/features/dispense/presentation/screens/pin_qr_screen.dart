@@ -200,19 +200,17 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final status = _latestRequest?.status ?? 'pending';
     final isExpired = _remainingSeconds == 0;
     final isCancelled = _latestRequest?.isCancelled ?? false;
     final isUrgent = _remainingSeconds < 60;
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: colorScheme.surface,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Night gradient
-          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
-
           // Ambient glow
           Positioned(
             top: -80,
@@ -224,7 +222,10 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                 gradient: RadialGradient(
                   center: Alignment.topCenter,
                   radius: 0.7,
-                  colors: [AppColors.brandGlow, Colors.transparent],
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.25),
+                    Colors.transparent,
+                  ],
                 ),
               ),
             ),
@@ -258,6 +259,19 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                     ],
                   ),
                 ),
+
+                if (status == 'pending' && !isExpired && !isCancelled) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Waiting for pump confirmation',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
 
                 Expanded(
                   child: SingleChildScrollView(
@@ -295,7 +309,7 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                               'Tap to copy PIN',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: AppColors.brand.withValues(alpha: 0.8),
+                                color: colorScheme.primary.withValues(alpha: 0.8),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -305,7 +319,7 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
 
                           // QR section
                           Text(
-                            'Or scan this QR code at the pump',
+                            'Or let the pump scan the QR code',
                             style: TextStyle(
                               fontSize: 13,
                               color: Colors.white.withValues(alpha: 0.45),
@@ -397,6 +411,7 @@ class _PinDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final digits = pin.split('');
     return Column(
       children: [
@@ -419,7 +434,7 @@ class _PinDisplay extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.brandGlow,
+                    color: colorScheme.primary.withValues(alpha: 0.25),
                     blurRadius: 40,
                     spreadRadius: 4,
                   ),
@@ -458,6 +473,7 @@ class _QrContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
       child: BackdropFilter(
@@ -465,7 +481,7 @@ class _QrContainer extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevatedDark.withValues(alpha: 0.9),
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
@@ -504,6 +520,7 @@ class _ArcCountdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SizedBox(
       width: 130,
       height: 130,
@@ -515,6 +532,8 @@ class _ArcCountdown extends StatelessWidget {
             painter: _ArcPainter(
               fraction: remaining / total,
               isUrgent: isUrgent,
+              primaryColor: colorScheme.primary,
+              secondaryColor: colorScheme.secondary,
             ),
           ),
           Column(
@@ -546,10 +565,17 @@ class _ArcCountdown extends StatelessWidget {
 }
 
 class _ArcPainter extends CustomPainter {
-  const _ArcPainter({required this.fraction, required this.isUrgent});
+  const _ArcPainter({
+    required this.fraction,
+    required this.isUrgent,
+    required this.primaryColor,
+    required this.secondaryColor,
+  });
 
   final double fraction;
   final bool isUrgent;
+  final Color primaryColor;
+  final Color secondaryColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -575,7 +601,7 @@ class _ArcPainter extends CustomPainter {
       progressPaint.color = AppColors.error;
     } else {
       progressPaint.shader = LinearGradient(
-        colors: [AppColors.brand, AppColors.brandCyan],
+        colors: [primaryColor, secondaryColor],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height));
     }
 
@@ -590,7 +616,10 @@ class _ArcPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ArcPainter old) =>
-      old.fraction != fraction || old.isUrgent != isUrgent;
+      old.fraction != fraction ||
+      old.isUrgent != isUrgent ||
+      old.primaryColor != primaryColor ||
+      old.secondaryColor != secondaryColor;
 }
 
 // ── Status pill ────────────────────────────────────────────────────────────
@@ -712,7 +741,7 @@ class _DarkDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppColors.surfaceElevatedDark,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         title,

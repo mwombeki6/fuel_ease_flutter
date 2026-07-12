@@ -45,6 +45,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final colorScheme = Theme.of(context).colorScheme;
 
     ref.listen<AuthState>(authProvider, (_, next) {
       next.maybeWhen(
@@ -56,11 +57,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final isLoading = authState.maybeWhen(loading: () => true, orElse: () => false);
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
+          Container(color: colorScheme.surface),
           Positioned(
             top: -100,
             left: 0,
@@ -71,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 gradient: RadialGradient(
                   center: Alignment.topCenter,
                   radius: 0.7,
-                  colors: [AppColors.brandGlow, Colors.transparent],
+                  colors: [colorScheme.primary.withValues(alpha: 0.25), Colors.transparent],
                 ),
               ),
             ),
@@ -123,7 +123,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceDark.withValues(alpha: 0.88),
+                          color: colorScheme.surface.withValues(alpha: 0.88),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: Colors.white.withValues(alpha: 0.07),
@@ -151,6 +151,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 label: 'Email address',
                                 hint: 'you@example.com',
                                 icon: Icons.mail_outline_rounded,
+                                colorScheme: colorScheme,
                                 keyboardType: TextInputType.emailAddress,
                                 textInputAction: TextInputAction.next,
                                 enabled: !isLoading,
@@ -167,6 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 controller: _passwordController,
                                 label: 'Password',
                                 icon: Icons.lock_outline_rounded,
+                                colorScheme: colorScheme,
                                 obscureText: _obscurePassword,
                                 textInputAction: TextInputAction.done,
                                 enabled: !isLoading,
@@ -223,7 +225,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         child: Text(
                           'Sign Up',
                           style: TextStyle(
-                            color: AppColors.brand,
+                            color: colorScheme.primary,
                             fontWeight: FontWeight.w600,
                             fontSize: 14,
                           ),
@@ -313,6 +315,7 @@ class _DarkTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.icon,
+    required this.colorScheme,
     this.hint,
     this.obscureText = false,
     this.enabled = true,
@@ -327,6 +330,7 @@ class _DarkTextField extends StatelessWidget {
   final String label;
   final String? hint;
   final IconData icon;
+  final ColorScheme colorScheme;
   final bool obscureText;
   final bool enabled;
   final TextInputType? keyboardType;
@@ -371,7 +375,7 @@ class _DarkTextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.brand, width: 1.5),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

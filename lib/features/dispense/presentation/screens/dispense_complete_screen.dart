@@ -60,14 +60,15 @@ class _DispenseCompleteScreenState
     final requestAsync = ref.watch(dispenseRequestByIdProvider(widget.requestId));
     final numberFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('HH:mm, MMM d');
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: AppColors.midnight,
+      backgroundColor: colorScheme.surface,
       body: Stack(
         fit: StackFit.expand,
         children: [
           // Night gradient
-          Container(decoration: BoxDecoration(gradient: AppColors.nightGradient)),
+          Container(decoration: BoxDecoration(color: colorScheme.surface)),
 
           // Success glow
           Positioned(
@@ -99,12 +100,12 @@ class _DispenseCompleteScreenState
               particleDrag: 0.05,
               emissionFrequency: 0.04,
               gravity: 0.06,
-              colors: const [
-                AppColors.brand,
-                AppColors.brandCyan,
+              colors: [
+                colorScheme.primary,
+                colorScheme.secondary,
                 Colors.white,
                 AppColors.success,
-                Color(0xFFFFC107),
+                const Color(0xFFFFC107),
               ],
             ),
           ),
@@ -215,7 +216,7 @@ class _DispenseCompleteScreenState
                             width: double.infinity,
                             padding: const EdgeInsets.all(20),
                             decoration: BoxDecoration(
-                              color: AppColors.surfaceElevatedDark.withValues(alpha: 0.9),
+                              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(18),
                               border: Border.all(
                                   color: Colors.white.withValues(alpha: 0.07)),

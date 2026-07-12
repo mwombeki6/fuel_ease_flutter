@@ -11,14 +11,14 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: AppColors.midnight,
       body: Stack(
         fit: StackFit.expand,
         children: [
           // Night gradient background
           Container(
-            decoration: BoxDecoration(gradient: AppColors.nightGradient),
+            color: colorScheme.surface,
           ),
 
           // Ambient brand glow top-center
@@ -33,7 +33,7 @@ class WelcomeScreen extends StatelessWidget {
                   center: Alignment.topCenter,
                   radius: 0.75,
                   colors: [
-                    AppColors.brandGlow,
+                    colorScheme.primary.withValues(alpha: 0.25),
                     Colors.transparent,
                   ],
                 ),
@@ -53,7 +53,7 @@ class WelcomeScreen extends StatelessWidget {
                   center: Alignment.bottomCenter,
                   radius: 0.8,
                   colors: [
-                    AppColors.brandCyan.withValues(alpha: 0.08),
+                    colorScheme.secondary.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -79,7 +79,7 @@ class WelcomeScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.brandGlow,
+                            color: colorScheme.primary.withValues(alpha: 0.25),
                             blurRadius: 40,
                             spreadRadius: 6,
                           ),
