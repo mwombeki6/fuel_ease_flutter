@@ -260,6 +260,19 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                   ),
                 ),
 
+                if (status == 'pending' && !isExpired && !isCancelled) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Waiting for pump confirmation',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
