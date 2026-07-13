@@ -1,12 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/dashboard/presentation/providers/nearest_station_provider.dart';
 import 'package:fuel_ease_flutter/features/stations/data/models/station_map_pin.dart';
 
 bool _isOpen(StationMapPin pin) => pin.status == 'active' && !pin.hasSuspension;
+
+// Universal maps deep-link (maps.google.com works as a fallback web link on
+// every platform, and both Google Maps and Apple Maps intercept it as a native
+// app link when installed — no platform branching needed).
+Future<void> _openDirections(double lat, double lng) async {
+  final uri = Uri.parse(
+    'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng',
+  );
+  await launchUrl(uri, mode: LaunchMode.externalApplication);
+}
 
 class StationSheet extends ConsumerStatefulWidget {
   const StationSheet({super.key});
@@ -99,7 +110,7 @@ class _StationSheetState extends ConsumerState<StationSheet> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {}, // TODO(directions): wire to a maps deep-link once specced
+                      onPressed: () => _openDirections(station.lat, station.lng),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
