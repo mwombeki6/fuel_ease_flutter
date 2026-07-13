@@ -57,6 +57,19 @@ class DispenseRepository {
     }
   }
 
+  /// Resolves a device serial — scanned from the QR code shown on the pump's
+  /// own screen — to the station and pump the customer is standing at.
+  Future<DeviceQRInfo> lookupDeviceQR(String serial) async {
+    try {
+      final response = await _apiClient.get('/dispense/device-lookup/$serial');
+      _assertSuccess(response);
+      return DeviceQRInfo.fromJson(
+          response.data['data'] as Map<String, dynamic>);
+    } on DioException catch (e) {
+      throw ApiError.fromDioException(e);
+    }
+  }
+
   void _assertSuccess(Response response) {
     if ((response.statusCode ?? 0) >= 300) {
       final data = response.data;
@@ -71,3 +84,27 @@ class DispenseRepository {
 final dispenseRepositoryProvider = Provider<DispenseRepository>((ref) {
   return DispenseRepository(ref.read(apiClientProvider));
 });
+
+class DeviceQRInfo {
+  const DeviceQRInfo({
+    required this.stationId,
+    required this.stationName,
+    required this.pumpId,
+    required this.pumpNumber,
+    required this.fuelType,
+  });
+
+  factory DeviceQRInfo.fromJson(Map<String, dynamic> json) => DeviceQRInfo(
+        stationId: json['stationId'] as String,
+        stationName: json['stationName'] as String,
+        pumpId: json['pumpId'] as String,
+        pumpNumber: json['pumpNumber'] as int?,
+        fuelType: json['fuelType'] as String,
+      );
+
+  final String stationId;
+  final String stationName;
+  final String pumpId;
+  final int? pumpNumber;
+  final String fuelType;
+}

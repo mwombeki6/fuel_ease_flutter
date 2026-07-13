@@ -14,6 +14,7 @@ import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispens
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_history_screen.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/live_dispense_screen.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/pin_qr_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/scan_qr_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/splash_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/login_screen.dart';
@@ -204,6 +205,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state,
           CreateDispenseScreen(preselectedStationId: state.extra as String?),
         ),
+      ),
+      GoRoute(
+        path: Routes.scanQR,
+        pageBuilder: (context, state) =>
+            _slideFade(state, const ScanQrScreen()),
       ),
       GoRoute(
         path: Routes.dispensingRequests,

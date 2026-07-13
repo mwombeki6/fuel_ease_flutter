@@ -253,6 +253,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                   Positioned(
                     right: 12,
+                    bottom: 228,
+                    child: _ScanQrFab(
+                      onTap: () => context.push(Routes.scanQR),
+                    ),
+                  ),
+                  Positioned(
+                    right: 12,
                     bottom: 172,
                     child: _LocationFab(
                       locating: _locating,
@@ -801,6 +808,44 @@ class _LocationFab extends StatelessWidget {
                   color: colorScheme.primary,
                   size: 20,
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ScanQrFab extends StatelessWidget {
+  const _ScanQrFab({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: isDark ? Border.all(color: AppColors.borderDark) : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Icon(
+            Icons.qr_code_scanner_rounded,
+            color: colorScheme.primary,
+            size: 20,
+          ),
         ),
       ),
     );
