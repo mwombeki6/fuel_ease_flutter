@@ -25,8 +25,7 @@ class DispenseCompleteScreen extends ConsumerStatefulWidget {
       _DispenseCompleteScreenState();
 }
 
-class _DispenseCompleteScreenState
-    extends ConsumerState<DispenseCompleteScreen>
+class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
     with SingleTickerProviderStateMixin {
   late final ConfettiController _confettiController;
   late final AnimationController _checkmarkController;
@@ -34,8 +33,9 @@ class _DispenseCompleteScreenState
   @override
   void initState() {
     super.initState();
-    _confettiController =
-        ConfettiController(duration: const Duration(seconds: 4));
+    _confettiController = ConfettiController(
+      duration: const Duration(seconds: 4),
+    );
     _checkmarkController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
@@ -58,7 +58,9 @@ class _DispenseCompleteScreenState
 
   @override
   Widget build(BuildContext context) {
-    final requestAsync = ref.watch(dispenseRequestByIdProvider(widget.requestId));
+    final requestAsync = ref.watch(
+      dispenseRequestByIdProvider(widget.requestId),
+    );
     final numberFormat = NumberFormat('#,##0');
     final dateFormat = DateFormat('HH:mm, MMM d');
     final colorScheme = Theme.of(context).colorScheme;
@@ -122,193 +124,258 @@ class _DispenseCompleteScreenState
               return SafeArea(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-                  child: Column(
-                    children: [
-                      const Spacer(),
+                  child: LayoutBuilder(
+                    builder: (context, c) => SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(minHeight: c.maxHeight),
+                        child: IntrinsicHeight(
+                          child: Column(
+                            children: [
+                              const Spacer(),
 
-                      // Animated checkmark
-                      ScaleTransition(
-                        scale: CurvedAnimation(
-                          parent: _checkmarkController,
-                          curve: Curves.easeOutBack,
-                        ),
-                        child: Container(
-                          width: 100,
-                          height: 100,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.success,
-                                AppColors.success.withValues(alpha: 0.6),
-                              ],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.success.withValues(alpha: 0.4),
-                                blurRadius: 36,
-                                spreadRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.check_rounded,
-                            color: Colors.white,
-                            size: 56,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 28),
-
-                      Text(
-                        'Fuel Dispensed!',
-                        style:
-                            Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
+                              // Animated checkmark
+                              ScaleTransition(
+                                scale: CurvedAnimation(
+                                  parent: _checkmarkController,
+                                  curve: Curves.easeOutBack,
                                 ),
-                      )
-                          .animate()
-                          .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 300.ms)
-                          .fadeIn(duration: 350.ms, delay: 300.ms),
-
-                      const SizedBox(height: 32),
-
-                      // Liters
-                      AnimatedCounter(
-                        value: liters,
-                        formatter: (v) => '${v.toStringAsFixed(2)} L',
-                        style: const TextStyle(
-                          fontSize: 52,
-                          fontWeight: FontWeight.w900,
-                          color: Colors.white,
-                          letterSpacing: -1,
-                        ),
-                      )
-                          .animate()
-                          .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 400.ms)
-                          .fadeIn(duration: 350.ms, delay: 400.ms),
-
-                      const SizedBox(height: 8),
-
-                      AnimatedCounter(
-                        value: cost.toDouble(),
-                        formatter: (v) => 'TZS ${numberFormat.format(v.toInt())}',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white.withValues(alpha: 0.75),
-                        ),
-                      )
-                          .animate()
-                          .fadeIn(duration: 350.ms, delay: 500.ms),
-
-                      const SizedBox(height: 32),
-
-                      // Details glass card
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.07)),
-                            ),
-                            child: Column(
-                              children: [
-                                _DetailRow(
-                                  label: 'Ref',
-                                  value: widget.requestId.length > 8
-                                      ? widget.requestId
-                                          .substring(0, 8)
-                                          .toUpperCase()
-                                      : widget.requestId.toUpperCase(),
-                                ),
-                                const SizedBox(height: 12),
-                                _DetailRow(
-                                  label: 'Time',
-                                  value: dateFormat
-                                      .format(request.createdAt.toLocal()),
-                                ),
-                                const SizedBox(height: 12),
-                                _DetailRow(
-                                  label: 'Status',
-                                  value: request.formattedStatus,
-                                  valueColor: AppColors.success,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      )
-                          .animate()
-                          .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 550.ms)
-                          .fadeIn(duration: 350.ms, delay: 550.ms),
-
-                      const SizedBox(height: 16),
-
-                      // Live two-guarantee fuel-session verification panel.
-                      VerificationPanel(requestId: widget.requestId)
-                          .animate()
-                          .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 600.ms)
-                          .fadeIn(duration: 350.ms, delay: 600.ms),
-
-                      const Spacer(),
-
-                      // Action buttons
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                await _refreshFinancialState();
-                                if (mounted) {
-                                  context.go(Routes.walletTransactions);
-                                }
-                              },
-                              child: Container(
-                                height: 52,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.15)),
-                                ),
-                                child: Text(
-                                  'View History',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.8),
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
+                                child: Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.success,
+                                        AppColors.success.withValues(
+                                          alpha: 0.6,
+                                        ),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppColors.success.withValues(
+                                          alpha: 0.4,
+                                        ),
+                                        blurRadius: 36,
+                                        spreadRadius: 4,
+                                      ),
+                                    ],
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    color: Colors.white,
+                                    size: 56,
                                   ),
                                 ),
                               ),
-                            ),
+
+                              const SizedBox(height: 28),
+
+                              Text(
+                                    'Fuel Dispensed!',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineSmall
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                  )
+                                  .animate()
+                                  .slideY(
+                                    begin: 0.3,
+                                    end: 0,
+                                    duration: 400.ms,
+                                    delay: 300.ms,
+                                  )
+                                  .fadeIn(duration: 350.ms, delay: 300.ms),
+
+                              const SizedBox(height: 32),
+
+                              // Liters
+                              AnimatedCounter(
+                                    value: liters,
+                                    formatter: (v) =>
+                                        '${v.toStringAsFixed(2)} L',
+                                    style: const TextStyle(
+                                      fontSize: 52,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: -1,
+                                    ),
+                                  )
+                                  .animate()
+                                  .slideY(
+                                    begin: 0.3,
+                                    end: 0,
+                                    duration: 400.ms,
+                                    delay: 400.ms,
+                                  )
+                                  .fadeIn(duration: 350.ms, delay: 400.ms),
+
+                              const SizedBox(height: 8),
+
+                              AnimatedCounter(
+                                value: cost.toDouble(),
+                                formatter: (v) =>
+                                    'TZS ${numberFormat.format(v.toInt())}',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white.withValues(alpha: 0.75),
+                                ),
+                              ).animate().fadeIn(
+                                duration: 350.ms,
+                                delay: 500.ms,
+                              ),
+
+                              const SizedBox(height: 32),
+
+                              // Details glass card
+                              ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: BackdropFilter(
+                                      filter: ImageFilter.blur(
+                                        sigmaX: 14,
+                                        sigmaY: 14,
+                                      ),
+                                      child: Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme
+                                              .surfaceContainerHighest
+                                              .withValues(alpha: 0.9),
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.07,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            _DetailRow(
+                                              label: 'Ref',
+                                              value: widget.requestId.length > 8
+                                                  ? widget.requestId
+                                                        .substring(0, 8)
+                                                        .toUpperCase()
+                                                  : widget.requestId
+                                                        .toUpperCase(),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _DetailRow(
+                                              label: 'Time',
+                                              value: dateFormat.format(
+                                                request.createdAt.toLocal(),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _DetailRow(
+                                              label: 'Status',
+                                              value: request.formattedStatus,
+                                              valueColor: AppColors.success,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .animate()
+                                  .slideY(
+                                    begin: 0.2,
+                                    end: 0,
+                                    duration: 400.ms,
+                                    delay: 550.ms,
+                                  )
+                                  .fadeIn(duration: 350.ms, delay: 550.ms),
+
+                              const SizedBox(height: 16),
+
+                              // Live two-guarantee fuel-session verification panel.
+                              VerificationPanel(requestId: widget.requestId)
+                                  .animate()
+                                  .slideY(
+                                    begin: 0.2,
+                                    end: 0,
+                                    duration: 400.ms,
+                                    delay: 600.ms,
+                                  )
+                                  .fadeIn(duration: 350.ms, delay: 600.ms),
+
+                              const Spacer(),
+
+                              // Action buttons
+                              Row(
+                                    children: [
+                                      Expanded(
+                                        child: GestureDetector(
+                                          onTap: () async {
+                                            await _refreshFinancialState();
+                                            if (mounted) {
+                                              context.go(
+                                                Routes.walletTransactions,
+                                              );
+                                            }
+                                          },
+                                          child: Container(
+                                            height: 52,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                              border: Border.all(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.15,
+                                                ),
+                                              ),
+                                            ),
+                                            child: Text(
+                                              'View History',
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: GradientButton(
+                                          onPressed: () async {
+                                            await _refreshFinancialState();
+                                            if (mounted) {
+                                              context.go(Routes.home);
+                                            }
+                                          },
+                                          label: 'Done',
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                  .animate()
+                                  .slideY(
+                                    begin: 0.3,
+                                    end: 0,
+                                    duration: 400.ms,
+                                    delay: 650.ms,
+                                  )
+                                  .fadeIn(duration: 350.ms, delay: 650.ms),
+                            ],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GradientButton(
-                              onPressed: () async {
-                                await _refreshFinancialState();
-                                if (mounted) context.go(Routes.home);
-                              },
-                              label: 'Done',
-                            ),
-                          ),
-                        ],
-                      )
-                          .animate()
-                          .slideY(begin: 0.3, end: 0, duration: 400.ms, delay: 650.ms)
-                          .fadeIn(duration: 350.ms, delay: 650.ms),
-                    ],
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               );
@@ -320,8 +387,11 @@ class _DispenseCompleteScreenState
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle_rounded,
-                        color: AppColors.success, size: 80),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.success,
+                      size: 80,
+                    ),
                     const SizedBox(height: 28),
                     const Text(
                       'Fuel dispensed successfully',
