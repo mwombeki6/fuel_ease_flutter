@@ -9,6 +9,38 @@ import 'package:fuel_ease_flutter/core/api/api_client.dart';
 import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
 import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 
+/// Builds the wire frame the backend expects to subscribe to a channel:
+/// `{"action":"subscribe","channel":"<channel>"}`. Extracted as a top-level
+/// pure function so it's unit-testable without a socket — and it's the
+/// single source of truth for the frame shape: both [RealtimeClient.subscribe]
+/// and the reconnect replay in [RealtimeClient] call it, so the tested
+/// function is the production implementation.
+String buildSubscribeFrame(String channel) =>
+    jsonEncode({'action': 'subscribe', 'channel': channel});
+
+/// Maximum delay between reconnect attempts.
+const int _maxBackoffSeconds = 30;
+
+/// Exponential reconnect backoff, capped at [_maxBackoffSeconds]. Pure and
+/// top-level so it's unit-testable without a socket. `attempt` is the
+/// zero-based number of consecutive failed attempts so far; negative values
+/// are treated as `0`.
+Duration nextBackoff(int attempt) {
+  final safeAttempt = (attempt < 0 ? 0 : attempt).clamp(0, 5);
+  final seconds = 1 << safeAttempt; // 1, 2, 4, 8, 16, 32 (before capping)
+  return Duration(
+    seconds: seconds > _maxBackoffSeconds ? _maxBackoffSeconds : seconds,
+  );
+}
+
+/// Reusable, feature-agnostic app-wide WebSocket realtime client.
+///
+/// A single instance lives behind [realtimeClientProvider]. It knows nothing
+/// about any particular feature's event names — it authenticates with a
+/// short-lived ticket, joins channels, forwards decoded frames, and
+/// reconnects with backoff. Features consume [stream] (or the typed
+/// [RealtimeEvent] bridge in `realtime_providers.dart`) and filter for the
+/// events they care about.
 class RealtimeClient {
   RealtimeClient(this._storage, this._api);
 
@@ -19,18 +51,62 @@ class RealtimeClient {
   WebSocket? _socket;
   final _controller = StreamController<Map<String, dynamic>>.broadcast();
   final _statusController = StreamController<RealtimeStatus>.broadcast();
+  final _reconnectedController = StreamController<void>.broadcast();
   final List<_BufferedRealtimeEvent> _recentEvents = [];
-  RealtimeStatus _status =
-      const RealtimeStatus(state: RealtimeConnectionState.disconnected);
+  RealtimeStatus _status = const RealtimeStatus(
+    state: RealtimeConnectionState.disconnected,
+  );
   bool _connecting = false;
   final Set<String> _subscriptions = {};
   bool _autoReconnect = false;
   int _reconnectAttempts = 0;
   Timer? _reconnectTimer;
+  String? _currentUserId;
 
   Stream<Map<String, dynamic>> get stream => _controller.stream;
   Stream<RealtimeStatus> get statusStream => _statusController.stream;
+
+  /// Fires (with no payload) each time the client successfully re-establishes
+  /// a connection after having been connected before — i.e. on reconnect,
+  /// not on the very first connect. Consumers can use this as a cue to
+  /// re-sync any state they might have missed while disconnected.
+  Stream<void> get reconnected => _reconnectedController.stream;
   RealtimeStatus get status => _status;
+
+  /// Test-only. The set of channels the client intends to be subscribed to —
+  /// replayed in full by [_resubscribeAll] on every (re)connect. Exposed
+  /// read-only so tests can assert subscription intent without needing a
+  /// live socket; not meant for production call sites.
+  Set<String> get debugSubscriptions => Set.unmodifiable(_subscriptions);
+
+  /// Ensures a connection exists and is subscribed to `user:<userId>`.
+  ///
+  /// Single-flight: if already connected or connecting for this same
+  /// [userId], this is a no-op. The client itself doesn't know or care what
+  /// a "user" is beyond this channel name — callers (e.g. auth/session code)
+  /// decide when and for whom to call this.
+  void ensureConnected(String userId) {
+    if (userId.isEmpty) return;
+    if (_currentUserId == userId && (_socket != null || _connecting)) {
+      return;
+    }
+    _currentUserId = userId;
+    // Record the subscription intent up front, independent of connection
+    // state. subscribe() unconditionally adds the channel to
+    // _subscriptions (the same set _resubscribeAll() replays on every
+    // (re)connect) and only *also* sends it immediately if a socket is
+    // already open. This guarantees the channel survives an in-flight
+    // connect() — which would otherwise no-op on its single-flight guard
+    // before ever seeing this channel — because _resubscribeAll() picks it
+    // up from _subscriptions once that connect finishes.
+    subscribe('user:$userId');
+    if (_socket == null && !_connecting) {
+      // Not connected and no connect() in flight — kick one off. If one is
+      // already in flight, don't spawn a second (single-flight); the
+      // subscription we just recorded will be replayed when it completes.
+      unawaited(connect());
+    }
+  }
 
   List<Map<String, dynamic>> recentEvents({
     Duration maxAge = const Duration(seconds: 30),
@@ -101,6 +177,7 @@ class RealtimeClient {
 
     try {
       final socket = await WebSocket.connect(url);
+      final wasReconnect = _reconnectAttempts > 0;
       _socket = socket;
       _connecting = false;
       _reconnectAttempts = 0;
@@ -111,6 +188,9 @@ class RealtimeClient {
         ),
       );
       _resubscribeAll();
+      if (wasReconnect) {
+        _reconnectedController.add(null);
+      }
 
       socket.listen(
         (event) {
@@ -120,9 +200,7 @@ class RealtimeClient {
               final message = Map<String, dynamic>.from(payload);
               _bufferEvent(message);
               _controller.add(message);
-              _emitStatus(
-                _status.copyWith(lastEventAt: DateTime.now()),
-              );
+              _emitStatus(_status.copyWith(lastEventAt: DateTime.now()));
             }
           } catch (_) {
             // Ignore malformed realtime payloads
@@ -144,7 +222,7 @@ class RealtimeClient {
     if (channel.isEmpty) return;
     if (_subscriptions.contains(channel)) return;
     _subscriptions.add(channel);
-    _send({'action': 'subscribe', 'channel': channel});
+    _sendRaw(buildSubscribeFrame(channel));
   }
 
   void unsubscribe(String channel) {
@@ -157,7 +235,9 @@ class RealtimeClient {
   // Deprecated: server auto-subscribes mobile clients to user:<userID> on connect.
   // Call sites can safely remove this — no-op if stationId is null.
   void setStationSubscription(String? stationId) {
-    final existing = _subscriptions.where((c) => c.startsWith('station:')).toList();
+    final existing = _subscriptions
+        .where((c) => c.startsWith('station:'))
+        .toList();
     for (final channel in existing) {
       unsubscribe(channel);
     }
@@ -168,15 +248,17 @@ class RealtimeClient {
   void _resubscribeAll() {
     if (_socket == null) return;
     for (final channel in _subscriptions) {
-      _send({'action': 'subscribe', 'channel': channel});
+      _sendRaw(buildSubscribeFrame(channel));
     }
   }
 
-  void _send(Map<String, dynamic> payload) {
+  void _send(Map<String, dynamic> payload) => _sendRaw(jsonEncode(payload));
+
+  void _sendRaw(String frame) {
     final socket = _socket;
     if (socket == null) return;
     try {
-      socket.add(jsonEncode(payload));
+      socket.add(frame);
     } catch (_) {
       // Ignore send failures (socket may be closing)
     }
@@ -196,9 +278,18 @@ class RealtimeClient {
     _socket?.close();
     _socket = null;
     _connecting = false;
-    _emitStatus(
-      _status.copyWith(state: RealtimeConnectionState.disconnected),
-    );
+    _emitStatus(_status.copyWith(state: RealtimeConnectionState.disconnected));
+  }
+
+  /// Tears down the socket, timers, and closes every stream this client
+  /// exposes. Intended for provider-container disposal (app/test teardown) —
+  /// for a normal logout, call [disconnect] instead so the client remains
+  /// reusable for the next login.
+  void dispose() {
+    disconnect();
+    unawaited(_controller.close());
+    unawaited(_statusController.close());
+    unawaited(_reconnectedController.close());
   }
 
   void _handleDisconnect() {
@@ -218,10 +309,13 @@ class RealtimeClient {
     if (!_autoReconnect) return;
     if (_reconnectTimer != null) return;
 
-    final delaySeconds = (_reconnectAttempts * 2).clamp(2, 30);
+    // Re-ticket + re-subscribe: connect() always fetches a fresh ticket, and
+    // _resubscribeAll() (called on successful connect) replays every channel
+    // still in _subscriptions, so a plain connect() here is sufficient.
+    final delay = nextBackoff(_reconnectAttempts);
     _reconnectAttempts += 1;
 
-    _reconnectTimer = Timer(Duration(seconds: delaySeconds), () async {
+    _reconnectTimer = Timer(delay, () async {
       _reconnectTimer = null;
       await connect();
     });
@@ -243,7 +337,9 @@ class _BufferedRealtimeEvent {
 final realtimeClientProvider = Provider<RealtimeClient>((ref) {
   final storage = ref.watch(secureStorageProvider);
   final api = ref.watch(apiClientProvider);
-  return RealtimeClient(storage, api);
+  final client = RealtimeClient(storage, api);
+  ref.onDispose(client.dispose);
+  return client;
 });
 
 enum RealtimeConnectionState {
