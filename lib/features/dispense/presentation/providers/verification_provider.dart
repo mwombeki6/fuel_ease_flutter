@@ -25,22 +25,33 @@ import 'package:fuel_ease_flutter/features/dispense/data/repositories/verificati
 ///
 /// Merge contract (see `SessionVerification` re: never synthesizing
 /// `anchored:true` client-side):
-/// - `session.anchored` for the linked session → flip `anchored:true`
-///   (+`anchoredSeq` if present) in place, no refetch.
-/// - `session.recorded` for the linked session → per its wire contract it
-///   always carries `anchored:false`, so it never flips `anchored`; only
-///   `anchoredSeq` is defensively applied if present. This also guards
-///   against a replayed/out-of-order `recorded` frame (e.g. after a
-///   reconnect) regressing an already-anchored session back to false.
-/// - Either event while the request isn't linked yet (no session recorded
-///   at REST-fetch time) → we can't safely merge (the model has nothing to
-///   merge onto, and the WS payload carries no `request_id` to verify
-///   ownership), so this triggers a refetch instead of a speculative merge.
+/// - `session.recorded` → self-sufficient payload that mirrors the REST
+///   shape (`session_id`, `classification`, `device_id`, `start_seq`,
+///   `end_seq`, `volume_ml`, `anchored:false`), and `fromJson` defaults
+///   `linked` to `true` when the key is absent. So the new state is built
+///   *directly* from the event via `SessionVerification.fromJson` — no
+///   refetch — regardless of whether the request was already linked. A
+///   `recorded` event is always a full snapshot, never a delta, which is
+///   what makes the awaiting → recorded transition genuinely live instead
+///   of racing a REST refetch (whose transient failure could otherwise
+///   regress a valid `linked:false` "awaiting" card into an error state).
+/// - `session.anchored` for the linked session → its payload is minimal
+///   (`{session_id, anchored_seq}`), so it can only be *merged* onto an
+///   existing linked snapshot: flip `anchored:true` (+`anchoredSeq` if
+///   present) in place, no refetch.
+/// - `session.anchored` while the request isn't linked yet (no session
+///   recorded at REST-fetch time, or by an earlier `session.recorded`
+///   event) → the payload alone can't synthesize a full
+///   `SessionVerification`, so this falls back to a refetch instead of a
+///   speculative merge.
 /// - `RealtimeClient.reconnected` → always refetch; events may have been
 ///   missed while offline, so the REST snapshot is the source of truth.
 /// - Any event whose `session_id` doesn't match the session this request
 ///   is already linked to is ignored — the `user:<id>` channel carries
-///   every session for that user, not just this request's.
+///   every session for that user, not just this request's. (`session_id`
+///   matching only applies to `session.anchored`; `session.recorded` sets
+///   `_sessionId` from its own payload since it's the thing that
+///   establishes the link in the first place.)
 class VerificationController
     extends FamilyAsyncNotifier<SessionVerification, String> {
   late String _requestId;
@@ -81,15 +92,25 @@ class VerificationController
       return;
     }
 
-    final current = state.valueOrNull;
-    if (current == null) return; // nothing to merge onto yet
+    if (!state.hasValue) return; // initial REST fetch hasn't resolved yet
 
-    if (!current.linked) {
-      // No session was linked at REST-fetch time. We can't merge a partial
-      // event onto a `SessionVerification` that doesn't carry the other
-      // fields (classification/deviceId/etc.), and the event carries no
-      // request_id to confirm it's even for this request — so resync via
-      // REST instead of guessing.
+    if (event.event == 'session.recorded') {
+      // Self-sufficient payload — build the new state directly from the
+      // event, whether or not we were previously linked. See the merge
+      // contract above for why this must never fall back to a refetch.
+      final verification = SessionVerification.fromJson(event.data);
+      _sessionId = verification.sessionId;
+      state = AsyncValue.data(verification);
+      return;
+    }
+
+    // session.anchored: minimal payload, only mergeable onto an existing
+    // linked snapshot.
+    final current = state.valueOrNull;
+    if (current == null || !current.linked) {
+      // No session linked yet locally — the anchored payload alone can't
+      // synthesize a full SessionVerification, so resync via REST instead
+      // of guessing.
       unawaited(_refetch());
       return;
     }
@@ -100,19 +121,12 @@ class VerificationController
     }
 
     final anchoredSeq = (event.data['anchored_seq'] as num?)?.toInt();
-
-    if (event.event == 'session.anchored') {
-      state = AsyncValue.data(
-        current.copyWith(
-          anchored: true,
-          anchoredSeq: anchoredSeq ?? current.anchoredSeq,
-        ),
-      );
-    } else if (anchoredSeq != null) {
-      // session.recorded: always anchored:false on the wire, so never touch
-      // `anchored` here — only opportunistically pick up anchoredSeq.
-      state = AsyncValue.data(current.copyWith(anchoredSeq: anchoredSeq));
-    }
+    state = AsyncValue.data(
+      current.copyWith(
+        anchored: true,
+        anchoredSeq: anchoredSeq ?? current.anchoredSeq,
+      ),
+    );
   }
 
   Future<void> _refetch() async {

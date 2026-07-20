@@ -105,6 +105,8 @@ const _unanchoredS2 = SessionVerification(
   anchored: false,
 );
 
+const _awaiting = SessionVerification(linked: false, anchored: false);
+
 /// Keyed by `requestId` so a single override can back two different
 /// `.family` instances at once, each with its own linked `sessionId` — used
 /// to prove events don't leak across requests.
@@ -183,8 +185,9 @@ void main() {
     expect(repo.fetchCount, 1);
   });
 
-  test('session.recorded for the linked session never flips anchored',
-      () async {
+  test(
+      'session.recorded replaces state directly from the event payload, '
+      'without a refetch (already linked)', () async {
     final repo = _FakeVerificationRepository([_unanchored]);
     final container = makeContainer(repo);
     await container.read(verificationProvider('req-1').future);
@@ -192,12 +195,71 @@ void main() {
     events.add(const RealtimeEvent(
       channel: 'user:u1',
       event: 'session.recorded',
-      data: {'session_id': 'S1', 'anchored': false},
+      data: {
+        'session_id': 'S1',
+        'classification': 'genuine',
+        'device_id': 'dev-2',
+        'start_seq': 10,
+        'end_seq': 55,
+        'volume_ml': 20000,
+        'anchored': false,
+      },
     ));
     await Future<void>.delayed(Duration.zero);
 
     final state = container.read(verificationProvider('req-1'));
+    expect(state.value?.linked, isTrue);
+    expect(state.value?.sessionId, 'S1');
+    expect(state.value?.deviceId, 'dev-2');
+    expect(state.value?.endSeq, 55);
+    expect(state.value?.volumeMl, 20000);
     expect(state.value?.anchored, isFalse);
+    // Built directly from the event, not merged via a REST refetch.
+    expect(repo.fetchCount, 1);
+  });
+
+  test('initial REST linked:false is exposed as-is (awaiting), no error',
+      () async {
+    final repo = _FakeVerificationRepository([_awaiting]);
+    final container = makeContainer(repo);
+
+    final result = await container.read(verificationProvider('req-1').future);
+
+    expect(result.linked, isFalse);
+    expect(result.anchored, isFalse);
+    expect(repo.fetchCount, 1);
+  });
+
+  test(
+      'session.recorded while awaiting (linked:false) flips to linked:true '
+      'directly from the event, without a refetch', () async {
+    final repo = _FakeVerificationRepository([_awaiting]);
+    final container = makeContainer(repo);
+    await container.read(verificationProvider('req-1').future);
+    expect(repo.fetchCount, 1);
+
+    events.add(const RealtimeEvent(
+      channel: 'user:u1',
+      event: 'session.recorded',
+      data: {
+        'session_id': 'S1',
+        'classification': 'genuine',
+        'device_id': 'dev-1',
+        'start_seq': 1,
+        'end_seq': 42,
+        'volume_ml': 15000,
+        'anchored': false,
+      },
+    ));
+    await Future<void>.delayed(Duration.zero);
+
+    final state = container.read(verificationProvider('req-1'));
+    expect(state.value?.linked, isTrue);
+    expect(state.value?.sessionId, 'S1');
+    expect(state.value?.classification, 'genuine');
+    expect(state.value?.volumeMl, 15000);
+    expect(state.value?.anchored, isFalse);
+    // The event alone flipped awaiting -> recorded — no refetch triggered.
     expect(repo.fetchCount, 1);
   });
 
