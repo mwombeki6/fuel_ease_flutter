@@ -10,6 +10,7 @@ import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/providers/dispense_provider.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/widgets/verification_panel.dart';
 import 'package:fuel_ease_flutter/features/wallet/presentation/providers/wallet_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
@@ -251,6 +252,14 @@ class _DispenseCompleteScreenState
                           .animate()
                           .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 550.ms)
                           .fadeIn(duration: 350.ms, delay: 550.ms),
+
+                      const SizedBox(height: 16),
+
+                      // Live two-guarantee fuel-session verification panel.
+                      VerificationPanel(requestId: widget.requestId)
+                          .animate()
+                          .slideY(begin: 0.2, end: 0, duration: 400.ms, delay: 600.ms)
+                          .fadeIn(duration: 350.ms, delay: 600.ms),
 
                       const Spacer(),
 
