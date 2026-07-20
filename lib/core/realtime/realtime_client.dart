@@ -9,11 +9,14 @@ import 'package:fuel_ease_flutter/core/api/api_client.dart';
 import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
 import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 
-/// Builds the wire frame the backend expects to join a user's personal
-/// channel: `{"action":"subscribe","channel":"user:<id>"}`. Extracted as a
-/// top-level pure function so it's unit-testable without a socket.
-String buildSubscribeFrame(String userId) =>
-    jsonEncode({'action': 'subscribe', 'channel': 'user:$userId'});
+/// Builds the wire frame the backend expects to subscribe to a channel:
+/// `{"action":"subscribe","channel":"<channel>"}`. Extracted as a top-level
+/// pure function so it's unit-testable without a socket — and it's the
+/// single source of truth for the frame shape: both [RealtimeClient.subscribe]
+/// and the reconnect replay in [RealtimeClient] call it, so the tested
+/// function is the production implementation.
+String buildSubscribeFrame(String channel) =>
+    jsonEncode({'action': 'subscribe', 'channel': channel});
 
 /// Maximum delay between reconnect attempts.
 const int _maxBackoffSeconds = 30;
@@ -70,6 +73,12 @@ class RealtimeClient {
   Stream<void> get reconnected => _reconnectedController.stream;
   RealtimeStatus get status => _status;
 
+  /// Test-only. The set of channels the client intends to be subscribed to —
+  /// replayed in full by [_resubscribeAll] on every (re)connect. Exposed
+  /// read-only so tests can assert subscription intent without needing a
+  /// live socket; not meant for production call sites.
+  Set<String> get debugSubscriptions => Set.unmodifiable(_subscriptions);
+
   /// Ensures a connection exists and is subscribed to `user:<userId>`.
   ///
   /// Single-flight: if already connected or connecting for this same
@@ -82,13 +91,20 @@ class RealtimeClient {
       return;
     }
     _currentUserId = userId;
-    if (_socket != null) {
-      // Already connected (e.g. for a different previous user) — just make
-      // sure we're subscribed to the new channel; no need to tear down the
-      // socket or re-ticket.
-      subscribe('user:$userId');
-    } else {
-      unawaited(connect(channels: ['user:$userId']));
+    // Record the subscription intent up front, independent of connection
+    // state. subscribe() unconditionally adds the channel to
+    // _subscriptions (the same set _resubscribeAll() replays on every
+    // (re)connect) and only *also* sends it immediately if a socket is
+    // already open. This guarantees the channel survives an in-flight
+    // connect() — which would otherwise no-op on its single-flight guard
+    // before ever seeing this channel — because _resubscribeAll() picks it
+    // up from _subscriptions once that connect finishes.
+    subscribe('user:$userId');
+    if (_socket == null && !_connecting) {
+      // Not connected and no connect() in flight — kick one off. If one is
+      // already in flight, don't spawn a second (single-flight); the
+      // subscription we just recorded will be replayed when it completes.
+      unawaited(connect());
     }
   }
 
@@ -206,7 +222,7 @@ class RealtimeClient {
     if (channel.isEmpty) return;
     if (_subscriptions.contains(channel)) return;
     _subscriptions.add(channel);
-    _send({'action': 'subscribe', 'channel': channel});
+    _sendRaw(buildSubscribeFrame(channel));
   }
 
   void unsubscribe(String channel) {
@@ -232,15 +248,17 @@ class RealtimeClient {
   void _resubscribeAll() {
     if (_socket == null) return;
     for (final channel in _subscriptions) {
-      _send({'action': 'subscribe', 'channel': channel});
+      _sendRaw(buildSubscribeFrame(channel));
     }
   }
 
-  void _send(Map<String, dynamic> payload) {
+  void _send(Map<String, dynamic> payload) => _sendRaw(jsonEncode(payload));
+
+  void _sendRaw(String frame) {
     final socket = _socket;
     if (socket == null) return;
     try {
-      socket.add(jsonEncode(payload));
+      socket.add(frame);
     } catch (_) {
       // Ignore send failures (socket may be closing)
     }

@@ -1,26 +1,62 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:fuel_ease_flutter/core/api/api_client.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_event.dart';
+import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 
 // Pure-logic tests for the reusable realtime client. These deliberately
 // avoid opening a real WebSocket — buildSubscribeFrame, nextBackoff, and
 // RealtimeEvent.fromWire are extracted as top-level/factory pure functions
 // specifically so they can be exercised without a live socket.
+//
+// _FakeSecureStorage.getToken() short-circuits to null so that, when
+// ensureConnected() kicks off a connect(), it returns immediately after its
+// "not logged in" pre-check instead of ever touching a platform channel or
+// the network — keeping these tests fast and socket-free.
+class _FakeSecureStorage extends SecureStorage {
+  _FakeSecureStorage() : super(const FlutterSecureStorage());
+
+  @override
+  Future<String?> getToken() async => null;
+}
+
 void main() {
   group('buildSubscribeFrame', () {
-    test('targets the user channel with the exact WebHub wire shape', () {
+    test('builds the exact WebHub wire shape for a user channel', () {
       expect(
-        buildSubscribeFrame('u1'),
+        buildSubscribeFrame('user:u1'),
         '{"action":"subscribe","channel":"user:u1"}',
       );
     });
 
-    test('is stable for different user ids (no caching/aliasing bugs)', () {
+    test('is stable for different channel ids (no caching/aliasing bugs)', () {
       expect(
-        buildSubscribeFrame('abc-123'),
+        buildSubscribeFrame('user:abc-123'),
         '{"action":"subscribe","channel":"user:abc-123"}',
       );
     });
+
+    test('works for any channel, not just user: channels', () {
+      expect(
+        buildSubscribeFrame('station:42'),
+        '{"action":"subscribe","channel":"station:42"}',
+      );
+    });
+  });
+
+  group('RealtimeClient.ensureConnected', () {
+    test(
+      'records the user channel as a subscription intent even without a '
+      'live socket (so it is not lost if a connect() were already in '
+      'flight — see realtime_client.dart ensureConnected doc comment)',
+      () {
+        final storage = _FakeSecureStorage();
+        final client = RealtimeClient(storage, ApiClient(storage));
+        client.ensureConnected('u1');
+        expect(client.debugSubscriptions, contains('user:u1'));
+      },
+    );
   });
 
   group('RealtimeEvent.fromWire', () {
