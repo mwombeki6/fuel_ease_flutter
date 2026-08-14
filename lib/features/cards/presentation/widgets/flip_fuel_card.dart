@@ -75,7 +75,7 @@ class _CardStatusBadge extends StatelessWidget {
 
 // ── Card gradient helper ──────────────────────────────────────────────────────
 
-Gradient _cardGradient(FuelCard card) {
+Gradient _cardGradient(FuelCard card, Brightness brightness) {
   if (!card.isActive) {
     return const LinearGradient(
       colors: [Color(0xFF374151), Color(0xFF4B5563)],
@@ -83,7 +83,9 @@ Gradient _cardGradient(FuelCard card) {
       end: Alignment.bottomRight,
     );
   }
-  return AppColors.fuelCardGradient;
+  return brightness == Brightness.dark
+      ? AppColors.fuelCardGradientDark
+      : AppColors.fuelCardGradientLight;
 }
 
 // ── Front face ───────────────────────────────────────────────────────────────
@@ -98,7 +100,7 @@ class CardFrontFace extends StatelessWidget {
       height: 200,
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
       decoration: BoxDecoration(
-        gradient: _cardGradient(card),
+        gradient: _cardGradient(card, Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
@@ -169,7 +171,7 @@ class CardBackFace extends StatelessWidget {
       height: 200,
       clipBehavior: Clip.hardEdge,
       decoration: BoxDecoration(
-        gradient: _cardGradient(card),
+        gradient: _cardGradient(card, Theme.of(context).brightness),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(

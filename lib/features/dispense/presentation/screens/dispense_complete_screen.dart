@@ -318,11 +318,11 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                                         child: GestureDetector(
                                           onTap: () async {
                                             await _refreshFinancialState();
-                                            if (context.mounted) {
-                                              context.go(
-                                                Routes.walletTransactions,
-                                              );
-                                            }
+                                            if (mounted) {
+                                              this.context.go(
+                                                  Routes.walletTransactions,
+                                                );
+                                              }
                                           },
                                           child: Container(
                                             height: 52,
@@ -354,8 +354,8 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                                         child: GradientButton(
                                           onPressed: () async {
                                             await _refreshFinancialState();
-                                            if (context.mounted) {
-                                              context.go(Routes.home);
+                                            if (mounted) {
+                                              this.context.go(Routes.home);
                                             }
                                           },
                                           label: 'Done',
@@ -406,7 +406,7 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                     GradientButton(
                       onPressed: () async {
                         await _refreshFinancialState();
-                        if (context.mounted) context.go(Routes.home);
+                        if (mounted) this.context.go(Routes.home);
                       },
                       label: 'Done',
                     ),

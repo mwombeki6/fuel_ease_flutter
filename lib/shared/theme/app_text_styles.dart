@@ -1,156 +1,210 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
-/// App typography styles
+/// FuelEase Modern — Beautiful, consistent typography system.
 class AppTextStyles {
   AppTextStyles._();
 
-  static TextStyle _style({
-    required double size,
-    required FontWeight weight,
-    required double height,
-    double? letterSpacing,
-    Color? color,
-  }) {
-    return GoogleFonts.sora(
-      fontSize: size,
-      fontWeight: weight,
-      height: height,
-      letterSpacing: letterSpacing,
-      color: color,
-    );
-  }
+  // ── Display ──────────────────────────────────────────────────────────────
+  static const TextStyle displayLarge = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 57,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.25,
+    height: 1.12,
+  );
 
-  // Display styles (largest)
-  static TextStyle get displayLarge => _style(
-        size: 57,
-        weight: FontWeight.w700,
-        height: 1.12,
-        letterSpacing: -0.25,
-      );
+  static const TextStyle displayMedium = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 45,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    height: 1.16,
+  );
 
-  static TextStyle get displayMedium => _style(
-        size: 45,
-        weight: FontWeight.w700,
-        height: 1.16,
-      );
+  static const TextStyle displaySmall = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 36,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    height: 1.22,
+  );
 
-  static TextStyle get displaySmall => _style(
-        size: 36,
-        weight: FontWeight.w600,
-        height: 1.22,
-      );
+  // ── Headline ─────────────────────────────────────────────────────────────
+  static const TextStyle headlineLarge = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 32,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    height: 1.25,
+  );
 
-  // Headline styles
-  static TextStyle get headlineLarge => _style(
-        size: 32,
-        weight: FontWeight.w600,
-        height: 1.25,
-      );
+  static const TextStyle headlineMedium = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 28,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    height: 1.29,
+  );
 
-  static TextStyle get headlineMedium => _style(
-        size: 28,
-        weight: FontWeight.w600,
-        height: 1.29,
-      );
+  static const TextStyle headlineSmall = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 24,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+    height: 1.33,
+  );
 
-  static TextStyle get headlineSmall => _style(
-        size: 24,
-        weight: FontWeight.w600,
-        height: 1.33,
-      );
+  // ── Title ────────────────────────────────────────────────────────────────
+  static const TextStyle titleLarge = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 22,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0,
+    height: 1.27,
+  );
 
-  // Title styles
-  static TextStyle get titleLarge => _style(
-        size: 22,
-        weight: FontWeight.w600,
-        height: 1.27,
-      );
+  static const TextStyle titleMedium = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 16,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.15,
+    height: 1.5,
+  );
 
-  static TextStyle get titleMedium => _style(
-        size: 16,
-        weight: FontWeight.w600,
-        height: 1.5,
-        letterSpacing: 0.15,
-      );
+  static const TextStyle titleSmall = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.1,
+    height: 1.43,
+  );
 
-  static TextStyle get titleSmall => _style(
-        size: 14,
-        weight: FontWeight.w600,
-        height: 1.43,
-        letterSpacing: 0.1,
-      );
+  // ── Body ─────────────────────────────────────────────────────────────────
+  static const TextStyle bodyLarge = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 16,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.5,
+    height: 1.5,
+  );
 
-  // Body styles
-  static TextStyle get bodyLarge => _style(
-        size: 16,
-        weight: FontWeight.w400,
-        height: 1.5,
-        letterSpacing: 0.4,
-      );
+  static const TextStyle bodyMedium = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 14,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.25,
+    height: 1.43,
+  );
 
-  static TextStyle get bodyMedium => _style(
-        size: 14,
-        weight: FontWeight.w400,
-        height: 1.43,
-        letterSpacing: 0.2,
-      );
+  static const TextStyle bodySmall = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 0.4,
+    height: 1.33,
+  );
 
-  static TextStyle get bodySmall => _style(
-        size: 12,
-        weight: FontWeight.w400,
-        height: 1.33,
-        letterSpacing: 0.3,
-      );
+  // ── Label ────────────────────────────────────────────────────────────────
+  static const TextStyle labelLarge = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.1,
+    height: 1.43,
+  );
 
-  // Label styles
-  static TextStyle get labelLarge => _style(
-        size: 14,
-        weight: FontWeight.w600,
-        height: 1.43,
-        letterSpacing: 0.1,
-      );
+  static const TextStyle labelMedium = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 12,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.5,
+    height: 1.33,
+  );
 
-  static TextStyle get labelMedium => _style(
-        size: 12,
-        weight: FontWeight.w600,
-        height: 1.33,
-        letterSpacing: 0.4,
-      );
+  static const TextStyle labelSmall = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 11,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.5,
+    height: 1.45,
+  );
 
-  static TextStyle get labelSmall => _style(
-        size: 11,
-        weight: FontWeight.w600,
-        height: 1.45,
-        letterSpacing: 0.4,
-      );
+  // ── Button ───────────────────────────────────────────────────────────────
+  static const TextStyle buttonLarge = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0.1,
+    height: 1.5,
+  );
 
-  // Custom styles
-  static TextStyle get buttonLarge => _style(
-        size: 16,
-        weight: FontWeight.w600,
-        height: 1.25,
-        letterSpacing: 0.4,
-      );
+  static const TextStyle buttonMedium = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 14,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    height: 1.43,
+  );
 
-  static TextStyle get buttonMedium => _style(
-        size: 14,
-        weight: FontWeight.w600,
-        height: 1.43,
-        letterSpacing: 0.3,
-      );
+  static const TextStyle buttonSmall = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.5,
+    height: 1.33,
+  );
 
-  static TextStyle get caption => _style(
-        size: 12,
-        weight: FontWeight.w400,
-        height: 1.33,
-        letterSpacing: 0.3,
-      );
+  // ── Numeric / Data ───────────────────────────────────────────────────────
+  static const TextStyle displayNumber = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 48,
+    fontWeight: FontWeight.w800,
+    letterSpacing: -0.5,
+    height: 1.0,
+  );
 
-  static TextStyle get overline => _style(
-        size: 10,
-        weight: FontWeight.w600,
-        height: 1.6,
-        letterSpacing: 1.2,
-      );
+  static const TextStyle headlineNumber = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 32,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.25,
+    height: 1.1,
+  );
+
+  static const TextStyle titleNumber = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 24,
+    fontWeight: FontWeight.w700,
+    letterSpacing: -0.1,
+    height: 1.2,
+  );
+
+  static const TextStyle bodyNumber = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 16,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 0,
+    height: 1.3,
+  );
+
+  static const TextStyle captionNumber = TextStyle(
+    fontFamily: 'Sora',
+    fontSize: 12,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.25,
+    height: 1.33,
+  );
+
+  // ── Helper Methods ───────────────────────────────────────────────────────
+  static TextStyle withColor(TextStyle style, Color color) =>
+      style.copyWith(color: color);
+
+  static TextStyle withWeight(TextStyle style, FontWeight weight) =>
+      style.copyWith(fontWeight: weight);
+
+  static TextStyle withSize(TextStyle style, double size) =>
+      style.copyWith(fontSize: size);
+
+  static TextStyle withLetterSpacing(TextStyle style, double spacing) =>
+      style.copyWith(letterSpacing: spacing);
 }

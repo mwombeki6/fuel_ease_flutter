@@ -21,8 +21,8 @@ void main() {
       ),
     );
 
-    // Pump a single frame to start the build process
-    await tester.pump();
+    // Pump past splash animations to let their timers fire.
+    await tester.pump(const Duration(seconds: 1));
 
     // Verify that the app builds without errors
     // We just check that the MaterialApp is created

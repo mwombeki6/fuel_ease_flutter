@@ -23,13 +23,10 @@ import 'package:fuel_ease_flutter/main.dart' show themeModeProvider;
 import 'package:fuel_ease_flutter/shared/map/map_config.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/utils/app_snackbar.dart';
-import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
+import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart' hide GlassCard;
+import 'package:fuel_ease_flutter/shared/widgets/glassmorphism.dart' show GlassCard, GlassContainer;
 
 const _defaultCenter = LatLng(-6.7924, 39.2083);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HomeScreen — full-screen map-first customer experience ("Pump & Go")
-// ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -64,11 +61,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.dispose();
   }
 
-  // Ported from the pre-rebuild home_screen.dart's `_initLocation` — same
-  // Geolocator permission flow and position stream, now also writing the
-  // resolved LatLng into `userLocationProvider` so
-  // `nearestOrSelectedStationValueProvider` (and `StationSheet`, which
-  // watches it) can resolve the nearest station.
   Future<void> _initLocation() async {
     setState(() => _locating = true);
     try {
@@ -116,10 +108,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     await _initLocation();
   }
 
-  // Ported from the pre-rebuild home_screen.dart's `_selectPin` — same
-  // haptic + camera-follow behavior, now writing the tapped station's id
-  // into `nearestOrSelectedStationProvider` instead of local State so
-  // `StationSheet` can pick it up.
   void _selectPin(StationMapPin pin) {
     HapticFeedback.mediumImpact();
     ref.read(nearestOrSelectedStationProvider.notifier).state = pin.id;
@@ -137,7 +125,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       setState(() => _suggestions = []);
       return;
     }
-    // Immediate station auto-pan.
     final stationMatches = pins
         .where((p) =>
             p.name.toLowerCase().contains(query.toLowerCase()) ||
@@ -150,7 +137,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         14,
       );
     }
-    // Debounced geocoding.
     _debounce = Timer(const Duration(milliseconds: 420), () async {
       final results = await MapboxGeocodingService.suggest(
         query,
@@ -184,9 +170,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       next.whenOrNull(error: (e, _) => AppSnackbar.fromError(context, e));
     });
 
-    // One map style per theme (per spec — the day/night/satellite/fuelEase
-    // MapStylePicker is removed from Home; MapStyle itself is kept since
-    // station_map_screen.dart, out of scope here, still uses it).
     final isLightMap = themeMode == ThemeMode.light ||
         (themeMode == ThemeMode.system && brightness == Brightness.light);
     final mapStyle = isLightMap ? MapStyle.streets : MapStyle.night;
@@ -202,6 +185,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             .toList();
 
     return Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -279,15 +263,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  // Ported from the pre-rebuild home_screen.dart's `_buildNamedMarker`,
-  // restyled per Section 1/4 of the redesign spec: markers now use exactly
-  // four semantic states (available / selected / unavailable / cluster).
-  // The old separate "live dispensing" pulse (`stationLiveActivityProvider`)
-  // and the red "suspended" hue are dropped — the spec's Section 4 marker
-  // semantics enumerate only those four states, and `StationSheet` (Task 7)
-  // already collapses "suspended" and "inactive" into a single "Closed"
-  // state, so pin coloring now mirrors that same simplification instead of
-  // introducing a fifth un-scoped state.
   Marker _buildStationMarker(
     StationMapPin pin,
     bool isSelected,
@@ -298,11 +273,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final mutedColor = brightness == Brightness.dark
         ? AppColors.unavailableMarkerDark
         : AppColors.unavailableMarkerLight;
-    // Light theme: available = evergreen (colorScheme.primary), selected =
-    // brightGreen (colorScheme.secondary). Dark theme: brightGreenDark does
-    // "double duty" for both per the design spec (evergreenDark is reserved,
-    // not used on Home this delivery) — selection is shown via the
-    // fill/border inversion below instead of a second hue.
     final selectedColor =
         brightness == Brightness.dark ? colorScheme.primary : colorScheme.secondary;
     final color = isUnavailable
@@ -373,62 +343,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 // Header — greeting/location on the left, wallet chip + profile on the right
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _HomeHeader extends StatelessWidget {
+class _HomeHeader extends ConsumerWidget {
   const _HomeHeader({required this.colorScheme});
   final ColorScheme colorScheme;
 
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Expanded(child: _GreetingBlock()),
-          Row(
-            children: [
-              const HeaderWalletChip(),
-              const SizedBox(width: 4),
-              IconButton(
-                icon: const Icon(Icons.notifications_none_rounded),
-                // No notifications feed/screen exists anywhere in the app yet
-                // (checked lib/core/routing/routes.dart, app_router.dart, and
-                // lib/features/**): the only related UI is the private
-                // `_NotificationsSheet` in profile_screen.dart, which is a
-                // notification *preferences* toggle sheet, not a feed to
-                // route to. Surface an honest placeholder instead of routing
-                // to the wrong destination or inventing a new screen.
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('No new notifications')),
-                  );
-                },
-                tooltip: 'Notifications',
-              ),
-              IconButton(
-                icon: const Icon(Icons.person_outline_rounded),
-                onPressed: () => context.push(Routes.profile),
-                tooltip: 'Profile',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GreetingBlock extends ConsumerWidget {
-  const _GreetingBlock();
-
-  @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    // Ported from the pre-rebuild home_screen.dart's `build()` (the
-    // `firstName` expression watching `authProvider`, previously used only
-    // for the search bar's hint text). Combined here with a time-of-day
-    // greeting per the redesign spec ("Good evening, {firstName}").
     final authState = ref.watch(authProvider);
     final firstName = authState.maybeWhen(
       authenticated: (user) => user.firstName,
@@ -444,46 +364,71 @@ class _GreetingBlock extends ConsumerWidget {
         ? 'Good $timeOfDay, ${firstName.split(' ').first}'
         : 'Good $timeOfDay';
 
-    // No area-name text: the current codebase has no reverse-geocoding of
-    // the user's resolved LatLng into a place name — `MapboxGeocodingService`
-    // only exposes forward search (`suggest`), and no other screen resolves
-    // one either (checked `station_details_screen.dart`,
-    // `station_map_screen.dart`). Rather than fabricate a heuristic (e.g.
-    // showing the nearest station's district, which is not the same thing
-    // as the user's own area), this is left null — the block below already
-    // handles that by omitting the location row entirely.
-    const String? areaNameText = null;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (areaNameText != null)
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  greetingText,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                Text(
+                  'Ready to fuel up?',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
+            ),
+          ),
           Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.location_on_rounded,
-                  size: 10, color: colorScheme.primary),
+              const HeaderWalletChip(),
               const SizedBox(width: 4),
-              Text(
-                areaNameText,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Notifications coming soon')),
+                  );
+                },
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(
+                    Icons.notifications_none_rounded,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    size: 22,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: () => context.push(Routes.profile),
+                child: GlassContainer(
+                  padding: const EdgeInsets.all(10),
+                  child: Icon(
+                    Icons.person_outline_rounded,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    size: 22,
+                  ),
                 ),
               ),
             ],
           ),
-        Text(
-          greetingText,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: colorScheme.onSurface,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -500,106 +445,58 @@ class _PendingActionBanner extends StatelessWidget {
       onTap: () => context.push(action.route),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isDark ? AppColors.amberSurfaceDark : AppColors.amberSurface,
-          borderRadius: BorderRadius.circular(11),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                action.label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? AppColors.amberTextDark : AppColors.amberText,
+        child: GlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          margin: EdgeInsets.zero,
+          onTap: () => context.push(action.route),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? AppColors.amberDark.withValues(alpha: 0.2)
+                      : AppColors.amberSurface.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.schedule_rounded,
+                  color: isDark ? AppColors.amberDark : AppColors.accent,
+                  size: 18,
                 ),
               ),
-            ),
-            TextButton(
-              onPressed: () => context.push(action.route),
-              child: const Text('View'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Map layer (kept functionally as-is — FlutterMap + clustering + user dot)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _MapLayer extends StatelessWidget {
-  const _MapLayer({
-    required this.mapController,
-    required this.markers,
-    required this.onMapTap,
-    required this.mapStyle,
-    this.userPosition,
-  });
-
-  final MapController mapController;
-  final List<Marker> markers;
-  final VoidCallback onMapTap;
-  final MapStyle mapStyle;
-  final LatLng? userPosition;
-
-  @override
-  Widget build(BuildContext context) {
-    return FlutterMap(
-      mapController: mapController,
-      options: MapOptions(
-        initialCenter: _defaultCenter,
-        initialZoom: 7,
-        minZoom: 5,
-        maxZoom: 18,
-        backgroundColor: mapStyle.mapBackground,
-        onTap: (tapPos, point) => onMapTap(),
-      ),
-      children: [
-        TileLayer(
-          urlTemplate: mapStyle.tileUrl(),
-          tileSize: 512,
-          zoomOffset: -1,
-          keepBuffer: 3,
-          panBuffer: 1,
-          userAgentPackageName: 'com.fuelease.app',
-        ),
-        // Clustered station markers — collapse to count badge below zoom 12.
-        MarkerClusterLayerWidget(
-          options: MarkerClusterLayerOptions(
-            maxClusterRadius: 80,
-            size: const Size(52, 52),
-            alignment: Alignment.center,
-            markers: markers,
-            builder: (context, clusterMarkers) => StationClusterMarker(
-              count: clusterMarkers.length,
-            ),
-          ),
-        ),
-        // User position — never clustered.
-        if (userPosition != null)
-          MarkerLayer(
-            markers: [
-              Marker(
-                point: userPosition!,
-                width: 44,
-                height: 44,
-                alignment: Alignment.center,
-                child: const UserLocationMarker(),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  action.label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? AppColors.amberTextDark : AppColors.amberText,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.push(action.route),
+                child: Text(
+                  'View',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.primary,
+                  ),
+                ),
               ),
             ],
           ),
-      ],
+        ),
+      ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Floating search bar — restyled: opaque surface + shadow, no glass blur
+// Search Bar
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _TopSearchBar extends StatelessWidget {
@@ -616,23 +513,11 @@ class _TopSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Container(
-      height: 48,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: isDark ? Border.all(color: AppColors.borderDark) : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.zero,
+      onTap: () {},
       child: Row(
         children: [
           Icon(
@@ -640,7 +525,7 @@ class _TopSearchBar extends StatelessWidget {
             color: colorScheme.onSurface.withValues(alpha: 0.4),
             size: 20,
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: searchController,
@@ -698,72 +583,60 @@ class _SuggestionsList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      color: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
+    return GlassCard(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: suggestions.length,
+        separatorBuilder: (ctx, i) => Divider(
+          height: 1,
+          indent: 48,
+          color: colorScheme.outline.withValues(alpha: 0.15),
         ),
-        child: ListView.separated(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: suggestions.length,
-          separatorBuilder: (ctx, i) => Divider(
-            height: 1,
-            indent: 48,
-            color: colorScheme.outline.withValues(alpha: 0.15),
-          ),
-          itemBuilder: (context, i) {
-            final r = suggestions[i];
-            return ListTile(
-              dense: true,
-              leading: Icon(
-                r.iconType == IconType.poi
-                    ? Icons.place_rounded
-                    : r.iconType == IconType.address
-                        ? Icons.home_rounded
-                        : Icons.location_city_rounded,
-                color: colorScheme.primary,
-                size: 18,
+        itemBuilder: (context, i) {
+          final r = suggestions[i];
+          return ListTile(
+            dense: true,
+            leading: Icon(
+              r.iconType == IconType.poi
+                  ? Icons.place_rounded
+                  : r.iconType == IconType.address
+                      ? Icons.home_rounded
+                      : Icons.location_city_rounded,
+              color: colorScheme.primary,
+              size: 18,
+            ),
+            title: Text(
+              r.name,
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
               ),
-              title: Text(
-                r.name,
-                style: TextStyle(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              subtitle: r.fullName.isNotEmpty
-                  ? Text(
-                      r.fullName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colorScheme.onSurface.withValues(alpha: 0.5),
-                        fontSize: 12,
-                      ),
-                    )
-                  : null,
+            ),
+            subtitle: r.fullName.isNotEmpty
+                ? Text(
+                    r.fullName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: colorScheme.onSurface.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  )
+                : null,
               onTap: () => onTap(r),
             );
-          },
-        ),
+        },
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Recenter control — restyled: opaque surface + shadow, no glass blur
+// Recenter control
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _LocationFab extends StatelessWidget {
@@ -774,41 +647,26 @@ class _LocationFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GestureDetector(
+    return GlassCard(
+      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.zero,
       onTap: locating ? null : onTap,
-      child: Container(
-        width: 46,
-        height: 46,
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: isDark ? Border.all(color: AppColors.borderDark) : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Center(
-          child: locating
-              ? SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
-                  ),
-                )
-              : Icon(
-                  Icons.my_location_rounded,
-                  color: colorScheme.primary,
-                  size: 20,
+      child: Center(
+        child: locating
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
                 ),
-        ),
+              )
+            : Icon(
+                Icons.my_location_rounded,
+                color: colorScheme.primary,
+                size: 22,
+              ),
       ),
     );
   }
@@ -821,33 +679,90 @@ class _ScanQrFab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GestureDetector(
+    return GlassCard(
+      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.zero,
       onTap: onTap,
-      child: Container(
-        width: 46,
-        height: 46,
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: isDark ? Border.all(color: AppColors.borderDark) : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 3),
-            ),
-          ],
-        ),
-        child: Center(
-          child: Icon(
-            Icons.qr_code_scanner_rounded,
-            color: colorScheme.primary,
-            size: 20,
-          ),
+      child: Center(
+        child: Icon(
+          Icons.qr_code_scanner_rounded,
+          color: colorScheme.primary,
+          size: 22,
         ),
       ),
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Map layer
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MapLayer extends StatelessWidget {
+  const _MapLayer({
+    required this.mapController,
+    required this.markers,
+    required this.onMapTap,
+    required this.mapStyle,
+    this.userPosition,
+  });
+
+  final MapController mapController;
+  final List<Marker> markers;
+  final VoidCallback onMapTap;
+  final MapStyle mapStyle;
+  final LatLng? userPosition;
+
+  @override
+  Widget build(BuildContext context) {
+    return FlutterMap(
+      mapController: mapController,
+      options: MapOptions(
+        initialCenter: _defaultCenter,
+        initialZoom: 7,
+        minZoom: 5,
+        maxZoom: 18,
+        backgroundColor: mapStyle.mapBackground,
+        onTap: (tapPos, point) => onMapTap(),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: mapStyle.tileUrl(),
+          tileSize: 512,
+          zoomOffset: -1,
+          keepBuffer: 3,
+          panBuffer: 1,
+          userAgentPackageName: 'com.fuelease.app',
+        ),
+        MarkerClusterLayerWidget(
+          options: MarkerClusterLayerOptions(
+            maxClusterRadius: 80,
+            size: const Size(52, 52),
+            alignment: Alignment.center,
+            markers: markers,
+            builder: (context, clusterMarkers) => StationClusterMarker(
+              count: clusterMarkers.length,
+            ),
+          ),
+        ),
+        if (userPosition != null)
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: userPosition!,
+                width: 44,
+                height: 44,
+                alignment: Alignment.center,
+                child: const UserLocationMarker(),
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Station marker
+// ─────────────────────────────────────────────────────────────────────────────
