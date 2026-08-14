@@ -19,8 +19,6 @@ final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 @pragma('vm:entry-point')
 Future<void> _fcmBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Background messages are shown automatically by FCM on Android API 26+.
-  // No additional UI work needed here.
 }
 
 Future<void> main() async {
@@ -56,6 +54,7 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
     ),
   );
 
@@ -101,6 +100,8 @@ class _FuelEaseAppState extends ConsumerState<FuelEaseApp> {
   }
 
   void _setupNotificationHandlers() {
+    if (Firebase.apps.isEmpty) return;
+
     // App opened from terminated state via notification tap
     FirebaseMessaging.instance.getInitialMessage().then(_handleNotificationTap);
 

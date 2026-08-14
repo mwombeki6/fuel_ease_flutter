@@ -2,19 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
+import 'package:fuel_ease_flutter/features/auth/presentation/providers/auth_provider.dart';
 
 // Import screens
-import 'package:fuel_ease_flutter/features/cards/presentation/screens/card_pending_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/data/models/create_dispense_response.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/providers/live_dispense_provider.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/create_dispense_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_complete_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_history_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/live_dispense_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/pin_qr_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/scan_qr_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/splash_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/welcome_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/login_screen.dart';
@@ -26,12 +17,21 @@ import 'package:fuel_ease_flutter/features/wallet/presentation/screens/transacti
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/cards_screen.dart';
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/card_details_screen.dart';
 import 'package:fuel_ease_flutter/features/cards/presentation/screens/create_card_screen.dart';
+import 'package:fuel_ease_flutter/features/cards/presentation/screens/card_pending_screen.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/screens/stations_screen.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/screens/station_details_screen.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/screens/station_map_screen.dart';
-import 'package:fuel_ease_flutter/features/profile/presentation/screens/change_password_screen.dart';
-import 'package:fuel_ease_flutter/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:fuel_ease_flutter/features/profile/presentation/screens/profile_screen.dart';
+import 'package:fuel_ease_flutter/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:fuel_ease_flutter/features/profile/presentation/screens/change_password_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/create_dispense_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/scan_qr_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/live_dispense_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_history_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/pin_qr_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_complete_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/data/models/create_dispense_response.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/providers/live_dispense_provider.dart';
 import 'package:fuel_ease_flutter/core/navigation/main_navigation.dart';
 
 /// Global navigator key — allows navigation from outside a widget context
@@ -43,12 +43,12 @@ Page<T> _slideFade<T>(GoRouterState state, Widget child) =>
     CustomTransitionPage<T>(
       key: state.pageKey,
       child: child,
-      transitionDuration: const Duration(milliseconds: 280),
-      reverseTransitionDuration: const Duration(milliseconds: 220),
+      transitionDuration: const Duration(milliseconds: 320),
+      reverseTransitionDuration: const Duration(milliseconds: 240),
       transitionsBuilder: (context, animation, secondary, child) {
         final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
         final slide = Tween<Offset>(
-          begin: const Offset(0, 0.04),
+          begin: const Offset(0, 0.06),
           end: Offset.zero,
         ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
         return FadeTransition(
@@ -82,13 +82,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
 
-      // Only redirect to splash during initial app load — auth screens (login/register)
-      // manage their own loading spinners and must not be displaced mid-submission.
+      // Only redirect to splash during initial app load
       if (isLoading && !isGoingToAuth && state.matchedLocation != Routes.splash) {
         return Routes.splash;
       }
 
-      // Loading finished but still on splash — decide based on auth
+      // Loading finished but still on splash
       if (!isLoading && state.matchedLocation == Routes.splash) {
         return isAuthenticated ? Routes.home : Routes.welcome;
       }
@@ -103,7 +102,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return Routes.home;
       }
 
-      // No redirect needed
       return null;
     },
     routes: [
@@ -128,9 +126,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
 
       // Main app routes with bottom navigation
-      // Shell tabs: Home, Stations, Activity (wallet transactions), Cards.
-      // Wallet and Profile are standalone push destinations (see below), not
-      // shell tabs — per Task 8's 4-tab nav bar.
       ShellRoute(
         builder: (context, state, child) => MainNavigation(child: child),
         routes: [
@@ -164,8 +159,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _slideFade(state, const CreateDispenseScreen()),
       ),
 
-      // Wallet routes (standalone — Wallet is a push destination, not a
-      // shell tab; walletTransactions/"Activity" lives in the shell above)
+      // Wallet routes
       GoRoute(
         path: Routes.wallet,
         pageBuilder: (context, state) =>
@@ -198,13 +192,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Dispense routes
+      // Dispense routes - 3-click flow
       GoRoute(
         path: Routes.createDispensingRequest,
-        pageBuilder: (context, state) => _slideFade(
-          state,
-          CreateDispenseScreen(preselectedStationId: state.extra as String?),
-        ),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const CreateDispenseScreen()),
       ),
       GoRoute(
         path: Routes.scanQR,
@@ -261,7 +253,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
 
-      // Profile (standalone — push destination, not a shell tab)
+      // Profile (standalone)
       GoRoute(
         path: Routes.profile,
         pageBuilder: (context, state) =>
@@ -280,7 +272,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _slideFade(state, const ChangePasswordScreen()),
       ),
 
-      // Stations sub-routes (Routes.stations itself lives in the shell above)
+      // Stations sub-routes
       GoRoute(
         path: Routes.stationMap,
         pageBuilder: (context, state) =>

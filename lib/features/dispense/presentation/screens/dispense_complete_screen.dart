@@ -319,7 +319,7 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                                           onTap: () async {
                                             await _refreshFinancialState();
                                             if (mounted) {
-                                              context.go(
+                                              this.context.go(
                                                 Routes.walletTransactions,
                                               );
                                             }
@@ -355,7 +355,7 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                                           onPressed: () async {
                                             await _refreshFinancialState();
                                             if (mounted) {
-                                              context.go(Routes.home);
+                                              this.context.go(Routes.home);
                                             }
                                           },
                                           label: 'Done',
@@ -406,7 +406,7 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                     GradientButton(
                       onPressed: () async {
                         await _refreshFinancialState();
-                        if (mounted) context.go(Routes.home);
+                        if (mounted) this.context.go(Routes.home);
                       },
                       label: 'Done',
                     ),

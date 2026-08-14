@@ -15,49 +15,49 @@ class AppTheme {
 
     final colorScheme = isDark
         ? const ColorScheme.dark(
-            primary: AppColors.brightGreenDark,
-            onPrimary: Color(0xFF0D1F14),
-            primaryContainer: AppColors.surfaceMutedDark,
-            onPrimaryContainer: AppColors.brightGreenDark,
-            secondary: AppColors.evergreenDark,
-            onSecondary: Colors.white,
-            error: AppColors.error,
-            onError: Colors.white,
-            errorContainer: AppColors.errorDim,
-            surface: AppColors.backgroundDark,
+            primary: AppColors.primaryDarkTheme,
+            onPrimary: AppColors.inverseTextDark,
+            primaryContainer: AppColors.primaryContainerDark,
+            onPrimaryContainer: AppColors.onPrimaryContainerDark,
+            secondary: AppColors.accentDarkTheme,
+            onSecondary: AppColors.inverseTextDark,
+            error: AppColors.errorDark,
+            onError: AppColors.inverseTextDark,
+            errorContainer: AppColors.errorContainer,
+            surface: AppColors.surfaceDark,
             onSurface: AppColors.textPrimaryDark,
             surfaceContainerHighest: AppColors.surfaceDark,
             onSurfaceVariant: AppColors.textSecondaryDark,
             outline: AppColors.borderDark,
-            outlineVariant: AppColors.borderDark,
+            outlineVariant: AppColors.borderStrongDark,
+            surfaceTint: AppColors.primaryDarkTheme,
+            scrim: AppColors.scrimDark,
           )
         : const ColorScheme.light(
-            primary: AppColors.evergreen,
-            onPrimary: Colors.white,
-            primaryContainer: AppColors.surfaceMuted,
-            onPrimaryContainer: AppColors.evergreen,
-            secondary: AppColors.brightGreen,
-            onSecondary: Colors.white,
+            primary: AppColors.primary,
+            onPrimary: AppColors.inverseText,
+            primaryContainer: AppColors.primaryContainer,
+            onPrimaryContainer: AppColors.onPrimaryContainer,
+            secondary: AppColors.accent,
+            onSecondary: AppColors.inverseText,
             error: AppColors.error,
-            onError: Colors.white,
-            errorContainer: AppColors.errorDim,
-            surface: AppColors.background, // warm near-white
+            onError: AppColors.inverseText,
+            errorContainer: AppColors.errorContainer,
+            surface: AppColors.surface,
             onSurface: AppColors.textPrimary,
-            surfaceContainerHighest: AppColors.surface, // warm beige
+            surfaceContainerHighest: AppColors.surfaceMuted,
             onSurfaceVariant: AppColors.textSecondary,
-            outline: AppColors.border, // warm border
-            outlineVariant: AppColors.border,
+            outline: AppColors.border,
+            outlineVariant: AppColors.borderStrong,
+            surfaceTint: AppColors.primary,
+            scrim: AppColors.scrim,
           );
 
-    final bg = isDark ? AppColors.backgroundDark : AppColors.background;
-    final cardBg = isDark ? AppColors.surfaceDark : AppColors.surface;
     final cardBorder = isDark ? AppColors.borderDark : AppColors.border;
     final inputFill = isDark
-        ? AppColors.surfaceMutedDark
-        : AppColors.surfaceMuted;
-    final textPrimary = isDark
-        ? AppColors.textPrimaryDark
-        : AppColors.textPrimary;
+        ? AppColors.surfaceMutedDark.withValues(alpha: 0.8)
+        : AppColors.surfaceMuted.withValues(alpha: 0.8);
+    final textPrimary = isDark ? AppColors.textPrimaryDark : AppColors.textPrimary;
     final textSecondary = isDark
         ? AppColors.textSecondaryDark
         : AppColors.textSecondary;
@@ -78,7 +78,8 @@ class AppTheme {
       useMaterial3: true,
       brightness: brightness,
       colorScheme: colorScheme,
-      scaffoldBackgroundColor: bg,
+      scaffoldBackgroundColor: Colors.transparent, // Use transparent for glassmorphism
+      canvasColor: Colors.transparent,
 
       appBarTheme: AppBarTheme(
         centerTitle: false,
@@ -95,10 +96,10 @@ class AppTheme {
         elevation: 0,
         shadowColor: Colors.transparent,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
           side: BorderSide(color: cardBorder, width: 1),
         ),
-        color: cardBg,
+        color: Colors.transparent, // Transparent for glassmorphism
         surfaceTintColor: Colors.transparent,
         margin: EdgeInsets.zero,
       ),
@@ -131,8 +132,8 @@ class AppTheme {
           borderSide: BorderSide(color: cardBorder, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 16,
+          horizontal: 20,
+          vertical: 18,
         ),
         hintStyle: AppTextStyles.bodyMedium.copyWith(color: textSecondary),
         labelStyle: AppTextStyles.bodyMedium.copyWith(color: textSecondary),
@@ -141,13 +142,13 @@ class AppTheme {
 
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
           disabledBackgroundColor: cardBorder,
           disabledForegroundColor: textSecondary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: AppTextStyles.buttonMedium,
           elevation: 0,
@@ -160,7 +161,7 @@ class AppTheme {
           disabledForegroundColor: textSecondary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
           side: BorderSide(color: cardBorder, width: 1.5),
           textStyle: AppTextStyles.buttonMedium,
@@ -173,7 +174,7 @@ class AppTheme {
           disabledForegroundColor: textSecondary,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
           ),
           textStyle: AppTextStyles.buttonMedium,
         ),
@@ -181,13 +182,13 @@ class AppTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
           disabledBackgroundColor: cardBorder,
           disabledForegroundColor: textSecondary,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: AppTextStyles.buttonMedium,
           elevation: 0,
@@ -197,24 +198,26 @@ class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        elevation: 4,
-        shape: const CircleBorder(),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
       ),
 
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: cardBg,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
         ),
         showDragHandle: true,
-        dragHandleColor: cardBorder,
+        dragHandleColor: Colors.white.withValues(alpha: 0.3),
       ),
 
       dialogTheme: DialogThemeData(
-        backgroundColor: cardBg,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         titleTextStyle: AppTextStyles.titleLarge.copyWith(color: textPrimary),
         contentTextStyle: AppTextStyles.bodyMedium.copyWith(
           color: textSecondary,
@@ -222,58 +225,65 @@ class AppTheme {
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: isDark ? AppColors.surfaceDark : AppColors.textPrimary,
+        backgroundColor: Colors.transparent,
         contentTextStyle: AppTextStyles.bodyMedium.copyWith(
           color: Colors.white,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         behavior: SnackBarBehavior.floating,
-        actionTextColor: AppColors.brightGreenDark,
+        actionTextColor: AppColors.accentLight,
       ),
 
       chipTheme: ChipThemeData(
         backgroundColor: isDark
-            ? AppColors.surfaceMutedDark
-            : AppColors.surfaceMuted,
+            ? AppColors.surfaceMutedDark.withValues(alpha: 0.8)
+            : AppColors.surfaceMuted.withValues(alpha: 0.8),
         deleteIconColor: textSecondary,
         disabledColor: cardBorder,
         selectedColor: colorScheme.primary,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         labelStyle: AppTextStyles.labelMedium.copyWith(color: textSecondary),
         brightness: brightness,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        side: BorderSide(color: cardBorder, width: 1),
       ),
 
-      dividerTheme: DividerThemeData(color: cardBorder, space: 1, thickness: 1),
+      dividerTheme: DividerThemeData(
+        color: cardBorder,
+        space: 1,
+        thickness: 1,
+      ),
 
       iconTheme: IconThemeData(color: textPrimary, size: 24),
       primaryIconTheme: const IconThemeData(
-        color: AppColors.brightGreenDark,
+        color: AppColors.primary,
         size: 24,
       ),
 
       textTheme: TextTheme(
-        displayLarge: AppTextStyles.displayLarge,
-        displayMedium: AppTextStyles.displayMedium,
-        displaySmall: AppTextStyles.displaySmall,
-        headlineLarge: AppTextStyles.headlineLarge,
-        headlineMedium: AppTextStyles.headlineMedium,
-        headlineSmall: AppTextStyles.headlineSmall,
-        titleLarge: AppTextStyles.titleLarge,
-        titleMedium: AppTextStyles.titleMedium,
-        titleSmall: AppTextStyles.titleSmall,
-        bodyLarge: AppTextStyles.bodyLarge,
-        bodyMedium: AppTextStyles.bodyMedium,
-        bodySmall: AppTextStyles.bodySmall,
-        labelLarge: AppTextStyles.labelLarge,
-        labelMedium: AppTextStyles.labelMedium,
-        labelSmall: AppTextStyles.labelSmall,
+        displayLarge: AppTextStyles.displayLarge.copyWith(color: textPrimary),
+        displayMedium: AppTextStyles.displayMedium.copyWith(color: textPrimary),
+        displaySmall: AppTextStyles.displaySmall.copyWith(color: textPrimary),
+        headlineLarge: AppTextStyles.headlineLarge.copyWith(color: textPrimary),
+        headlineMedium: AppTextStyles.headlineMedium.copyWith(color: textPrimary),
+        headlineSmall: AppTextStyles.headlineSmall.copyWith(color: textPrimary),
+        titleLarge: AppTextStyles.titleLarge.copyWith(color: textPrimary),
+        titleMedium: AppTextStyles.titleMedium.copyWith(color: textPrimary),
+        titleSmall: AppTextStyles.titleSmall.copyWith(color: textPrimary),
+        bodyLarge: AppTextStyles.bodyLarge.copyWith(color: textPrimary),
+        bodyMedium: AppTextStyles.bodyMedium.copyWith(color: textPrimary),
+        bodySmall: AppTextStyles.bodySmall.copyWith(color: textSecondary),
+        labelLarge: AppTextStyles.labelLarge.copyWith(color: textPrimary),
+        labelMedium: AppTextStyles.labelMedium.copyWith(color: textPrimary),
+        labelSmall: AppTextStyles.labelSmall.copyWith(color: textSecondary),
       ),
 
       listTileTheme: ListTileThemeData(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         iconColor: textSecondary,
         textColor: textPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        tileColor: Colors.transparent,
       ),
 
       progressIndicatorTheme: ProgressIndicatorThemeData(
@@ -295,7 +305,8 @@ class AppTheme {
           return Colors.transparent;
         }),
         checkColor: WidgetStatePropertyAll(colorScheme.onPrimary),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        side: BorderSide(color: cardBorder, width: 2),
       ),
 
       switchTheme: SwitchThemeData(
@@ -309,9 +320,9 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) return colorScheme.primary;
           return inputFill;
         }),
+        trackOutlineColor: WidgetStatePropertyAll(cardBorder),
       ),
 
-      // Keep defined for fallback use — main nav uses custom glass pill
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.transparent,
         indicatorColor: Colors.transparent,
@@ -339,9 +350,15 @@ class AppTheme {
         labelStyle: AppTextStyles.labelLarge,
         unselectedLabelStyle: AppTextStyles.labelLarge,
         indicator: UnderlineTabIndicator(
-          borderSide: BorderSide(color: colorScheme.primary, width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 3),
+          insets: const EdgeInsets.symmetric(horizontal: 16),
         ),
+        dividerColor: Colors.transparent,
       ),
+
+      splashFactory: InkRipple.splashFactory,
+      splashColor: Colors.transparent,
+      highlightColor: Colors.transparent,
     );
   }
 }

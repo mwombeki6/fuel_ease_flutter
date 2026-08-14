@@ -7,6 +7,7 @@ import 'package:fuel_ease_flutter/core/network/connectivity_provider.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
 import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/features/stations/presentation/providers/station_provider.dart';
+import 'package:fuel_ease_flutter/shared/widgets/glassmorphism.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 
 class MainNavigation extends ConsumerStatefulWidget {
@@ -44,9 +45,6 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
     }
   }
 
-  // Determines which of the 4 real tabs (Home/Stations/Activity/Cards) is
-  // current from the shell's matched location. Pay (index 2) is never
-  // "active" — it's a push destination, not a shell tab.
   int _currentIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith(Routes.stations)) return 1;
@@ -94,7 +92,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
       body: Stack(
         children: [
           widget.child,
-          // Offline banner — slides in from the top when connectivity is lost
+          // Offline banner
           AnimatedPositioned(
             duration: const Duration(milliseconds: 350),
             curve: Curves.easeOutCubic,
@@ -119,7 +117,7 @@ class _MainNavigationState extends ConsumerState<MainNavigation>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Offline banner — slides in from top when network is lost
+// Offline banner
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _OfflineBanner extends StatelessWidget {
@@ -127,11 +125,12 @@ class _OfflineBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: 0.96),
+        color: isDark ? AppColors.warning.withValues(alpha: 0.96) : AppColors.warning,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.25),
@@ -160,67 +159,57 @@ class _OfflineBanner extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Docked bottom navigation bar — 5 same-baseline items, no floating FAB.
+// Modern Glass Navigation Bar
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FeNavBar extends StatelessWidget {
   const _FeNavBar({required this.currentIndex, required this.onTap});
 
-  final int currentIndex; // 0=Home,1=Stations,2=(unused, Pay is not a tab),3=Activity,4=Cards
+  final int currentIndex; // 0=Home,1=Stations,2=Pay,3=Activity,4=Cards
   final void Function(int index) onTap;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Padding(
       padding: EdgeInsets.only(
         left: 12,
         right: 12,
         bottom: 8 + MediaQuery.paddingOf(context).bottom,
       ),
-      child: Container(
-        height: 60,
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, -6),
-            ),
-          ],
+      child: Glassmorphism.glassNavBar(
+        height: 72,
+        margin: EdgeInsets.only(
+          left: 12,
+          right: 12,
+          bottom: 8 + MediaQuery.paddingOf(context).bottom,
         ),
-        child: Row(
-          children: [
-            _NavItem(
-              icon: Icons.home_rounded,
-              label: 'Home',
-              active: currentIndex == 0,
-              onTap: () => onTap(0),
-            ),
-            _NavItem(
-              icon: Icons.location_on_rounded,
-              label: 'Stations',
-              active: currentIndex == 1,
-              onTap: () => onTap(1),
-            ),
-            _PayNavItem(onTap: () => onTap(2)),
-            _NavItem(
-              icon: Icons.schedule_rounded,
-              label: 'Activity',
-              active: currentIndex == 3,
-              onTap: () => onTap(3),
-            ),
-            _NavItem(
-              icon: Icons.credit_card_rounded,
-              label: 'Cards',
-              active: currentIndex == 4,
-              onTap: () => onTap(4),
-            ),
-          ],
-        ),
+        children: [
+          _NavItem(
+            icon: Icons.home_rounded,
+            label: 'Home',
+            active: currentIndex == 0,
+            onTap: () => onTap(0),
+          ),
+          _NavItem(
+            icon: Icons.location_on_rounded,
+            label: 'Stations',
+            active: currentIndex == 1,
+            onTap: () => onTap(1),
+          ),
+          _PayNavItem(onTap: () => onTap(2)),
+          _NavItem(
+            icon: Icons.schedule_rounded,
+            label: 'Activity',
+            active: currentIndex == 3,
+            onTap: () => onTap(3),
+          ),
+          _NavItem(
+            icon: Icons.credit_card_rounded,
+            label: 'Cards',
+            active: currentIndex == 4,
+            onTap: () => onTap(4),
+          ),
+        ],
       ),
     );
   }
@@ -288,6 +277,7 @@ class _PayNavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Expanded(
       child: InkWell(
@@ -300,14 +290,24 @@ class _PayNavItem extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 28,
-                height: 28,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
-                  color: colorScheme.primary,
-                  borderRadius: BorderRadius.circular(9),
+                  gradient: isDark
+                      ? AppColors.brandGradientDark
+                      : AppColors.brandGradient,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colorScheme.primary.withValues(alpha: 0.4),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                      spreadRadius: -2,
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded,
-                    size: 15, color: Colors.white),
+                child: const Icon(Icons.flash_on_rounded,
+                    size: 16, color: Colors.white),
               ),
               const SizedBox(height: 3),
               Text(
