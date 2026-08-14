@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
-import 'package:fuel_ease_flutter/features/dispense/data/repositories/dispense_repository.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/providers/live_dispense_provider.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_colors.dart';
 import 'package:fuel_ease_flutter/shared/widgets/fe_widgets.dart';
@@ -19,8 +18,6 @@ class LiveDispenseScreen extends ConsumerStatefulWidget {
 }
 
 class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
-  bool _isStopping = false;
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(liveDispenseProvider(widget.params));
@@ -29,12 +26,17 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
 
     ref.listen(liveDispenseProvider(widget.params), (_, next) {
       if (next.phase == LiveDispensePhase.completed && mounted) {
-        context.pushReplacement(Routes.dispenseComplete(widget.params.requestId));
+        context.pushReplacement(
+          Routes.dispenseComplete(widget.params.requestId),
+        );
       }
     });
 
     final (phaseLabel, phaseColor) = switch (state.phase) {
-      LiveDispensePhase.connecting => ('WAITING', Colors.white.withValues(alpha: 0.5)),
+      LiveDispensePhase.awaitingActivation => (
+        'WAITING',
+        Colors.white.withValues(alpha: 0.5),
+      ),
       LiveDispensePhase.flowing => ('FLOWING', AppColors.success),
       LiveDispensePhase.paused => ('PAUSED', Colors.amber),
       LiveDispensePhase.completed => ('DONE', AppColors.success),
@@ -45,7 +47,7 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        _showStopDialog(context);
+        _showLeaveDialog(context);
       },
       child: Scaffold(
         backgroundColor: colorScheme.surface,
@@ -101,12 +103,15 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
                         // Phase badge
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 5),
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
                           decoration: BoxDecoration(
                             color: phaseColor.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color: phaseColor.withValues(alpha: 0.4)),
+                              color: phaseColor.withValues(alpha: 0.4),
+                            ),
                           ),
                           child: Text(
                             phaseLabel,
@@ -141,7 +146,9 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
 
                           // Gradient progress bar
                           _GradientProgressBar(
-                            value: state.phase == LiveDispensePhase.connecting
+                            value:
+                                state.phase ==
+                                    LiveDispensePhase.awaitingActivation
                                 ? null
                                 : state.progressFraction,
                             isError: state.phase == LiveDispensePhase.error,
@@ -165,8 +172,7 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
                                 const SizedBox(height: 6),
                                 AnimatedCounter(
                                   value: state.litersDispensed,
-                                  formatter: (v) =>
-                                      '${v.toStringAsFixed(2)} L',
+                                  formatter: (v) => '${v.toStringAsFixed(2)} L',
                                   style: const TextStyle(
                                     fontSize: 56,
                                     fontWeight: FontWeight.w900,
@@ -214,44 +220,39 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
 
                           const Spacer(),
 
-                          // Emergency stop
+                          // This app has no endpoint that can stop an active pump.
                           GestureDetector(
-                            onTap:
-                                _isStopping ? null : () => _showStopDialog(context),
+                            onTap: () => _showLeaveDialog(context),
                             child: Container(
                               height: 56,
                               alignment: Alignment.center,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(14),
                                 border: Border.all(
-                                    color: AppColors.error.withValues(alpha: 0.6)),
-                                color: AppColors.error.withValues(alpha: 0.1),
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                ),
+                                color: Colors.white.withValues(alpha: 0.05),
                               ),
-                              child: _isStopping
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: AppColors.error),
-                                    )
-                                  : Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(Icons.stop_circle_rounded,
-                                            color: AppColors.error, size: 20),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'EMERGENCY STOP',
-                                          style: TextStyle(
-                                            color: AppColors.error,
-                                            fontWeight: FontWeight.w800,
-                                            fontSize: 14,
-                                            letterSpacing: 1,
-                                          ),
-                                        ),
-                                      ],
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.close_rounded,
+                                    color: Colors.white70,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'LEAVE LIVE VIEW',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontWeight: FontWeight.w800,
+                                      fontSize: 14,
+                                      letterSpacing: 1,
                                     ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
@@ -270,55 +271,52 @@ class _LiveDispenseScreenState extends ConsumerState<LiveDispenseScreen> {
   }
 
   String _appBarTitle(LiveDispensePhase phase) => switch (phase) {
-        LiveDispensePhase.connecting => 'Waiting for Flow',
-        LiveDispensePhase.flowing => 'Dispensing…',
-        LiveDispensePhase.paused => 'No Signal',
-        LiveDispensePhase.completed => 'Done',
-        LiveDispensePhase.error => 'Error',
-      };
+    LiveDispensePhase.awaitingActivation => 'Waiting for Flow',
+    LiveDispensePhase.flowing => 'Dispensing…',
+    LiveDispensePhase.paused => 'No Signal',
+    LiveDispensePhase.completed => 'Done',
+    LiveDispensePhase.error => 'Error',
+  };
 
-  void _showStopDialog(BuildContext context) {
+  Future<void> _showLeaveDialog(BuildContext context) async {
     final router = GoRouter.of(context);
     final colorScheme = Theme.of(context).colorScheme;
-    showDialog<bool>(
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: colorScheme.surfaceContainerHighest,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Send stop request?',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+        title: const Text(
+          'Leave live view?',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
         content: Text(
-          'Pump will stop if the connection is still active.',
+          'This does not stop an active pump. Fueling may continue while you '
+          'return to the home screen.',
           style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Continue',
-                style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+            child: Text(
+              'Stay',
+              style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Stop',
-                style: TextStyle(
-                    color: AppColors.error, fontWeight: FontWeight.w700)),
+            child: const Text(
+              'Leave',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
-    ).then((confirmed) async {
-      if (confirmed != true || !mounted) return;
-      setState(() => _isStopping = true);
-      try {
-        await ref
-            .read(dispenseRepositoryProvider)
-            .cancelRequest(widget.params.requestId);
-      } finally {
-        if (mounted) {
-          setState(() => _isStopping = false);
-          router.go(Routes.home);
-        }
-      }
-    });
+    );
+    if (confirmed == true && mounted) router.go(Routes.home);
   }
 }
 
@@ -333,7 +331,7 @@ class _LiveSignalRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    if (phase == LiveDispensePhase.connecting) {
+    if (phase == LiveDispensePhase.awaitingActivation) {
       return Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -341,13 +339,17 @@ class _LiveSignalRow extends StatelessWidget {
             width: 14,
             height: 14,
             child: CircularProgressIndicator(
-                strokeWidth: 2, color: colorScheme.primary),
+              strokeWidth: 2,
+              color: colorScheme.primary,
+            ),
           ),
           const SizedBox(width: 10),
           Text(
             'Pump authorized. Waiting for flow…',
             style: TextStyle(
-                fontSize: 13, color: Colors.white.withValues(alpha: 0.5)),
+              fontSize: 13,
+              color: Colors.white.withValues(alpha: 0.5),
+            ),
           ),
         ],
       );
@@ -388,7 +390,10 @@ class _LiveSignalRow extends StatelessWidget {
         Text(
           label,
           style: TextStyle(
-              fontSize: 13, color: color, fontWeight: FontWeight.w600),
+            fontSize: 13,
+            color: color,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ],
     );
@@ -432,7 +437,11 @@ class _GradientProgressBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: isError
                       ? LinearGradient(
-                          colors: [AppColors.error, AppColors.error.withValues(alpha: 0.7)])
+                          colors: [
+                            AppColors.error,
+                            AppColors.error.withValues(alpha: 0.7),
+                          ],
+                        )
                       : AppColors.brandGradient,
                   borderRadius: BorderRadius.circular(8),
                 ),
@@ -443,9 +452,7 @@ class _GradientProgressBar extends StatelessWidget {
           if (value == null)
             Container(
               height: 10,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-              ),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(8)),
               child: const LinearProgressIndicator(
                 backgroundColor: Colors.transparent,
                 valueColor: AlwaysStoppedAnimation<Color>(Colors.transparent),
@@ -497,8 +504,11 @@ class _ErrorBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
         children: [
-          const Icon(Icons.warning_amber_rounded,
-              color: AppColors.error, size: 18),
+          const Icon(
+            Icons.warning_amber_rounded,
+            color: AppColors.error,
+            size: 18,
+          ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(

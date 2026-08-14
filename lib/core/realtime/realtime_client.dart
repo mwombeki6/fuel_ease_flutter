@@ -59,6 +59,7 @@ class RealtimeClient {
   bool _connecting = false;
   final Set<String> _subscriptions = {};
   bool _autoReconnect = false;
+  int _sessionGeneration = 0;
   int _reconnectAttempts = 0;
   Timer? _reconnectTimer;
   String? _currentUserId;
@@ -78,6 +79,17 @@ class RealtimeClient {
   /// read-only so tests can assert subscription intent without needing a
   /// live socket; not meant for production call sites.
   Set<String> get debugSubscriptions => Set.unmodifiable(_subscriptions);
+
+  /// Number of currently buffered transient payloads, exposed for tests.
+  int get debugBufferedEventCount => _recentEvents.length;
+
+  /// Test-only helper for verifying account-bound buffer cleanup.
+  void debugAddBufferedEvent(Map<String, dynamic> payload) {
+    assert(() {
+      _bufferEvent(payload);
+      return true;
+    }());
+  }
 
   /// Ensures a connection exists and is subscribed to `user:<userId>`.
   ///
@@ -121,6 +133,7 @@ class RealtimeClient {
 
   Future<void> connect({List<String> channels = const []}) async {
     if (_connecting || _socket != null) return;
+    final sessionGeneration = _sessionGeneration;
     _connecting = true;
     _autoReconnect = true;
     _emitStatus(
@@ -150,9 +163,17 @@ class RealtimeClient {
       final resp = await _api.post<Map<String, dynamic>>(
         ApiConstants.wsTicketPath,
       );
+      if (sessionGeneration != _sessionGeneration) {
+        _connecting = false;
+        return;
+      }
       final body = resp.data as Map<String, dynamic>;
       ticket = ((body['data'] as Map<String, dynamic>)['ticket']) as String;
     } catch (e) {
+      if (sessionGeneration != _sessionGeneration) {
+        _connecting = false;
+        return;
+      }
       _connecting = false;
       // 401/403 means the token is revoked or the session is gone.
       // Stop reconnecting — a new login is required.
@@ -177,6 +198,11 @@ class RealtimeClient {
 
     try {
       final socket = await WebSocket.connect(url);
+      if (sessionGeneration != _sessionGeneration) {
+        await socket.close();
+        _connecting = false;
+        return;
+      }
       final wasReconnect = _reconnectAttempts > 0;
       _socket = socket;
       _connecting = false;
@@ -210,6 +236,10 @@ class RealtimeClient {
         onDone: _handleDisconnect,
       );
     } catch (_) {
+      if (sessionGeneration != _sessionGeneration) {
+        _connecting = false;
+        return;
+      }
       _connecting = false;
       _emitStatus(
         _status.copyWith(state: RealtimeConnectionState.reconnecting),
@@ -278,7 +308,25 @@ class RealtimeClient {
     _socket?.close();
     _socket = null;
     _connecting = false;
-    _emitStatus(_status.copyWith(state: RealtimeConnectionState.disconnected));
+    _recentEvents.clear();
+    _status = const RealtimeStatus(state: RealtimeConnectionState.disconnected);
+    _emitStatus(_status);
+  }
+
+  /// Drops transient payloads without closing an intentionally active socket.
+  void clearBufferedEvents() {
+    _recentEvents.clear();
+  }
+
+  /// Disconnects and removes every user-specific subscription and event.
+  void clearSession() {
+    _sessionGeneration++;
+    disconnect();
+    _reconnectTimer?.cancel();
+    _reconnectTimer = null;
+    _subscriptions.clear();
+    _currentUserId = null;
+    _reconnectAttempts = 0;
   }
 
   /// Tears down the socket, timers, and closes every stream this client

@@ -26,11 +26,14 @@ class Routes {
   // Dispensing routes
   static const String createDispensingRequest = '/fuel/create-request';
   static const String dispensingRequests = '/fuel/requests';
-  static String dispensingRequestDetails(String id) => '/fuel/requests/$id';
-  static String dispensingToken(String token) => '/fuel/token/$token';
+  static String dispensingRequestDetails(String id) => dispensingRequest(id);
+  static String dispensingRequest(String id) => '/fuel/request/$id';
+  static String dispensingToken(String requestId) =>
+      dispensingRequest(requestId);
   static const String scanQR = '/fuel/scan';
   static String liveDispense(String requestId) => '/fuel/live/$requestId';
-  static String dispenseComplete(String requestId) => '/fuel/complete/$requestId';
+  static String dispenseComplete(String requestId) =>
+      '/fuel/complete/$requestId';
 
   // Stations routes
   static const String stations = '/stations';

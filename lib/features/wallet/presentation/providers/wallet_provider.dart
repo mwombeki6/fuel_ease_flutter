@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:logger/logger.dart';
 
 import 'package:fuel_ease_flutter/features/wallet/data/models/recharge_payload.dart';
 import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_summary.dart';
@@ -7,8 +6,6 @@ import 'package:fuel_ease_flutter/features/wallet/data/models/wallet_transaction
 import 'package:fuel_ease_flutter/features/wallet/data/repositories/wallet_repository.dart';
 
 class WalletNotifier extends AsyncNotifier<WalletSummary> {
-  final Logger _logger = Logger();
-
   @override
   Future<WalletSummary> build() async => _fetchWallet();
 
@@ -33,7 +30,6 @@ class WalletNotifier extends AsyncNotifier<WalletSummary> {
       provider: provider,
     );
     await ref.read(walletRepositoryProvider).topUpWallet(payload);
-    _logger.i('Top-up initiated: $amountTzs TZS via $provider');
     // Wallet balance won't update until the webhook callback confirms payment
   }
 
@@ -43,16 +39,16 @@ class WalletNotifier extends AsyncNotifier<WalletSummary> {
     required String msisdn,
     String? stationId,
     String? provider,
-  }) =>
-      topUp(
-        amountTzs: amountTzs,
-        msisdn: msisdn,
-        provider: provider ?? 'Mpesa',
-      );
+  }) => topUp(
+    amountTzs: amountTzs,
+    msisdn: msisdn,
+    provider: provider ?? 'Mpesa',
+  );
 }
 
-final walletProvider =
-    AsyncNotifierProvider<WalletNotifier, WalletSummary>(WalletNotifier.new);
+final walletProvider = AsyncNotifierProvider<WalletNotifier, WalletSummary>(
+  WalletNotifier.new,
+);
 
 final availableBalanceProvider = Provider<double?>((ref) {
   final walletState = ref.watch(walletProvider);
@@ -63,19 +59,18 @@ final availableBalanceProvider = Provider<double?>((ref) {
 
 final walletStatusProvider = Provider<String?>((ref) {
   final walletState = ref.watch(walletProvider);
-  return walletState.whenOrNull(
-    data: (summary) => summary.wallet.status,
-  );
+  return walletState.whenOrNull(data: (summary) => summary.wallet.status);
 });
 
 final walletTransactionsProvider = FutureProvider.autoDispose
-    .family<List<WalletTransaction>, WalletTransactionsParams>(
-        (ref, params) async {
-  return ref.read(walletRepositoryProvider).getTransactions(
-        limit: params.limit,
-        offset: params.offset,
-      );
-});
+    .family<List<WalletTransaction>, WalletTransactionsParams>((
+      ref,
+      params,
+    ) async {
+      return ref
+          .read(walletRepositoryProvider)
+          .getTransactions(limit: params.limit, offset: params.offset);
+    });
 
 class WalletTransactionsParams {
   const WalletTransactionsParams({required this.limit, required this.offset});

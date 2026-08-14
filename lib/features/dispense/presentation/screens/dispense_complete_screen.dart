@@ -320,9 +320,9 @@ class _DispenseCompleteScreenState extends ConsumerState<DispenseCompleteScreen>
                                             await _refreshFinancialState();
                                             if (mounted) {
                                               this.context.go(
-                                                Routes.walletTransactions,
-                                              );
-                                            }
+                                                  Routes.walletTransactions,
+                                                );
+                                              }
                                           },
                                           child: Container(
                                             height: 52,

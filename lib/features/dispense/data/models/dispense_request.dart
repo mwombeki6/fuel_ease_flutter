@@ -25,11 +25,13 @@ class DispenseRequest {
   final DateTime? completedAt;
   final String? holdId;
 
-  factory DispenseRequest.fromJson(Map<String, dynamic> json) => DispenseRequest(
+  factory DispenseRequest.fromJson(Map<String, dynamic> json) =>
+      DispenseRequest(
         id: json['id'] as String,
         cardId: json['card_id'] as String,
         stationId: json['station_id'] as String,
-        requestedLiters: double.tryParse(json['requested_liters']?.toString() ?? '0') ?? 0.0,
+        requestedLiters:
+            double.tryParse(json['requested_liters']?.toString() ?? '0') ?? 0.0,
         pricePerLiterTzs: (json['price_per_liter_tzs'] as num?)?.toInt() ?? 0,
         status: json['status'] as String,
         createdAt: DateTime.parse(json['created_at'] as String),
@@ -48,7 +50,9 @@ class DispenseRequest {
   bool get isActive => status == 'active';
   bool get isCompleted => status == 'completed';
   bool get isCancelled => status == 'cancelled';
-  bool get isTerminal => isCompleted || isCancelled;
+  bool get isRejected => status == 'rejected';
+  bool get isExpired => status == 'expired';
+  bool get isTerminal => isCompleted || isCancelled || isRejected || isExpired;
 
   int get estimatedCostTzs => (requestedLiters * pricePerLiterTzs).ceil();
 
@@ -64,6 +68,10 @@ class DispenseRequest {
         return 'Completed';
       case 'cancelled':
         return 'Cancelled';
+      case 'rejected':
+        return 'Rejected';
+      case 'expired':
+        return 'Expired';
       default:
         return status.toUpperCase();
     }

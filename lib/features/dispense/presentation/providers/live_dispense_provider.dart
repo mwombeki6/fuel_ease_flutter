@@ -6,7 +6,7 @@ import 'package:fuel_ease_flutter/core/realtime/realtime_client.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/models/dispense_request.dart';
 import 'package:fuel_ease_flutter/features/dispense/data/repositories/dispense_repository.dart';
 
-enum LiveDispensePhase { connecting, flowing, paused, completed, error }
+enum LiveDispensePhase { awaitingActivation, flowing, paused, completed, error }
 
 class LiveDispenseParams {
   const LiveDispenseParams({
@@ -22,6 +22,16 @@ class LiveDispenseParams {
   final double requestedLiters;
   final int pricePerLiterTzs;
   final double initialMlDispensed;
+
+  factory LiveDispenseParams.fromRequest(DispenseRequest request) {
+    return LiveDispenseParams(
+      requestId: request.id,
+      stationId: request.stationId,
+      requestedLiters: request.requestedLiters,
+      pricePerLiterTzs: request.pricePerLiterTzs,
+      initialMlDispensed: (request.actualLiters ?? 0) * 1000,
+    );
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -91,16 +101,18 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
     DispenseRepository? repository,
     Iterable<Map<String, dynamic>> recentEvents = const [],
   }) : _repository = repository,
-        super(LiveDispenseState(
-          phase: params.initialMlDispensed > 0
-              ? LiveDispensePhase.flowing
-              : LiveDispensePhase.connecting,
-          requestId: params.requestId,
-          requestedLiters: params.requestedLiters,
-          pricePerLiterTzs: params.pricePerLiterTzs,
-          mlDispensed: params.initialMlDispensed,
-          lastEventAt: params.initialMlDispensed > 0 ? DateTime.now() : null,
-        )) {
+       super(
+         LiveDispenseState(
+           phase: params.initialMlDispensed > 0
+               ? LiveDispensePhase.flowing
+               : LiveDispensePhase.awaitingActivation,
+           requestId: params.requestId,
+           requestedLiters: params.requestedLiters,
+           pricePerLiterTzs: params.pricePerLiterTzs,
+           mlDispensed: params.initialMlDispensed,
+           lastEventAt: params.initialMlDispensed > 0 ? DateTime.now() : null,
+         ),
+       ) {
     _subscription = eventStream.listen(_handleEvent);
     for (final event in recentEvents) {
       _handleEvent(event);
@@ -200,11 +212,13 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
       return;
     }
 
-    if (request.isApproved && state.phase == LiveDispensePhase.connecting) {
+    if (request.isApproved &&
+        state.phase == LiveDispensePhase.awaitingActivation) {
       state = state.copyWith(lastEventAt: DateTime.now());
     }
 
-    if (request.isActive && state.phase == LiveDispensePhase.connecting) {
+    if (request.isActive &&
+        state.phase == LiveDispensePhase.awaitingActivation) {
       state = state.copyWith(
         phase: LiveDispensePhase.flowing,
         lastEventAt: DateTime.now(),
@@ -222,16 +236,17 @@ class LiveDispenseNotifier extends StateNotifier<LiveDispenseState> {
 }
 
 final liveDispenseProvider = StateNotifierProvider.autoDispose
-    .family<LiveDispenseNotifier, LiveDispenseState, LiveDispenseParams>(
-  (ref, params) {
-    final client = ref.watch(realtimeClientProvider);
-    final repository = ref.watch(dispenseRepositoryProvider);
-    unawaited(client.connect());
-    return LiveDispenseNotifier(
+    .family<LiveDispenseNotifier, LiveDispenseState, LiveDispenseParams>((
+      ref,
       params,
-      client.stream,
-      repository: repository,
-      recentEvents: client.recentEvents(),
-    );
-  },
-);
+    ) {
+      final client = ref.watch(realtimeClientProvider);
+      final repository = ref.watch(dispenseRepositoryProvider);
+      unawaited(client.connect());
+      return LiveDispenseNotifier(
+        params,
+        client.stream,
+        repository: repository,
+        recentEvents: client.recentEvents(),
+      );
+    });

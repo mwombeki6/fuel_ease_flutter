@@ -3,10 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class CacheEntry<T> {
-  CacheEntry({
-    required this.data,
-    required this.updatedAt,
-  });
+  CacheEntry({required this.data, required this.updatedAt});
 
   final T data;
   final DateTime updatedAt;
@@ -54,5 +51,12 @@ class AppCache {
   Future<void> remove(String key) async {
     final prefs = await _prefs;
     await prefs.remove(key);
+  }
+
+  Future<void> removeByPrefix(String prefix) async {
+    final prefs = await _prefs;
+    for (final key in prefs.getKeys().where((key) => key.startsWith(prefix))) {
+      await prefs.remove(key);
+    }
   }
 }

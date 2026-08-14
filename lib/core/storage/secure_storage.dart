@@ -81,8 +81,11 @@ class SecureStorage {
     final expiresAt = await getExpiresAt();
     if (expiresAt == null) return true;
 
-    final now = DateTime.now().millisecondsSinceEpoch;
-    return now > expiresAt;
+    // Refresh shortly before expiry so startup/requests do not race the server.
+    final now = DateTime.now()
+        .add(const Duration(seconds: 30))
+        .millisecondsSinceEpoch;
+    return now >= expiresAt;
   }
 
   /// Check if token exists and is valid
@@ -99,7 +102,7 @@ class SecureStorage {
     await _storage.deleteAll();
   }
 
-  /// Clear only auth-related data (tokens, user, and session — everything needed for re-auth)
+  /// Clear authentication and account-specific selection data.
   Future<void> clearAuth() async {
     await Future.wait([
       _storage.delete(key: _tokenKey),
@@ -107,6 +110,7 @@ class SecureStorage {
       _storage.delete(key: _expiresAtKey),
       _storage.delete(key: _refreshTokenKey),
       _storage.delete(key: _sessionIdKey),
+      _storage.delete(key: _preferredStationIdKey),
     ]);
   }
 
@@ -134,12 +138,8 @@ class SecureStorage {
 /// Provider for SecureStorage
 final secureStorageProvider = Provider<SecureStorage>((ref) {
   const storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(
-      encryptedSharedPreferences: true,
-    ),
-    iOptions: IOSOptions(
-      accessibility: KeychainAccessibility.first_unlock,
-    ),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
   );
 
   return SecureStorage(storage);

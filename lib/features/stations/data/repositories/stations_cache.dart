@@ -22,8 +22,10 @@ class StationsCache {
     return _cache.get<List<Station>>(_stationsKey, (json) {
       final list = (json as List<dynamic>? ?? []);
       return list
-          .map((entry) =>
-              Station.fromJson(Map<String, dynamic>.from(entry as Map)))
+          .map(
+            (entry) =>
+                Station.fromJson(Map<String, dynamic>.from(entry as Map)),
+          )
           .toList();
     });
   }
@@ -47,7 +49,9 @@ class StationsCache {
     return _cache.get<List<Pump>>(_pumpsKey(stationId), (json) {
       final list = (json as List<dynamic>? ?? []);
       return list
-          .map((entry) => Pump.fromJson(Map<String, dynamic>.from(entry as Map)))
+          .map(
+            (entry) => Pump.fromJson(Map<String, dynamic>.from(entry as Map)),
+          )
           .toList();
     });
   }
@@ -60,12 +64,16 @@ class StationsCache {
   Future<CacheEntry<List<FuelInventoryEntry>>?> getInventory(
     String stationId,
   ) async {
-    return _cache.get<List<FuelInventoryEntry>>(_inventoryKey(stationId),
-        (json) {
+    return _cache.get<List<FuelInventoryEntry>>(_inventoryKey(stationId), (
+      json,
+    ) {
       final list = (json as List<dynamic>? ?? []);
       return list
-          .map((entry) => FuelInventoryEntry.fromJson(
-              Map<String, dynamic>.from(entry as Map)))
+          .map(
+            (entry) => FuelInventoryEntry.fromJson(
+              Map<String, dynamic>.from(entry as Map),
+            ),
+          )
           .toList();
     });
   }
@@ -77,6 +85,8 @@ class StationsCache {
     final data = inventory.map((entry) => entry.toJson()).toList();
     await _cache.set(_inventoryKey(stationId), data);
   }
+
+  Future<void> clear() => _cache.removeByPrefix('stations.');
 }
 
 final stationsCacheProvider = Provider<StationsCache>((ref) {

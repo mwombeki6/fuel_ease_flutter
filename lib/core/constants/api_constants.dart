@@ -1,5 +1,3 @@
-import 'package:fuel_ease_flutter/core/constants/secrets.dart';
-
 /// API configuration constants for FuelEase app
 class ApiConstants {
   ApiConstants._();
@@ -39,10 +37,9 @@ class ApiConstants {
 
   /// Mapbox public access token — get yours at https://account.mapbox.com
   /// Set at build time: flutter build apk --dart-define=MAPBOX_TOKEN=pk.xxx
-  /// Falls back to secrets.dart (gitignored) for local development.
   static const String mapboxToken = String.fromEnvironment(
     'MAPBOX_TOKEN',
-    defaultValue: kMapboxToken,
+    defaultValue: '',
   );
 
   /// Mapbox dark map style tile URL
