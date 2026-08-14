@@ -142,20 +142,44 @@ dart run build_runner watch --delete-conflicting-outputs
 
 ### API base URL
 
-Open `lib/core/constants/app_constants.dart` and set `apiBaseUrl` to point at your backend instance. The default is:
+Supply `API_BASE_URL` with a dart define to point at your backend instance. The
+current default is `https://api.fdc.ink/api/v1`:
 
-```
-http://localhost:8080
+```bash
+flutter run --dart-define=API_BASE_URL=https://example.com/api/v1
 ```
 
 ### Firebase (push notifications)
 
 Push notifications require valid Firebase project credentials:
 
-- **Android** — replace `android/app/google-services.json` with your project's file.
-- **iOS** — replace `ios/Runner/GoogleService-Info.plist` with your project's file.
+- **Android** — add your project's `android/app/google-services.json`; the Google Services plugin is applied only when that file exists.
+- **iOS** — add your project's `ios/Runner/GoogleService-Info.plist` to the Runner target.
+- **iOS** — enable the Push Notifications capability and provision the app ID/APNs key in Apple Developer and Firebase; the checked-in entitlements contain no credentials.
 
 If you are running without Firebase, notifications will be silently disabled; all other features remain functional.
+
+Firebase is off by default in debug/test; opt in with
+`--dart-define=ENABLE_FIREBASE=true` after adding native config. Release builds
+enable Firebase by default and require valid native credential files, unless
+push is deliberately disabled with
+`--dart-define=ENABLE_FIREBASE=false`. Push is not reported as configured when
+initialization fails.
+
+Example debug run with push enabled:
+
+```bash
+flutter run --dart-define=ENABLE_FIREBASE=true
+```
+
+### Mapbox
+
+Supply the public token at build or run time; an omitted token defaults to an
+empty string and map services will be unavailable:
+
+```bash
+flutter run --dart-define=MAPBOX_TOKEN=pk.example
+```
 
 ---
 

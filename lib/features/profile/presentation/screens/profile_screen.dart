@@ -39,9 +39,7 @@ class ProfileScreen extends ConsumerWidget {
                   fit: StackFit.expand,
                   children: [
                     // Gradient bg
-                    Container(
-                      color: cs.surface,
-                    ),
+                    Container(color: cs.surface),
                     Positioned(
                       top: -60,
                       left: 0,
@@ -52,7 +50,10 @@ class ProfileScreen extends ConsumerWidget {
                           gradient: RadialGradient(
                             center: Alignment.topCenter,
                             radius: 0.7,
-                            colors: [cs.primary.withValues(alpha: 0.25), Colors.transparent],
+                            colors: [
+                              cs.primary.withValues(alpha: 0.25),
+                              Colors.transparent,
+                            ],
                           ),
                         ),
                       ),
@@ -171,9 +172,13 @@ class ProfileScreen extends ConsumerWidget {
                   icon: Icons.info_outline,
                   iconColor: Colors.white.withValues(alpha: 0.5),
                   title: 'About',
-                  subtitle: ref.watch(_packageInfoProvider).whenOrNull(
-                        data: (info) => 'Version ${info.version} (${info.buildNumber})',
-                      ) ??
+                  subtitle:
+                      ref
+                          .watch(_packageInfoProvider)
+                          .whenOrNull(
+                            data: (info) =>
+                                'Version ${info.version} (${info.buildNumber})',
+                          ) ??
                       'App version and information',
                   onTap: () => _showAboutDialog(context, ref),
                 ),
@@ -198,15 +203,19 @@ class ProfileScreen extends ConsumerWidget {
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
-                      border:
-                          Border.all(color: AppColors.error.withValues(alpha: 0.35)),
+                      border: Border.all(
+                        color: AppColors.error.withValues(alpha: 0.35),
+                      ),
                       color: AppColors.error.withValues(alpha: 0.07),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.logout_rounded,
-                            size: 18, color: AppColors.error),
+                        const Icon(
+                          Icons.logout_rounded,
+                          size: 18,
+                          color: AppColors.error,
+                        ),
                         const SizedBox(width: 8),
                         const Text(
                           'Log Out',
@@ -238,29 +247,53 @@ class ProfileScreen extends ConsumerWidget {
         final cs = Theme.of(ctx).colorScheme;
         return AlertDialog(
           backgroundColor: cs.surfaceContainerHighest,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: const Text('Log Out',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
-          content: Text('Are you sure you want to log out?',
-              style: TextStyle(color: Colors.white.withValues(alpha: 0.65))),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            'Log Out',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            'Are you sure you want to log out?',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.65)),
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text('Cancel',
-                  style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Log Out',
-                  style: TextStyle(
-                      color: AppColors.error, fontWeight: FontWeight.w700)),
+              child: const Text(
+                'Log Out',
+                style: TextStyle(
+                  color: AppColors.error,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
             ),
           ],
         );
       },
     );
     if (confirmed == true && context.mounted) {
-      await ref.read(authProvider.notifier).logout();
+      try {
+        await ref.read(authProvider.notifier).logout();
+      } catch (_) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Signed out locally. The server could not be reached.',
+              ),
+            ),
+          );
+        }
+      }
       if (context.mounted) context.go(Routes.welcome);
     }
   }
@@ -280,8 +313,11 @@ class ProfileScreen extends ConsumerWidget {
           borderRadius: BorderRadius.circular(12),
         ),
         alignment: Alignment.center,
-        child: const Icon(Icons.local_gas_station_rounded,
-            color: Colors.white, size: 24),
+        child: const Icon(
+          Icons.local_gas_station_rounded,
+          color: Colors.white,
+          size: 24,
+        ),
       ),
       children: const [
         Text(
@@ -324,7 +360,8 @@ void _showNotificationsSheet(BuildContext context) {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _NotificationsSheet(),
   );
@@ -334,7 +371,8 @@ void _showLanguageSheet(BuildContext context) {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _LanguageSheet(),
   );
@@ -344,7 +382,8 @@ void _showThemeSheet(BuildContext context, WidgetRef ref) {
   showModalBottomSheet(
     context: context,
     shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => ProviderScope(
       parent: ProviderScope.containerOf(context),
@@ -358,7 +397,8 @@ void _showHelpSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _HelpSheet(),
   );
@@ -369,7 +409,8 @@ void _showTermsSheet(BuildContext context) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
     backgroundColor: Theme.of(context).colorScheme.surface,
     builder: (ctx) => const _TermsSheet(),
   );
@@ -398,7 +439,9 @@ class _Section extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onSurface.withValues(alpha: 0.4),
                   letterSpacing: 1.2,
                 ),
               ),
@@ -588,12 +631,18 @@ class _NotificationsSheetState extends State<_NotificationsSheet> {
           const Text(
             'Notifications',
             style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Choose which notifications you receive',
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 20),
           _DarkToggle(
@@ -655,7 +704,10 @@ class _LanguageSheetState extends State<_LanguageSheet> {
           const Text(
             'Language',
             style: TextStyle(
-                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 16),
           ..._options.map(
@@ -663,8 +715,10 @@ class _LanguageSheetState extends State<_LanguageSheet> {
               onTap: () => setState(() => _selected = lang),
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: _selected == lang
                       ? cs.primary.withValues(alpha: 0.12)
@@ -691,8 +745,7 @@ class _LanguageSheetState extends State<_LanguageSheet> {
                       ),
                     ),
                     if (_selected == lang)
-                      Icon(Icons.check_rounded,
-                          color: cs.primary, size: 18),
+                      Icon(Icons.check_rounded, color: cs.primary, size: 18),
                   ],
                 ),
               ),
@@ -733,13 +786,18 @@ class _ThemeSheet extends ConsumerWidget {
           Text(
             'Theme',
             style: TextStyle(
-                color: cs.onSurface, fontWeight: FontWeight.w700, fontSize: 18),
+              color: cs.onSurface,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
             'Choose your preferred appearance',
             style: TextStyle(
-                color: cs.onSurface.withValues(alpha: 0.45), fontSize: 13),
+              color: cs.onSurface.withValues(alpha: 0.45),
+              fontSize: 13,
+            ),
           ),
           const SizedBox(height: 16),
           ..._options.map(
@@ -756,8 +814,10 @@ class _ThemeSheet extends ConsumerWidget {
               },
               child: Container(
                 margin: const EdgeInsets.only(bottom: 8),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: current == opt.$2
                       ? cs.primary.withValues(alpha: 0.12)
@@ -784,8 +844,7 @@ class _ThemeSheet extends ConsumerWidget {
                       ),
                     ),
                     if (current == opt.$2)
-                      Icon(Icons.check_rounded,
-                          color: cs.primary, size: 18),
+                      Icon(Icons.check_rounded, color: cs.primary, size: 18),
                   ],
                 ),
               ),
@@ -829,16 +888,20 @@ class _HelpSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   alignment: Alignment.center,
-                  child: const Icon(Icons.help_outline,
-                      color: AppColors.success, size: 20),
+                  child: const Icon(
+                    Icons.help_outline,
+                    color: AppColors.success,
+                    size: 20,
+                  ),
                 ),
                 const SizedBox(width: 14),
                 const Text(
                   'Help & Support',
                   style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 18),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 18,
+                  ),
                 ),
               ],
             ),
@@ -883,17 +946,19 @@ class _HelpSheet extends StatelessWidget {
                   const Text(
                     'Still need help?',
                     style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Email us at support@fuelease.co.tz\nor call +255 800 FUEL (3835)',
                     style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.85),
-                        fontSize: 13,
-                        height: 1.5),
+                      color: Colors.white.withValues(alpha: 0.85),
+                      fontSize: 13,
+                      height: 1.5,
+                    ),
                   ),
                 ],
               ),
@@ -930,7 +995,10 @@ class _TermsSheet extends StatelessWidget {
             const Text(
               'Terms & Privacy Policy',
               style: TextStyle(
-                  color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
+              ),
             ),
             const SizedBox(height: 20),
             _TermsSection(

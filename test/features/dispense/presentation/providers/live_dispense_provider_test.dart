@@ -16,59 +16,52 @@ const _params = LiveDispenseParams(
 );
 
 LiveDispenseState _baseState({
-  LiveDispensePhase phase = LiveDispensePhase.connecting,
+  LiveDispensePhase phase = LiveDispensePhase.awaitingActivation,
   double mlDispensed = 0.0,
   DateTime? lastEventAt,
   double? actualMl,
   String? errorMessage,
-}) =>
-    LiveDispenseState(
-      phase: phase,
-      requestId: 'req-001',
-      requestedLiters: 2.0,
-      pricePerLiterTzs: 4000,
-      mlDispensed: mlDispensed,
-      lastEventAt: lastEventAt,
-      actualMl: actualMl,
-      errorMessage: errorMessage,
-    );
+}) => LiveDispenseState(
+  phase: phase,
+  requestId: 'req-001',
+  requestedLiters: 2.0,
+  pricePerLiterTzs: 4000,
+  mlDispensed: mlDispensed,
+  lastEventAt: lastEventAt,
+  actualMl: actualMl,
+  errorMessage: errorMessage,
+);
 
 Map<String, dynamic> _progressEvent({
   String requestId = 'req-001',
   double mlDispensed = 1000.0,
-}) =>
-    {
-      'event': 'dispensing_progress',
-      'data': {
-        'request_id': requestId,
-        'ml_dispensed': mlDispensed,
-        'flow_rate': 50.0,
-      },
-    };
+}) => {
+  'event': 'dispensing_progress',
+  'data': {
+    'request_id': requestId,
+    'ml_dispensed': mlDispensed,
+    'flow_rate': 50.0,
+  },
+};
 
 Map<String, dynamic> _completeEvent({
   String requestId = 'req-001',
   double? actualMl = 2000.0,
-}) =>
-    {
-      'event': 'dispense_complete',
-      'data': {
-        'request_id': requestId,
-        if (actualMl != null) 'actual_ml': actualMl,
-      },
-    };
+}) => {
+  'event': 'dispense_complete',
+  'data': {
+    'request_id': requestId,
+    if (actualMl != null) 'actual_ml': actualMl,
+  },
+};
 
 Map<String, dynamic> _errorEvent({
   String requestId = 'req-001',
   String reason = 'pressure fault',
-}) =>
-    {
-      'event': 'error',
-      'data': {
-        'request_id': requestId,
-        'reason': reason,
-      },
-    };
+}) => {
+  'event': 'error',
+  'data': {'request_id': requestId, 'reason': reason},
+};
 
 // ---------------------------------------------------------------------------
 // LiveDispenseState — computed property tests (no I/O, no timers)
@@ -77,7 +70,10 @@ Map<String, dynamic> _errorEvent({
 void main() {
   group('LiveDispenseState.litersDispensed', () {
     test('converts ml to liters', () {
-      expect(_baseState(mlDispensed: 1500).litersDispensed, closeTo(1.5, 0.001));
+      expect(
+        _baseState(mlDispensed: 1500).litersDispensed,
+        closeTo(1.5, 0.001),
+      );
     });
 
     test('returns 0.0 when no ml dispensed', () {
@@ -121,7 +117,10 @@ void main() {
 
     test('returns 0.5 at halfway point', () {
       // 2.0 L requested, 1.0 L dispensed = 50%
-      expect(_baseState(mlDispensed: 1000).progressFraction, closeTo(0.5, 0.001));
+      expect(
+        _baseState(mlDispensed: 1000).progressFraction,
+        closeTo(0.5, 0.001),
+      );
     });
 
     test('returns 1.0 at full amount', () {
@@ -132,15 +131,18 @@ void main() {
       expect(_baseState(mlDispensed: 9999).progressFraction, 1.0);
     });
 
-    test('returns 0.0 when requestedLiters is zero (guard against division)', () {
-      final state = LiveDispenseState(
-        phase: LiveDispensePhase.connecting,
-        requestId: 'r',
-        requestedLiters: 0.0,
-        pricePerLiterTzs: 4000,
-      );
-      expect(state.progressFraction, 0.0);
-    });
+    test(
+      'returns 0.0 when requestedLiters is zero (guard against division)',
+      () {
+        final state = LiveDispenseState(
+          phase: LiveDispensePhase.awaitingActivation,
+          requestId: 'r',
+          requestedLiters: 0.0,
+          pricePerLiterTzs: 4000,
+        );
+        expect(state.progressFraction, 0.0);
+      },
+    );
   });
 
   group('LiveDispenseState.isStale', () {
@@ -207,8 +209,8 @@ void main() {
       controller.close();
     });
 
-    test('initial state is connecting with zero ml', () {
-      expect(notifier.state.phase, LiveDispensePhase.connecting);
+    test('initial state is awaiting activation with zero ml', () {
+      expect(notifier.state.phase, LiveDispensePhase.awaitingActivation);
       expect(notifier.state.mlDispensed, 0.0);
       expect(notifier.state.requestId, 'req-001');
     });
@@ -226,8 +228,8 @@ void main() {
       controller.add(_progressEvent(requestId: 'other-req', mlDispensed: 999));
       await Future<void>.delayed(Duration.zero);
 
-      // State must be unchanged — still connecting, still 0 ml
-      expect(notifier.state.phase, LiveDispensePhase.connecting);
+      // State must be unchanged — still awaiting activation, still 0 ml
+      expect(notifier.state.phase, LiveDispensePhase.awaitingActivation);
       expect(notifier.state.mlDispensed, 0.0);
     });
 
@@ -239,13 +241,16 @@ void main() {
       expect(notifier.state.actualMl, closeTo(1980.0, 0.01));
     });
 
-    test('dispense_complete without actual_ml still transitions to completed', () async {
-      controller.add(_completeEvent(actualMl: null));
-      await Future<void>.delayed(Duration.zero);
+    test(
+      'dispense_complete without actual_ml still transitions to completed',
+      () async {
+        controller.add(_completeEvent(actualMl: null));
+        await Future<void>.delayed(Duration.zero);
 
-      expect(notifier.state.phase, LiveDispensePhase.completed);
-      expect(notifier.state.actualMl, isNull);
-    });
+        expect(notifier.state.phase, LiveDispensePhase.completed);
+        expect(notifier.state.actualMl, isNull);
+      },
+    );
 
     test('error event → error phase with message', () async {
       controller.add(_errorEvent(reason: 'pressure fault'));
@@ -273,14 +278,14 @@ void main() {
       });
       await Future<void>.delayed(Duration.zero);
 
-      expect(notifier.state.phase, LiveDispensePhase.connecting);
+      expect(notifier.state.phase, LiveDispensePhase.awaitingActivation);
     });
 
     test('event missing event key does not throw', () async {
       controller.add({'data': {}});
       await Future<void>.delayed(Duration.zero);
 
-      expect(notifier.state.phase, LiveDispensePhase.connecting);
+      expect(notifier.state.phase, LiveDispensePhase.awaitingActivation);
     });
 
     test('ml advances on successive telemetry events', () async {

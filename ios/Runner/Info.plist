@@ -43,8 +43,12 @@
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>FuelEase needs your location to show nearby fuel stations and calculate distances.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>FuelEase needs your location to show nearby fuel stations and calculate distances.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>FuelEase uses the camera to scan fuel pump QR codes.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

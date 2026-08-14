@@ -5,32 +5,42 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fuel_ease_flutter/core/constants/api_constants.dart';
 import 'package:fuel_ease_flutter/core/storage/secure_storage.dart';
 import 'package:fuel_ease_flutter/core/api/api_interceptors.dart';
+import 'package:fuel_ease_flutter/core/api/token_refresh_service.dart';
+
+bool apiValidateStatus(int? status) =>
+    status != null && status >= 200 && status < 400;
 
 /// Main API client for making HTTP requests
 class ApiClient {
-  ApiClient(this._secureStorage) {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: ApiConstants.baseUrl,
-        connectTimeout: ApiConstants.timeout,
-        receiveTimeout: ApiConstants.timeout,
-        sendTimeout: ApiConstants.timeout,
-        headers: {
-          ApiConstants.contentTypeKey: ApiConstants.jsonContentType,
-          'Accept': ApiConstants.jsonContentType,
-          ApiConstants.clientHeaderKey: ApiConstants.clientType,
-        },
-        validateStatus: (status) {
-          // Accept all status codes to handle errors in interceptor
-          return status != null && status < 500;
-        },
-      ),
-    );
+  ApiClient(
+    this._secureStorage, {
+    TokenRefreshService? tokenRefreshService,
+    Dio? dio,
+    bool enableLogging = kDebugMode,
+  }) {
+    _dio =
+        dio ??
+        Dio(
+          BaseOptions(
+            baseUrl: ApiConstants.baseUrl,
+            connectTimeout: ApiConstants.timeout,
+            receiveTimeout: ApiConstants.timeout,
+            sendTimeout: ApiConstants.timeout,
+            headers: {
+              ApiConstants.contentTypeKey: ApiConstants.jsonContentType,
+              'Accept': ApiConstants.jsonContentType,
+              ApiConstants.clientHeaderKey: ApiConstants.clientType,
+            },
+            validateStatus: apiValidateStatus,
+          ),
+        );
 
+    final refreshService =
+        tokenRefreshService ?? TokenRefreshService(_secureStorage);
     _dio.interceptors.addAll([
-      AuthInterceptor(_secureStorage),
+      AuthInterceptor(_secureStorage, refreshService),
       ErrorInterceptor(),
-      if (kDebugMode) LoggingInterceptor(),
+      if (enableLogging) LoggingInterceptor(),
     ]);
   }
 
@@ -164,7 +174,8 @@ class ApiClient {
 /// Provider for ApiClient
 final apiClientProvider = Provider<ApiClient>((ref) {
   final secureStorage = ref.watch(secureStorageProvider);
-  return ApiClient(secureStorage);
+  final tokenRefreshService = ref.watch(tokenRefreshServiceProvider);
+  return ApiClient(secureStorage, tokenRefreshService: tokenRefreshService);
 });
 
 /// Provider for Dio instance

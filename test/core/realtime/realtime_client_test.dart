@@ -46,17 +46,30 @@ void main() {
   });
 
   group('RealtimeClient.ensureConnected', () {
-    test(
-      'records the user channel as a subscription intent even without a '
-      'live socket (so it is not lost if a connect() were already in '
-      'flight — see realtime_client.dart ensureConnected doc comment)',
-      () {
-        final storage = _FakeSecureStorage();
-        final client = RealtimeClient(storage, ApiClient(storage));
-        client.ensureConnected('u1');
-        expect(client.debugSubscriptions, contains('user:u1'));
-      },
-    );
+    test('records the user channel as a subscription intent even without a '
+        'live socket (so it is not lost if a connect() were already in '
+        'flight — see realtime_client.dart ensureConnected doc comment)', () {
+      final storage = _FakeSecureStorage();
+      final client = RealtimeClient(storage, ApiClient(storage));
+      client.ensureConnected('u1');
+      expect(client.debugSubscriptions, contains('user:u1'));
+    });
+
+    test('clearSession removes account-scoped subscriptions and events', () {
+      final storage = _FakeSecureStorage();
+      final client = RealtimeClient(storage, ApiClient(storage));
+      addTearDown(client.dispose);
+      client.ensureConnected('u1');
+      client.debugAddBufferedEvent({
+        'event': 'dispensing_progress',
+        'data': {'request_id': 'old-request'},
+      });
+
+      client.clearSession();
+
+      expect(client.debugSubscriptions, isEmpty);
+      expect(client.debugBufferedEventCount, 0);
+    });
   });
 
   group('RealtimeEvent.fromWire', () {

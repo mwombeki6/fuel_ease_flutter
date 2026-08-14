@@ -12,8 +12,8 @@ import 'package:fuel_ease_flutter/features/dispense/presentation/providers/live_
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/create_dispense_screen.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_complete_screen.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_history_screen.dart';
+import 'package:fuel_ease_flutter/features/dispense/presentation/screens/dispense_request_resolver_screen.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/live_dispense_screen.dart';
-import 'package:fuel_ease_flutter/features/dispense/presentation/screens/pin_qr_screen.dart';
 import 'package:fuel_ease_flutter/features/dispense/presentation/screens/scan_qr_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/splash_screen.dart';
 import 'package:fuel_ease_flutter/features/auth/presentation/screens/welcome_screen.dart';
@@ -39,24 +39,26 @@ import 'package:fuel_ease_flutter/core/navigation/main_navigation.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 
 /// Smooth fade + subtle upward slide — replaces the default hard-cut on push.
-Page<T> _slideFade<T>(GoRouterState state, Widget child) =>
-    CustomTransitionPage<T>(
-      key: state.pageKey,
-      child: child,
-      transitionDuration: const Duration(milliseconds: 280),
-      reverseTransitionDuration: const Duration(milliseconds: 220),
-      transitionsBuilder: (context, animation, secondary, child) {
-        final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
-        final slide = Tween<Offset>(
-          begin: const Offset(0, 0.04),
-          end: Offset.zero,
-        ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
-        return FadeTransition(
-          opacity: fade,
-          child: SlideTransition(position: slide, child: child),
-        );
-      },
+Page<T> _slideFade<T>(
+  GoRouterState state,
+  Widget child,
+) => CustomTransitionPage<T>(
+  key: state.pageKey,
+  child: child,
+  transitionDuration: const Duration(milliseconds: 280),
+  reverseTransitionDuration: const Duration(milliseconds: 220),
+  transitionsBuilder: (context, animation, secondary, child) {
+    final fade = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+    final slide = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic));
+    return FadeTransition(
+      opacity: fade,
+      child: SlideTransition(position: slide, child: child),
     );
+  },
+);
 
 /// Provider for GoRouter instance
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -78,13 +80,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         orElse: () => false,
       );
 
-      final isGoingToAuth = state.matchedLocation.startsWith('/welcome') ||
+      final isGoingToAuth =
+          state.matchedLocation.startsWith('/welcome') ||
           state.matchedLocation.startsWith('/login') ||
           state.matchedLocation.startsWith('/register');
 
       // Only redirect to splash during initial app load — auth screens (login/register)
       // manage their own loading spinners and must not be displaced mid-submission.
-      if (isLoading && !isGoingToAuth && state.matchedLocation != Routes.splash) {
+      if (isLoading &&
+          !isGoingToAuth &&
+          state.matchedLocation != Routes.splash) {
         return Routes.splash;
       }
 
@@ -110,13 +115,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Splash screen
       GoRoute(
         path: Routes.splash,
-        pageBuilder: (context, state) => _slideFade(state, const SplashScreen()),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const SplashScreen()),
       ),
 
       // Auth routes
       GoRoute(
         path: Routes.welcome,
-        pageBuilder: (context, state) => _slideFade(state, const WelcomeScreen()),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const WelcomeScreen()),
       ),
       GoRoute(
         path: Routes.login,
@@ -124,7 +131,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: Routes.register,
-        pageBuilder: (context, state) => _slideFade(state, const RegisterScreen()),
+        pageBuilder: (context, state) =>
+            _slideFade(state, const RegisterScreen()),
       ),
 
       // Main app routes with bottom navigation
@@ -218,38 +226,56 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/fuel/requests/:id',
-        pageBuilder: (context, state) =>
-            _slideFade(state, const DispenseHistoryScreen()),
+        pageBuilder: (context, state) {
+          final requestId = state.pathParameters['id']!;
+          return _slideFade(
+            state,
+            DispenseRequestResolverScreen(requestId: requestId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/fuel/request/:requestId',
+        pageBuilder: (context, state) {
+          final requestId = state.pathParameters['requestId']!;
+          final response = state.extra is CreateDispenseResponse
+              ? state.extra as CreateDispenseResponse
+              : null;
+          final safeResponse = response?.request.id == requestId
+              ? response
+              : null;
+          return _slideFade(
+            state,
+            DispenseRequestResolverScreen(
+              requestId: requestId,
+              createdResponse: safeResponse,
+            ),
+          );
+        },
       ),
       GoRoute(
         path: '/fuel/token/:token',
         pageBuilder: (context, state) {
-          final response = state.extra as CreateDispenseResponse?;
-          if (response == null) {
-            return _slideFade(
-              state,
-              const Scaffold(
-                  body: Center(child: Text('Invalid dispense token'))),
-            );
-          }
+          final requestId = state.pathParameters['token']!;
           return _slideFade(
             state,
-            PinQrScreen(
-              requestId: response.request.id,
-              pin: response.pin,
-              qrPayload: response.qrPayload,
-              stationId: response.request.stationId,
-              requestedLiters: response.request.requestedLiters,
-              pricePerLiterTzs: response.request.pricePerLiterTzs,
-            ),
+            DispenseRequestResolverScreen(requestId: requestId),
           );
         },
       ),
       GoRoute(
         path: '/fuel/live/:requestId',
         pageBuilder: (context, state) {
-          final params = state.extra as LiveDispenseParams;
-          return _slideFade(state, LiveDispenseScreen(params: params));
+          final requestId = state.pathParameters['requestId']!;
+          final params = state.extra is LiveDispenseParams
+              ? state.extra as LiveDispenseParams
+              : null;
+          return _slideFade(
+            state,
+            params == null
+                ? DispenseRequestResolverScreen(requestId: requestId)
+                : LiveDispenseScreen(params: params),
+          );
         },
       ),
       GoRoute(
@@ -257,7 +283,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) {
           final requestId = state.pathParameters['requestId']!;
           return _slideFade(
-              state, DispenseCompleteScreen(requestId: requestId));
+            state,
+            DispenseCompleteScreen(requestId: requestId),
+          );
         },
       ),
 
@@ -294,10 +322,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
     ],
-    errorBuilder: (context, state) => Scaffold(
-      body: Center(
-        child: Text('Error: ${state.error}'),
-      ),
-    ),
+    errorBuilder: (context, state) =>
+        Scaffold(body: Center(child: Text('Error: ${state.error}'))),
   );
 });

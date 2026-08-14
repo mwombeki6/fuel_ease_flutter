@@ -97,7 +97,9 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
           _goLive();
         } else if (request.isCompleted) {
           _goComplete();
-        } else if (request.isCancelled) {
+        } else if (request.isCancelled ||
+            request.isRejected ||
+            request.isExpired) {
           _pollTimer?.cancel();
           _countdownTimer?.cancel();
         }
@@ -108,9 +110,10 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
   }
 
   void _startRealtimeListener() {
-    ref.read(realtimeClientProvider).connect();
-    _realtimeSubscription =
-        ref.read(realtimeClientProvider).stream.listen((raw) {
+    unawaited(ref.read(realtimeClientProvider).connect());
+    _realtimeSubscription = ref.read(realtimeClientProvider).stream.listen((
+      raw,
+    ) {
       if (!mounted || _hasNavigated) return;
       final eventType = raw['event']?.toString();
       if (eventType == null) return;
@@ -122,9 +125,11 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
 
       if (eventType == 'dispensing_progress') {
         _goLive(
-          initialMlDispensed:
-              (data['ml_dispensed'] as num?)?.toDouble() ?? 0.0,
+          initialMlDispensed: (data['ml_dispensed'] as num?)?.toDouble() ?? 0.0,
         );
+      } else if (eventType == 'dispense_approved' ||
+          eventType == 'dispense_active') {
+        _goLive();
       } else if (eventType == 'dispense_complete') {
         _goComplete();
       }
@@ -175,17 +180,21 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
 
     setState(() => _isCancelling = true);
     try {
-      await ref.read(dispenseRepositoryProvider).cancelRequest(widget.requestId);
+      await ref
+          .read(dispenseRepositoryProvider)
+          .cancelRequest(widget.requestId);
       _pollTimer?.cancel();
       _countdownTimer?.cancel();
-      if (mounted) context.pop();
+      if (mounted) context.go(Routes.home);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Failed to cancel: $e'),
-          backgroundColor: AppColors.error,
-          behavior: SnackBarBehavior.floating,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to cancel: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _isCancelling = false);
@@ -203,7 +212,7 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final status = _latestRequest?.status ?? 'pending';
     final isExpired = _remainingSeconds == 0;
-    final isCancelled = _latestRequest?.isCancelled ?? false;
+    final isCancelled = _latestRequest?.isTerminal ?? false;
     final isUrgent = _remainingSeconds < 60;
 
     return Scaffold(
@@ -240,9 +249,13 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                   child: Row(
                     children: [
                       IconButton(
-                        icon: Icon(Icons.close_rounded,
-                            color: Colors.white.withValues(alpha: 0.6)),
-                        onPressed: isExpired || isCancelled ? () => context.pop() : null,
+                        icon: Icon(
+                          Icons.close_rounded,
+                          color: Colors.white.withValues(alpha: 0.6),
+                        ),
+                        onPressed: isExpired || isCancelled
+                            ? () => context.pop()
+                            : null,
                       ),
                       const Expanded(
                         child: Text(
@@ -281,7 +294,9 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                         if (isExpired || isCancelled) ...[
                           _ExpiredOrCancelledView(
                             isCancelled: isCancelled,
-                            onRetry: () => context.pushReplacement(Routes.createDispensingRequest),
+                            onRetry: () => context.pushReplacement(
+                              Routes.createDispensingRequest,
+                            ),
                           ),
                         ] else ...[
                           // PIN section
@@ -297,7 +312,9 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                           const SizedBox(height: 8),
                           GestureDetector(
                             onTap: () {
-                              Clipboard.setData(ClipboardData(text: widget.pin));
+                              Clipboard.setData(
+                                ClipboardData(text: widget.pin),
+                              );
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('PIN copied to clipboard'),
@@ -309,7 +326,9 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                               'Tap to copy PIN',
                               style: TextStyle(
                                 fontSize: 12,
-                                color: colorScheme.primary.withValues(alpha: 0.8),
+                                color: colorScheme.primary.withValues(
+                                  alpha: 0.8,
+                                ),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -330,7 +349,10 @@ class _PinQrScreenState extends ConsumerState<PinQrScreen> {
                           _QrContainer(payload: widget.qrPayload)
                               .animate(delay: 100.ms)
                               .fadeIn(duration: 400.ms)
-                              .scale(begin: const Offset(0.95, 0.95), duration: 350.ms),
+                              .scale(
+                                begin: const Offset(0.95, 0.95),
+                                duration: 350.ms,
+                              ),
 
                           const SizedBox(height: 32),
 
@@ -710,10 +732,7 @@ class _ExpiredOrCancelledView extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 36),
-        GradientButton(
-          onPressed: onRetry,
-          label: 'Create New Request',
-        ),
+        GradientButton(onPressed: onRetry, label: 'Create New Request'),
       ],
     );
   }
@@ -745,7 +764,10 @@ class _DarkDialog extends StatelessWidget {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       title: Text(
         title,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
       ),
       content: Text(
         message,
@@ -754,12 +776,17 @@ class _DarkDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: onCancel,
-          child: Text('No', style: TextStyle(color: Colors.white.withValues(alpha: 0.5))),
+          child: Text(
+            'No',
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+          ),
         ),
         TextButton(
           onPressed: onConfirm,
-          child: Text(confirmLabel,
-              style: TextStyle(color: confirmColor, fontWeight: FontWeight.w700)),
+          child: Text(
+            confirmLabel,
+            style: TextStyle(color: confirmColor, fontWeight: FontWeight.w700),
+          ),
         ),
       ],
     );

@@ -75,12 +75,13 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
         requestedLiters: double.parse(_litersController.text),
       );
 
-      final response =
-          await ref.read(dispenseProvider.notifier).createRequest(payload);
+      final response = await ref
+          .read(dispenseProvider.notifier)
+          .createRequest(payload);
 
       if (mounted) {
         context.push(
-          Routes.dispensingToken(response.request.id),
+          Routes.dispensingRequest(response.request.id),
           extra: response,
         );
       }
@@ -109,7 +110,8 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
     final stationState = ref.watch(stationSelectionProvider);
     final walletState = ref.watch(walletProvider);
 
-    final activeCards = cardsState.whenOrNull(
+    final activeCards =
+        cardsState.whenOrNull(
           data: (cards) => cards.where((c) => c.isActive).toList(),
         ) ??
         [];
@@ -118,9 +120,8 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
         .where((s) => s.status == null || s.status == 'active')
         .toList();
 
-    final balanceTzs = walletState.whenOrNull(
-          data: (summary) => summary.wallet.balanceTzs,
-        ) ??
+    final balanceTzs =
+        walletState.whenOrNull(data: (summary) => summary.wallet.balanceTzs) ??
         0;
 
     return Scaffold(
@@ -129,8 +130,11 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
         backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_new_rounded,
-              color: Colors.white.withValues(alpha: 0.8), size: 18),
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: Colors.white.withValues(alpha: 0.8),
+            size: 18,
+          ),
           onPressed: () => context.pop(),
         ),
         title: const Text(
@@ -146,7 +150,12 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
             // Balance banner
             _DarkBalanceBanner(balanceTzs: balanceTzs)
                 .animate()
-                .slideY(begin: 0.2, end: 0, duration: 350.ms, curve: Curves.easeOutCubic)
+                .slideY(
+                  begin: 0.2,
+                  end: 0,
+                  duration: 350.ms,
+                  curve: Curves.easeOutCubic,
+                )
                 .fadeIn(duration: 300.ms),
 
             const SizedBox(height: 24),
@@ -155,12 +164,17 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
             _SectionLabel('Select Card'),
             const SizedBox(height: 8),
             _DarkCardPicker(
-              cards: activeCards,
-              selectedCardId: _selectedCardId,
-              onChanged: (id) => setState(() => _selectedCardId = id),
-            )
+                  cards: activeCards,
+                  selectedCardId: _selectedCardId,
+                  onChanged: (id) => setState(() => _selectedCardId = id),
+                )
                 .animate(delay: 60.ms)
-                .slideY(begin: 0.15, end: 0, duration: 300.ms, curve: Curves.easeOutCubic)
+                .slideY(
+                  begin: 0.15,
+                  end: 0,
+                  duration: 300.ms,
+                  curve: Curves.easeOutCubic,
+                )
                 .fadeIn(duration: 250.ms),
 
             const SizedBox(height: 24),
@@ -203,12 +217,17 @@ class _CreateDispenseScreenState extends ConsumerState<CreateDispenseScreen> {
             const SizedBox(height: 36),
 
             GradientButton(
-              onPressed: _isLoading ? null : _submit,
-              label: 'Generate fuel code',
-              isLoading: _isLoading,
-            )
+                  onPressed: _isLoading ? null : _submit,
+                  label: 'Generate fuel code',
+                  isLoading: _isLoading,
+                )
                 .animate(delay: 200.ms)
-                .slideY(begin: 0.3, end: 0, duration: 350.ms, curve: Curves.easeOutCubic)
+                .slideY(
+                  begin: 0.3,
+                  end: 0,
+                  duration: 350.ms,
+                  curve: Curves.easeOutCubic,
+                )
                 .fadeIn(duration: 300.ms),
 
             const SizedBox(height: 24),
@@ -227,14 +246,14 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        text,
-        style: TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.55),
-          letterSpacing: 0.4,
-        ),
-      );
+    text,
+    style: TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w600,
+      color: Colors.white.withValues(alpha: 0.55),
+      letterSpacing: 0.4,
+    ),
+  );
 }
 
 // ── Dark balance banner ────────────────────────────────────────────────────
@@ -265,8 +284,11 @@ class _DarkBalanceBanner extends StatelessWidget {
                   gradient: AppColors.brandGradient,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.account_balance_wallet_rounded,
-                    color: Colors.white, size: 18),
+                child: const Icon(
+                  Icons.account_balance_wallet_rounded,
+                  color: Colors.white,
+                  size: 18,
+                ),
               ),
               const SizedBox(width: 14),
               Column(
@@ -325,7 +347,10 @@ class _DarkCardPicker extends StatelessWidget {
         ),
         child: Text(
           'No active cards. Create a card first.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.45),
+            fontSize: 13,
+          ),
         ),
       );
     }
@@ -335,7 +360,10 @@ class _DarkCardPicker extends StatelessWidget {
       hint: 'Choose a card',
       items: cards.map((c) => c.id).toList(),
       itemLabel: (id) {
-        final card = cards.firstWhere((c) => c.id == id, orElse: () => cards.first);
+        final card = cards.firstWhere(
+          (c) => c.id == id,
+          orElse: () => cards.first,
+        );
         return card.maskedCardNumber;
       },
       onChanged: onChanged,
@@ -370,7 +398,10 @@ class _DarkStationPicker extends StatelessWidget {
         ),
         child: Text(
           'No stations available.',
-          style: TextStyle(color: Colors.white.withValues(alpha: 0.45), fontSize: 13),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.45),
+            fontSize: 13,
+          ),
         ),
       );
     }
@@ -380,7 +411,10 @@ class _DarkStationPicker extends StatelessWidget {
       hint: 'Choose a station',
       items: stations.map((s) => s.id).toList(),
       itemLabel: (id) {
-        final station = stations.firstWhere((s) => s.id == id, orElse: () => stations.first);
+        final station = stations.firstWhere(
+          (s) => s.id == id,
+          orElse: () => stations.first,
+        );
         return station.name;
       },
       onChanged: onChanged,
@@ -435,17 +469,22 @@ class _DarkDropdown<T> extends StatelessWidget {
           borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       items: items
-          .map((item) => DropdownMenuItem<T>(
-                value: item,
-                child: Text(
-                  itemLabel(item),
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white),
-                ),
-              ))
+          .map(
+            (item) => DropdownMenuItem<T>(
+              value: item,
+              child: Text(
+                itemLabel(item),
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+          )
           .toList(),
       onChanged: onChanged,
       validator: validator,
@@ -497,7 +536,11 @@ class _LockedStationRow extends StatelessWidget {
           ),
           GestureDetector(
             onTap: onEdit,
-            child: Icon(Icons.edit_outlined, size: 16, color: colorScheme.primary),
+            child: Icon(
+              Icons.edit_outlined,
+              size: 16,
+              color: colorScheme.primary,
+            ),
           ),
         ],
       ),
@@ -543,7 +586,10 @@ class _DarkAmountField extends StatelessWidget {
           borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
         ),
         errorStyle: const TextStyle(color: AppColors.error, fontSize: 12),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
       validator: (v) {
         if (v == null || v.isEmpty) return 'Enter liters';

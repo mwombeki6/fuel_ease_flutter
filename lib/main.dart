@@ -1,4 +1,5 @@
-import 'package:firebase_core/firebase_core.dart';
+import 'dart:async';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,45 +7,20 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:fuel_ease_flutter/core/providers/account_state_reset.dart';
+import 'package:fuel_ease_flutter/core/providers/reset_account_scoped_providers.dart';
 import 'package:fuel_ease_flutter/core/routing/app_router.dart';
 import 'package:fuel_ease_flutter/core/routing/routes.dart';
-import 'package:fuel_ease_flutter/firebase_options.dart';
+import 'package:fuel_ease_flutter/core/services/push_notification_service.dart';
 import 'package:fuel_ease_flutter/shared/theme/app_theme.dart';
 
 /// Persisted theme mode. Reads from SharedPreferences on start.
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
-/// Top-level FCM background handler — must be a top-level function.
-/// The app is not running in this context; don't touch UI or providers.
-@pragma('vm:entry-point')
-Future<void> _fcmBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Background messages are shown automatically by FCM on Android API 26+.
-  // No additional UI work needed here.
-}
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Register background handler before any other Firebase calls.
-  FirebaseMessaging.onBackgroundMessage(_fcmBackgroundHandler);
-
-  // Request notification permission (iOS; Android 13+ also shows a dialog).
-  await FirebaseMessaging.instance.requestPermission(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
-
-  // Show foreground notifications as heads-up on iOS.
-  await FirebaseMessaging.instance
-      .setForegroundNotificationPresentationOptions(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  final pushNotificationsAvailable = await initializePushNotifications();
 
   await _configureFonts();
 
@@ -54,9 +30,7 @@ Future<void> main() async {
   ]);
 
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-    ),
+    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
   final prefs = await SharedPreferences.getInstance();
@@ -71,6 +45,13 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         themeModeProvider.overrideWith((ref) => initialThemeMode),
+        firebaseMessagingAvailableProvider.overrideWithValue(
+          pushNotificationsAvailable,
+        ),
+        accountStateResetProvider.overrideWith(
+          (ref) =>
+              () => resetAccountScopedProviders(ref),
+        ),
       ],
       child: const FuelEaseApp(),
     ),
@@ -94,6 +75,8 @@ class FuelEaseApp extends ConsumerStatefulWidget {
 }
 
 class _FuelEaseAppState extends ConsumerState<FuelEaseApp> {
+  final _notificationSubscriptions = <StreamSubscription<RemoteMessage>>[];
+
   @override
   void initState() {
     super.initState();
@@ -101,55 +84,77 @@ class _FuelEaseAppState extends ConsumerState<FuelEaseApp> {
   }
 
   void _setupNotificationHandlers() {
+    final notifications = ref.read(pushNotificationServiceProvider);
+    if (!notifications.isAvailable) return;
+
     // App opened from terminated state via notification tap
-    FirebaseMessaging.instance.getInitialMessage().then(_handleNotificationTap);
+    notifications.getInitialMessage().then(_handleNotificationTap);
 
     // App in background, user taps notification
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleNotificationTap);
+    _notificationSubscriptions.add(
+      notifications.onMessageOpenedApp.listen(_handleNotificationTap),
+    );
 
     // App in foreground — show a snackbar for non-dispense notifications
-    FirebaseMessaging.onMessage.listen((message) {
-      final ctx = navigatorKey.currentContext;
-      if (ctx == null || !ctx.mounted) return;
-      final title = message.notification?.title;
-      final body = message.notification?.body;
-      if (title == null && body == null) return;
+    _notificationSubscriptions.add(
+      notifications.onMessage.listen((message) {
+        final ctx = navigatorKey.currentContext;
+        if (ctx == null || !ctx.mounted) return;
+        final title = message.notification?.title;
+        final body = message.notification?.body;
+        if (title == null && body == null) return;
 
-      // Route to dispense screen directly for dispense events
-      final type = message.data['type'] as String?;
-      if (type == 'dispense_update') {
-        _handleNotificationTap(message);
-        return;
-      }
+        // Route to dispense screen directly for dispense events
+        final type = message.data['type'] as String?;
+        if (type == 'dispense_update') {
+          _handleNotificationTap(message);
+          return;
+        }
 
-      ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (title != null)
-                Text(title,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-              if (body != null) Text(body),
-            ],
+        ScaffoldMessenger.of(ctx).showSnackBar(
+          SnackBar(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (title != null)
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                if (body != null) Text(body),
+              ],
+            ),
+            duration: const Duration(seconds: 5),
+            behavior: SnackBarBehavior.floating,
           ),
-          duration: const Duration(seconds: 5),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    });
+        );
+      }),
+    );
+  }
+
+  @override
+  void dispose() {
+    for (final subscription in _notificationSubscriptions) {
+      unawaited(subscription.cancel());
+    }
+    super.dispose();
   }
 
   void _handleNotificationTap(RemoteMessage? message) {
     if (message == null) return;
-    final router = ref.read(appRouterProvider);
     final type = message.data['type'] as String?;
     final id = message.data['id'] as String?;
+    if (type == null) return;
+    if ((type == 'dispense_update' || type == 'card_ready') &&
+        (id == null || id.isEmpty)) {
+      return;
+    }
+    final router = ref.read(appRouterProvider);
 
     switch (type) {
       case 'dispense_update':
-        if (id != null) router.push(Routes.dispensingToken(id));
+        if (id != null) router.push(Routes.dispensingRequest(id));
       case 'card_ready':
         if (id != null) router.push(Routes.cardDetails(id));
       case 'wallet_topup':
